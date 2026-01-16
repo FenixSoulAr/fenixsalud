@@ -18,16 +18,23 @@ interface StatusBadgeProps {
 }
 
 const statusConfig: Record<StatusType, { label: string; className: string }> = {
+  // Appointments: Upcoming → green, Completed → gray, Cancelled → gray
   upcoming: { label: "Upcoming", className: "status-upcoming" },
   completed: { label: "Completed", className: "status-completed" },
   cancelled: { label: "Cancelled", className: "status-cancelled" },
+  
+  // Medications: Active → green, Paused → gray, Completed → gray
   active: { label: "Active", className: "status-active" },
   paused: { label: "Paused", className: "status-paused" },
+  
+  // Tests: Scheduled → amber, Done → gray, Result received → green
   scheduled: { label: "Scheduled", className: "status-scheduled" },
-  done: { label: "Done", className: "status-completed" },
-  result_received: { label: "Result received", className: "status-active" },
-  taken: { label: "Taken", className: "status-completed" },
-  skipped: { label: "Skipped", className: "status-cancelled" },
+  done: { label: "Done", className: "status-done" },
+  result_received: { label: "Result received", className: "status-result-received" },
+  
+  // Medication logs
+  taken: { label: "Taken", className: "status-taken" },
+  skipped: { label: "Skipped", className: "status-skipped" },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
