@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Calendar, Pencil, Trash2 } from "lucide-react";
+import { Plus, Calendar, Pencil, Trash2, Stethoscope, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
@@ -16,6 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 export default function Appointments() {
   const { user } = useAuth();
@@ -27,7 +31,17 @@ export default function Appointments() {
   const [dialogOpen, setDialogOpen] = useState(searchParams.get("new") === "true");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState({ datetime_start: "", reason: "", notes: "", doctor_id: "", institution_id: "", status: "Upcoming" });
+  const [form, setForm] = useState({ date: "", time: "", reason: "", notes: "", doctor_id: "", institution_id: "", status: "Upcoming" });
+  
+  // Quick add dialogs
+  const [addDoctorOpen, setAddDoctorOpen] = useState(false);
+  const [addInstitutionOpen, setAddInstitutionOpen] = useState(false);
+  const [newDoctor, setNewDoctor] = useState({ full_name: "", specialty: "" });
+  const [newInstitution, setNewInstitution] = useState({ name: "", type: "Clinic" });
+  
+  // Combobox open states
+  const [doctorOpen, setDoctorOpen] = useState(false);
+  const [institutionOpen, setInstitutionOpen] = useState(false);
 
   useEffect(() => { if (user) fetchData(); }, [user]);
 
@@ -46,8 +60,11 @@ export default function Appointments() {
 
   function openEdit(apt: any) {
     setEditingId(apt.id);
+    const dt = apt.datetime_start ? new Date(apt.datetime_start) : null;
+    const hasTime = dt && (dt.getHours() !== 0 || dt.getMinutes() !== 0);
     setForm({
-      datetime_start: apt.datetime_start ? apt.datetime_start.slice(0, 16) : "",
+      date: dt ? format(dt, "yyyy-MM-dd") : "",
+      time: hasTime ? format(dt, "HH:mm") : "",
       reason: apt.reason || "",
       notes: apt.notes || "",
       doctor_id: apt.doctor_id || "",
@@ -59,15 +76,21 @@ export default function Appointments() {
 
   function resetForm() {
     setEditingId(null);
-    setForm({ datetime_start: "", reason: "", notes: "", doctor_id: "", institution_id: "", status: "Upcoming" });
+    setForm({ date: "", time: "", reason: "", notes: "", doctor_id: "", institution_id: "", status: "Upcoming" });
+  }
+
+  function buildDateTime() {
+    if (!form.date) return "";
+    const time = form.time || "00:00";
+    return `${form.date}T${time}`;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.datetime_start) { toast.error("Date and time are required."); return; }
+    if (!form.date) { toast.error("Date is required."); return; }
     
     const payload = {
-      datetime_start: form.datetime_start,
+      datetime_start: buildDateTime(),
       reason: form.reason || null,
       notes: form.notes || null,
       doctor_id: form.doctor_id || null,
@@ -94,9 +117,53 @@ export default function Appointments() {
     if (!deleteId) return;
     const { error } = await supabase.from("appointments").delete().eq("id", deleteId);
     if (error) { toast.error("Something went wrong. Please try again."); return; }
-    toast.success("Appointment deleted.");
+    toast.success("Deleted successfully.");
     setDeleteId(null);
     fetchData();
+  }
+
+  async function handleAddDoctor(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newDoctor.full_name) { toast.error("Doctor name is required."); return; }
+    
+    const { data, error } = await supabase.from("doctors").insert({ 
+      user_id: user!.id, 
+      full_name: newDoctor.full_name, 
+      specialty: newDoctor.specialty || null 
+    }).select().single();
+    
+    if (error) { toast.error("Failed to add doctor"); return; }
+    
+    toast.success("Doctor added!");
+    setAddDoctorOpen(false);
+    setNewDoctor({ full_name: "", specialty: "" });
+    
+    // Refresh doctors and auto-select
+    const { data: docs } = await supabase.from("doctors").select("id, full_name");
+    setDoctors(docs || []);
+    setForm(f => ({ ...f, doctor_id: data.id }));
+  }
+
+  async function handleAddInstitution(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newInstitution.name) { toast.error("Institution name is required."); return; }
+    
+    const { data, error } = await supabase.from("institutions").insert({ 
+      user_id: user!.id, 
+      name: newInstitution.name, 
+      type: newInstitution.type as any
+    }).select().single();
+    
+    if (error) { toast.error("Failed to add institution"); return; }
+    
+    toast.success("Institution added!");
+    setAddInstitutionOpen(false);
+    setNewInstitution({ name: "", type: "Clinic" });
+    
+    // Refresh institutions and auto-select
+    const { data: insts } = await supabase.from("institutions").select("id, name");
+    setInstitutions(insts || []);
+    setForm(f => ({ ...f, institution_id: data.id }));
   }
 
   if (loading) return <LoadingPage />;
@@ -109,31 +176,97 @@ export default function Appointments() {
         actions={
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add appointment</Button></DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>{editingId ? "Edit Appointment" : "New Appointment"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-field">
-                  <Label>Date & Time *</Label>
-                  <Input type="datetime-local" value={form.datetime_start} onChange={(e) => setForm({ ...form, datetime_start: e.target.value })} required />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-field">
+                    <Label>Date *</Label>
+                    <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+                  </div>
+                  <div className="form-field">
+                    <Label>Time</Label>
+                    <Input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
+                  </div>
                 </div>
                 <div className="form-field">
                   <Label>Reason</Label>
                   <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="e.g., Annual checkup" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
+                  {/* Doctor Combobox */}
                   <div className="form-field">
                     <Label>Doctor</Label>
-                    <Select value={form.doctor_id} onValueChange={(v) => setForm({ ...form, doctor_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Select doctor" /></SelectTrigger>
-                      <SelectContent>{doctors.map((d) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <Popover open={doctorOpen} onOpenChange={setDoctorOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={doctorOpen} className="w-full justify-between font-normal">
+                          {form.doctor_id ? doctors.find(d => d.id === form.doctor_id)?.full_name : "Select doctor..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search doctor..." />
+                          <CommandList>
+                            <CommandEmpty>No doctor found.</CommandEmpty>
+                            <CommandGroup>
+                              {doctors.map((d) => (
+                                <CommandItem
+                                  key={d.id}
+                                  value={d.full_name}
+                                  onSelect={() => { setForm({ ...form, doctor_id: d.id }); setDoctorOpen(false); }}
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", form.doctor_id === d.id ? "opacity-100" : "opacity-0")} />
+                                  {d.full_name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                        <div className="border-t p-2">
+                          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setDoctorOpen(false); setAddDoctorOpen(true); }}>
+                            <Plus className="h-4 w-4 mr-2" />Add new doctor
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
+                  {/* Institution Combobox */}
                   <div className="form-field">
                     <Label>Institution</Label>
-                    <Select value={form.institution_id} onValueChange={(v) => setForm({ ...form, institution_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Select institution" /></SelectTrigger>
-                      <SelectContent>{institutions.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <Popover open={institutionOpen} onOpenChange={setInstitutionOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={institutionOpen} className="w-full justify-between font-normal">
+                          {form.institution_id ? institutions.find(i => i.id === form.institution_id)?.name : "Select institution..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search institution..." />
+                          <CommandList>
+                            <CommandEmpty>No institution found.</CommandEmpty>
+                            <CommandGroup>
+                              {institutions.map((i) => (
+                                <CommandItem
+                                  key={i.id}
+                                  value={i.name}
+                                  onSelect={() => { setForm({ ...form, institution_id: i.id }); setInstitutionOpen(false); }}
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", form.institution_id === i.id ? "opacity-100" : "opacity-0")} />
+                                  {i.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                        <div className="border-t p-2">
+                          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setInstitutionOpen(false); setAddInstitutionOpen(true); }}>
+                            <Plus className="h-4 w-4 mr-2" />Add new institution
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
                 {editingId && (
@@ -160,11 +293,12 @@ export default function Appointments() {
         }
       />
 
+      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete appointment?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone. The appointment will be permanently removed.</AlertDialogDescription>
+            <AlertDialogTitle>Delete item?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -172,6 +306,36 @@ export default function Appointments() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quick Add Doctor Dialog */}
+      <Dialog open={addDoctorOpen} onOpenChange={setAddDoctorOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Stethoscope className="h-5 w-5" />Add New Doctor</DialogTitle></DialogHeader>
+          <form onSubmit={handleAddDoctor} className="space-y-4">
+            <div className="form-field"><Label>Full Name *</Label><Input value={newDoctor.full_name} onChange={(e) => setNewDoctor({ ...newDoctor, full_name: e.target.value })} required /></div>
+            <div className="form-field"><Label>Specialty</Label><Input value={newDoctor.specialty} onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })} placeholder="e.g., Cardiology" /></div>
+            <Button type="submit" className="w-full">Add Doctor</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Add Institution Dialog */}
+      <Dialog open={addInstitutionOpen} onOpenChange={setAddInstitutionOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" />Add New Institution</DialogTitle></DialogHeader>
+          <form onSubmit={handleAddInstitution} className="space-y-4">
+            <div className="form-field"><Label>Name *</Label><Input value={newInstitution.name} onChange={(e) => setNewInstitution({ ...newInstitution, name: e.target.value })} required /></div>
+            <div className="form-field">
+              <Label>Type</Label>
+              <Select value={newInstitution.type} onValueChange={(v) => setNewInstitution({ ...newInstitution, type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="Clinic">Clinic</SelectItem><SelectItem value="Lab">Lab</SelectItem><SelectItem value="Hospital">Hospital</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" className="w-full">Add Institution</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {appointments.length === 0 ? (
         <EmptyState icon={Calendar} title="No appointments yet" description="Schedule your first appointment to keep track of your visits." action={{ label: "Add appointment", onClick: () => setDialogOpen(true) }} />
