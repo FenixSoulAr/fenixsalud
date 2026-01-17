@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Bell } from "lucide-react";
+import { Plus, Bell, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,8 +21,11 @@ export default function Reminders() {
   const [loading, setLoading] = useState(true);
   const [reminders, setReminders] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewDialog, setViewDialog] = useState<any | null>(null);
   const [pastWarning, setPastWarning] = useState(false);
-  const [form, setForm] = useState({ title: "", type: "Custom", due_date_time: "", repeat_rule: "None", notes: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [form, setForm] = useState({ title: "", type: "Custom", due_date: "", due_time: "", repeat_rule: "None", notes: "" });
 
   useEffect(() => { if (user) fetchData(); }, [user]);
 
@@ -32,21 +36,74 @@ export default function Reminders() {
     setLoading(false);
   }
 
+  function openEdit(reminder: any) {
+    setEditingId(reminder.id);
+    const dt = reminder.due_date_time ? new Date(reminder.due_date_time) : null;
+    setForm({
+      title: reminder.title || "",
+      type: reminder.type || "Custom",
+      due_date: dt ? format(dt, "yyyy-MM-dd") : "",
+      due_time: dt ? format(dt, "HH:mm") : "",
+      repeat_rule: reminder.repeat_rule || "None",
+      notes: reminder.notes || "",
+    });
+    setDialogOpen(true);
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setForm({ title: "", type: "Custom", due_date: "", due_time: "", repeat_rule: "None", notes: "" });
+  }
+
+  function buildDateTime() {
+    if (!form.due_date) return "";
+    const time = form.due_time || "00:00";
+    return `${form.due_date}T${time}`;
+  }
+
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
-    if (!form.title || !form.due_date_time) { toast.error("Title and due date are required"); return; }
+    if (!form.title) { toast.error("Title is required."); return; }
+    if (!form.due_date) { toast.error("Date is required."); return; }
     
-    if (new Date(form.due_date_time) < new Date() && !pastWarning) {
+    const due_date_time = buildDateTime();
+    
+    if (new Date(due_date_time) < new Date() && !pastWarning) {
       setPastWarning(true);
       return;
     }
     
-    const { error } = await supabase.from("reminders").insert({ user_id: user!.id, title: form.title, type: form.type as any, due_date_time: form.due_date_time, repeat_rule: form.repeat_rule as any, notes: form.notes || null });
-    if (error) { toast.error("Failed to create reminder"); return; }
-    toast.success("Reminder created!");
+    const payload = {
+      title: form.title,
+      type: form.type as any,
+      due_date_time,
+      repeat_rule: form.repeat_rule as any,
+      notes: form.notes || null,
+    };
+
+    if (editingId) {
+      const { error } = await supabase.from("reminders").update(payload).eq("id", editingId);
+      if (error) { toast.error("Something went wrong. Please try again."); return; }
+      toast.success("Changes updated.");
+    } else {
+      const { error } = await supabase.from("reminders").insert({ user_id: user!.id, ...payload });
+      if (error) { toast.error("Something went wrong. Please try again."); return; }
+      toast.success("Saved successfully.");
+    }
+
     setDialogOpen(false);
     setPastWarning(false);
-    setForm({ title: "", type: "Custom", due_date_time: "", repeat_rule: "None", notes: "" });
+    resetForm();
+    fetchData();
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return;
+    const { error } = await supabase.from("reminders").delete().eq("id", deleteId);
+    if (error) { toast.error("Something went wrong. Please try again."); return; }
+    toast.success("Deleted successfully.");
+    setDeleteId(null);
+    setViewDialog(null);
     fetchData();
   }
 
@@ -56,13 +113,16 @@ export default function Reminders() {
     <div className="animate-fade-in">
       <PageHeader title="Reminders" description="Never miss an important health task"
         actions={
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { resetForm(); setPastWarning(false); } }}>
             <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add reminder</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>New Reminder</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingId ? "Edit Reminder" : "New Reminder"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="form-field"><Label>Title *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
-                <div className="form-field"><Label>Due Date & Time *</Label><Input type="datetime-local" value={form.due_date_time} onChange={(e) => setForm({ ...form, due_date_time: e.target.value })} required /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-field"><Label>Date *</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required /></div>
+                  <div className="form-field"><Label>Time</Label><Input type="time" value={form.due_time} onChange={(e) => setForm({ ...form, due_time: e.target.value })} /></div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="form-field">
                     <Label>Type</Label>
@@ -75,18 +135,25 @@ export default function Reminders() {
                     <Label>Repeat</Label>
                     <Select value={form.repeat_rule} onValueChange={(v) => setForm({ ...form, repeat_rule: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="None">None</SelectItem><SelectItem value="Weekly">Weekly</SelectItem><SelectItem value="Monthly">Monthly</SelectItem><SelectItem value="Yearly">Yearly</SelectItem></SelectContent>
+                      <SelectContent>
+                        <SelectItem value="None">None</SelectItem>
+                        <SelectItem value="Daily">Daily</SelectItem>
+                        <SelectItem value="Weekly">Weekly</SelectItem>
+                        <SelectItem value="Monthly">Monthly</SelectItem>
+                        <SelectItem value="Yearly">Yearly</SelectItem>
+                      </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <Button type="submit" className="w-full">Create Reminder</Button>
+                <Button type="submit" className="w-full">{editingId ? "Save Changes" : "Create Reminder"}</Button>
               </form>
             </DialogContent>
           </Dialog>
         }
       />
 
+      {/* Past Date Warning */}
       <AlertDialog open={pastWarning} onOpenChange={setPastWarning}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -100,6 +167,41 @@ export default function Reminders() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete item?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* View Detail Dialog */}
+      <Dialog open={!!viewDialog} onOpenChange={(open) => !open && setViewDialog(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{viewDialog?.title}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            {viewDialog?.type && <div><Label className="text-muted-foreground text-xs">Type</Label><p>{viewDialog.type}</p></div>}
+            {viewDialog?.due_date_time && <div><Label className="text-muted-foreground text-xs">Due</Label><p>{format(new Date(viewDialog.due_date_time), "MMM d, yyyy h:mm a")}</p></div>}
+            {viewDialog?.repeat_rule && <div><Label className="text-muted-foreground text-xs">Repeat</Label><p>{viewDialog.repeat_rule === "None" ? "One-time" : viewDialog.repeat_rule}</p></div>}
+            {viewDialog?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{viewDialog.notes}</p></div>}
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); }}>
+              <Pencil className="h-4 w-4 mr-2" />Edit
+            </Button>
+            <Button variant="destructive" onClick={() => setDeleteId(viewDialog?.id)}>
+              <Trash2 className="h-4 w-4 mr-2" />Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {reminders.length === 0 ? (
         <EmptyState icon={Bell} title="No reminders yet" description="Create reminders to stay on top of your health tasks." action={{ label: "Add reminder", onClick: () => setDialogOpen(true) }} />
       ) : (
@@ -110,9 +212,29 @@ export default function Reminders() {
                 <p className="font-medium">{r.title}</p>
                 <p className="text-sm text-muted-foreground">{r.type} • {r.repeat_rule !== "None" ? `Repeats ${r.repeat_rule.toLowerCase()}` : "One-time"}</p>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-medium">{format(new Date(r.due_date_time), "MMM d, yyyy")}</p>
-                <p className="text-xs text-muted-foreground">{format(new Date(r.due_date_time), "h:mm a")}</p>
+              <div className="flex items-center gap-2">
+                <div className="text-right mr-2">
+                  <p className="text-sm font-medium">{format(new Date(r.due_date_time), "MMM d, yyyy")}</p>
+                  <p className="text-xs text-muted-foreground">{format(new Date(r.due_date_time), "h:mm a")}</p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setViewDialog(r)}>
+                      <Eye className="h-4 w-4 mr-2" />View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEdit(r)}>
+                      <Pencil className="h-4 w-4 mr-2" />Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(r.id)}>
+                      <Trash2 className="h-4 w-4 mr-2" />Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}

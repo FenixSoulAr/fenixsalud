@@ -394,7 +394,7 @@ export type Database = {
         | "Appointment follow-up"
         | "Test follow-up"
         | "Custom"
-      repeat_rule: "None" | "Weekly" | "Monthly" | "Yearly"
+      repeat_rule: "None" | "Daily" | "Weekly" | "Monthly" | "Yearly"
       test_status: "Scheduled" | "Done" | "Result received"
     }
     CompositeTypes: {
@@ -535,7 +535,7 @@ export const Constants = {
         "Test follow-up",
         "Custom",
       ],
-      repeat_rule: ["None", "Weekly", "Monthly", "Yearly"],
+      repeat_rule: ["None", "Daily", "Weekly", "Monthly", "Yearly"],
       test_status: ["Scheduled", "Done", "Result received"],
     },
   },
