@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, Bell, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -18,9 +19,10 @@ import { format } from "date-fns";
 
 export default function Reminders() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [reminders, setReminders] = useState<any[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(searchParams.get("new") === "true");
   const [viewDialog, setViewDialog] = useState<any | null>(null);
   const [pastWarning, setPastWarning] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -28,6 +30,15 @@ export default function Reminders() {
   const [form, setForm] = useState({ title: "", type: "Custom", due_date: "", due_time: "", repeat_rule: "None", notes: "" });
 
   useEffect(() => { if (user) fetchData(); }, [user]);
+  
+  // Handle URL params for auto-editing
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId && reminders.length > 0) {
+      const rem = reminders.find(r => r.id === editId);
+      if (rem) openEdit(rem);
+    }
+  }, [searchParams, reminders]);
 
   async function fetchData() {
     setLoading(true);

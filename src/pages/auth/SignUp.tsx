@@ -14,11 +14,18 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const validatePassword = (pwd: string): boolean => {
+    if (pwd.length < 10) return false;
+    // Must have at least one number or symbol
+    const hasNumberOrSymbol = /[\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd);
+    return hasNumberOrSymbol;
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (!validatePassword(password)) {
+      toast.error("Password must be at least 10 characters and include a number or symbol.");
       return;
     }
 
@@ -107,11 +114,11 @@ export default function SignUp() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
                   required
-                  minLength={6}
+                  minLength={10}
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Must be at least 6 characters
+                Password must be at least 10 characters and include a number or symbol.
               </p>
             </div>
 

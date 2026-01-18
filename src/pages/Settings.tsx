@@ -38,6 +38,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [deletingProfile, setDeletingProfile] = useState(false);
   const [settings, setSettings] = useState<SettingsData>({ timezone: "UTC", notification_in_app: true, notification_email: false });
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
@@ -101,6 +102,38 @@ export default function Settings() {
     setSavingProfile(false);
     if (error) { toast.error("We couldn't save your profile. Please try again."); return; }
     toast.success("Profile saved.");
+  }
+
+  async function handleDeleteProfileData() {
+    setDeletingProfile(true);
+    const { error } = await supabase.from("profiles").update({
+      first_name: null,
+      last_name: null,
+      national_id: null,
+      phone: null,
+      insurance_provider: null,
+      insurance_plan: null,
+      insurance_member_id: null,
+      allergies: null,
+      notes: null,
+    }).eq("user_id", user!.id);
+    
+    setDeletingProfile(false);
+    if (error) { toast.error("We couldn't delete your profile data. Please try again."); return; }
+    
+    // Reset local state
+    setProfile({
+      first_name: "",
+      last_name: "",
+      national_id: "",
+      phone: "",
+      insurance_provider: "",
+      insurance_plan: "",
+      insurance_member_id: "",
+      allergies: "",
+      notes: "",
+    });
+    toast.success("Profile data deleted.");
   }
 
   async function handleDeleteAccount() {
@@ -224,6 +257,24 @@ export default function Settings() {
             <Button type="submit" disabled={savingProfile}>
               {savingProfile ? "Saving..." : "Save Profile"}
             </Button>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" type="button" disabled={deletingProfile}>
+                  <Trash2 className="h-4 w-4 mr-2" />{deletingProfile ? "Deleting..." : "Delete profile data"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete profile data?</AlertDialogTitle>
+                  <AlertDialogDescription>This will remove your personal profile details from this app.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteProfileData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </form>
         </section>
 
