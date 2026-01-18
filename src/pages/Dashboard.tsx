@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Plus, Calendar, FlaskConical, Pill, Bell, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,18 +7,24 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
   const [medications, setMedications] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
-
+  
+  // Detail view states
+  const [selectedMedication, setSelectedMedication] = useState<any | null>(null);
+  const [selectedReminder, setSelectedReminder] = useState<any | null>(null);
   useEffect(() => {
     if (user) fetchData();
   }, [user]);
@@ -83,7 +89,11 @@ export default function Dashboard() {
                 </div>
                 <div className="space-y-3">
                   {appointments.map((apt) => (
-                    <Link key={apt.id} to={`/appointments/${apt.id}`} className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors">
+                    <button 
+                      key={apt.id} 
+                      onClick={() => navigate(`/appointments?view=${apt.id}`)}
+                      className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors text-left min-h-[56px]"
+                    >
                       <div>
                         <p className="font-medium">{apt.reason || "Appointment"}</p>
                         <p className="text-sm text-muted-foreground">{apt.doctors?.full_name || apt.institutions?.name || "No location"}</p>
@@ -92,7 +102,7 @@ export default function Dashboard() {
                         <p className="text-sm font-medium">{format(new Date(apt.datetime_start), "MMM d, yyyy")}</p>
                         <p className="text-xs text-muted-foreground">{format(new Date(apt.datetime_start), "h:mm a")}</p>
                       </div>
-                    </Link>
+                    </button>
                   ))}
                 </div>
               </section>
@@ -107,13 +117,17 @@ export default function Dashboard() {
                 </div>
                 <div className="space-y-3">
                   {medications.map((med) => (
-                    <Link key={med.id} to={`/medications/${med.id}`} className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors">
+                    <button 
+                      key={med.id} 
+                      onClick={() => setSelectedMedication(med)}
+                      className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors text-left min-h-[56px]"
+                    >
                       <div>
                         <p className="font-medium">{med.name}</p>
                         <p className="text-sm text-muted-foreground">{med.dose_text}</p>
                       </div>
                       <StatusBadge status={normalizeStatus(med.status)} />
-                    </Link>
+                    </button>
                   ))}
                 </div>
               </section>
@@ -128,13 +142,17 @@ export default function Dashboard() {
                 </div>
                 <div className="space-y-3">
                   {reminders.map((rem) => (
-                    <div key={rem.id} className="flex items-center justify-between p-3 rounded-lg border">
+                    <button 
+                      key={rem.id} 
+                      onClick={() => setSelectedReminder(rem)}
+                      className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors text-left min-h-[56px]"
+                    >
                       <div>
                         <p className="font-medium">{rem.title}</p>
                         <p className="text-sm text-muted-foreground">{rem.type}</p>
                       </div>
                       <p className="text-sm">{format(new Date(rem.due_date_time), "MMM d, h:mm a")}</p>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </section>
@@ -158,6 +176,45 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
       )}
+      
+      {/* Medication Detail Dialog */}
+      <Dialog open={!!selectedMedication} onOpenChange={(open) => !open && setSelectedMedication(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{selectedMedication?.name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-muted-foreground text-xs">Dose</Label><p>{selectedMedication?.dose_text}</p></div>
+            <div><Label className="text-muted-foreground text-xs">Schedule</Label><p>{selectedMedication?.schedule_type}</p></div>
+            {selectedMedication?.times && selectedMedication.times.length > 0 && (
+              <div><Label className="text-muted-foreground text-xs">Times</Label><p>{selectedMedication.times.join(", ")}</p></div>
+            )}
+            <div><Label className="text-muted-foreground text-xs">Status</Label><StatusBadge status={normalizeStatus(selectedMedication?.status)} /></div>
+            {selectedMedication?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{selectedMedication.notes}</p></div>}
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button onClick={() => { setSelectedMedication(null); navigate(`/medications?edit=${selectedMedication?.id}`); }}>
+              Edit in Medications
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Reminder Detail Dialog */}
+      <Dialog open={!!selectedReminder} onOpenChange={(open) => !open && setSelectedReminder(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{selectedReminder?.title}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-muted-foreground text-xs">Type</Label><p>{selectedReminder?.type}</p></div>
+            <div><Label className="text-muted-foreground text-xs">Due</Label><p>{selectedReminder?.due_date_time ? format(new Date(selectedReminder.due_date_time), "MMM d, yyyy h:mm a") : "-"}</p></div>
+            <div><Label className="text-muted-foreground text-xs">Repeat</Label><p>{selectedReminder?.repeat_rule === "None" ? "One-time" : selectedReminder?.repeat_rule}</p></div>
+            {selectedReminder?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{selectedReminder.notes}</p></div>}
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button onClick={() => { setSelectedReminder(null); navigate(`/reminders?edit=${selectedReminder?.id}`); }}>
+              Edit in Reminders
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

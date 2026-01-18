@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Stethoscope, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Stethoscope, MoreHorizontal, Pencil, Trash2, Eye, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -20,6 +20,7 @@ export default function Doctors() {
   const [doctors, setDoctors] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialog, setViewDialog] = useState<any | null>(null);
+  const [showContactInfo, setShowContactInfo] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ full_name: "", specialty: "", phone: "", email: "", notes: "" });
@@ -127,17 +128,30 @@ export default function Doctors() {
       </AlertDialog>
 
       {/* View Detail Dialog */}
-      <Dialog open={!!viewDialog} onOpenChange={(open) => !open && setViewDialog(null)}>
+      <Dialog open={!!viewDialog} onOpenChange={(open) => { if (!open) { setViewDialog(null); setShowContactInfo(false); } }}>
         <DialogContent>
           <DialogHeader><DialogTitle>{viewDialog?.full_name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             {viewDialog?.specialty && <div><Label className="text-muted-foreground text-xs">Specialty</Label><p>{viewDialog.specialty}</p></div>}
-            {viewDialog?.phone && <div><Label className="text-muted-foreground text-xs">Phone</Label><p>{viewDialog.phone}</p></div>}
-            {viewDialog?.email && <div><Label className="text-muted-foreground text-xs">Email</Label><p>{viewDialog.email}</p></div>}
+            
+            {/* Contact info gated behind button */}
+            {(viewDialog?.phone || viewDialog?.email) && !showContactInfo && (
+              <Button variant="outline" size="sm" onClick={() => setShowContactInfo(true)} className="min-h-[44px]">
+                <Phone className="h-4 w-4 mr-2" />Reveal contact information
+              </Button>
+            )}
+            
+            {showContactInfo && (
+              <>
+                {viewDialog?.phone && <div><Label className="text-muted-foreground text-xs">Phone</Label><p>{viewDialog.phone}</p></div>}
+                {viewDialog?.email && <div><Label className="text-muted-foreground text-xs">Email</Label><p>{viewDialog.email}</p></div>}
+              </>
+            )}
+            
             {viewDialog?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{viewDialog.notes}</p></div>}
           </div>
           <div className="flex gap-2 mt-4">
-            <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); }}>
+            <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); setShowContactInfo(false); }}>
               <Pencil className="h-4 w-4 mr-2" />Edit
             </Button>
             <Button variant="destructive" onClick={() => setDeleteId(viewDialog?.id)}>
@@ -175,8 +189,6 @@ export default function Doctors() {
               </div>
               <h3 className="font-semibold pr-10">{d.full_name}</h3>
               {d.specialty && <p className="text-sm text-primary">{d.specialty}</p>}
-              {d.phone && <p className="text-sm text-muted-foreground mt-2">{d.phone}</p>}
-              {d.email && <p className="text-sm text-muted-foreground">{d.email}</p>}
             </div>
           ))}
         </div>

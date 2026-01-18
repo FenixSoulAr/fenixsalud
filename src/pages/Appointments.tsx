@@ -46,6 +46,15 @@ export default function Appointments() {
   const [institutionOpen, setInstitutionOpen] = useState(false);
 
   useEffect(() => { if (user) fetchData(); }, [user]);
+  
+  // Handle URL params for opening view
+  useEffect(() => {
+    const viewId = searchParams.get("view");
+    if (viewId && appointments.length > 0) {
+      const apt = appointments.find(a => a.id === viewId);
+      if (apt) setViewingAppointment(apt);
+    }
+  }, [searchParams, appointments]);
 
   async function fetchData() {
     setLoading(true);

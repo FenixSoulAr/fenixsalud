@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Pill, Pencil, Trash2 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Plus, Pill, Pencil, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -18,14 +19,24 @@ import { toast } from "sonner";
 
 export default function Medications() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [medications, setMedications] = useState<any[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(searchParams.get("new") === "true");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active" });
 
   useEffect(() => { if (user) fetchData(); }, [user]);
+  
+  // Handle URL params for auto-editing
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId && medications.length > 0) {
+      const med = medications.find(m => m.id === editId);
+      if (med) openEdit(med);
+    }
+  }, [searchParams, medications]);
 
   async function fetchData() {
     setLoading(true);
