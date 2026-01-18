@@ -261,31 +261,58 @@ export type Database = {
       }
       profiles: {
         Row: {
+          allergies: string | null
           created_at: string | null
+          first_name: string | null
           full_name: string | null
           id: string
+          insurance_member_id: string | null
+          insurance_plan: string | null
+          insurance_provider: string | null
+          last_name: string | null
+          national_id: string | null
+          notes: string | null
           notification_email: boolean | null
           notification_in_app: boolean | null
+          phone: string | null
           timezone: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          allergies?: string | null
           created_at?: string | null
+          first_name?: string | null
           full_name?: string | null
           id?: string
+          insurance_member_id?: string | null
+          insurance_plan?: string | null
+          insurance_provider?: string | null
+          last_name?: string | null
+          national_id?: string | null
+          notes?: string | null
           notification_email?: boolean | null
           notification_in_app?: boolean | null
+          phone?: string | null
           timezone?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          allergies?: string | null
           created_at?: string | null
+          first_name?: string | null
           full_name?: string | null
           id?: string
+          insurance_member_id?: string | null
+          insurance_plan?: string | null
+          insurance_provider?: string | null
+          last_name?: string | null
+          national_id?: string | null
+          notes?: string | null
           notification_email?: boolean | null
           notification_in_app?: boolean | null
+          phone?: string | null
           timezone?: string | null
           updated_at?: string | null
           user_id?: string
