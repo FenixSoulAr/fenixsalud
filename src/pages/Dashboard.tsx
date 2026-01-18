@@ -91,7 +91,7 @@ export default function Dashboard() {
                   {appointments.map((apt) => (
                     <button 
                       key={apt.id} 
-                      onClick={() => navigate(`/appointments?view=${apt.id}`)}
+                      onClick={() => navigate(`/appointments?view=${apt.id}&from=dashboard`)}
                       className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors text-left min-h-[56px]"
                     >
                       <div>

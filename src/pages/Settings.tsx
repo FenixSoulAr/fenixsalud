@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trash2, User } from "lucide-react";
+import { Trash2, User, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +40,8 @@ export default function Settings() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [deletingProfile, setDeletingProfile] = useState(false);
   const [settings, setSettings] = useState<SettingsData>({ timezone: "UTC", notification_in_app: true, notification_email: false });
+  const [passwordForm, setPasswordForm] = useState({ current: "", newPassword: "", confirm: "" });
+  const [savingPassword, setSavingPassword] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
@@ -140,6 +142,56 @@ export default function Settings() {
     // In production, this would call an edge function to delete user data
     await signOut();
     toast.success("Account deleted");
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    
+    // Validation
+    if (!passwordForm.current.trim()) {
+      toast.error("Current password is required.");
+      return;
+    }
+    
+    const hasNumberOrSymbol = /[0-9!@#$%^&*(),.?":{}|<>]/.test(passwordForm.newPassword);
+    if (passwordForm.newPassword.length < 10 || !hasNumberOrSymbol) {
+      toast.error("New password must be at least 10 characters and include a number or symbol.");
+      return;
+    }
+    
+    if (passwordForm.newPassword !== passwordForm.confirm) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+    
+    setSavingPassword(true);
+    
+    // First verify current password by attempting to sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user!.email!,
+      password: passwordForm.current,
+    });
+    
+    if (signInError) {
+      setSavingPassword(false);
+      toast.error("For security reasons, please sign in again and retry.");
+      return;
+    }
+    
+    // Update password
+    const { error } = await supabase.auth.updateUser({
+      password: passwordForm.newPassword,
+    });
+    
+    setSavingPassword(false);
+    
+    if (error) {
+      toast.error("We couldn't update your password. Please try again.");
+      return;
+    }
+    
+    setPasswordForm({ current: "", newPassword: "", confirm: "" });
+    toast.success("Password updated.");
   }
 
   if (loading) return <LoadingPage />;
@@ -303,6 +355,46 @@ export default function Settings() {
         </section>
 
         <Button onClick={handleSaveSettings} disabled={savingSettings}>{savingSettings ? "Saving..." : "Save settings"}</Button>
+
+        {/* Security Section */}
+        <section className="health-card">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Security
+          </h2>
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="form-field">
+              <Label>Current password</Label>
+              <Input 
+                type="password" 
+                value={passwordForm.current} 
+                onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })} 
+                placeholder="Enter current password"
+              />
+            </div>
+            <div className="form-field">
+              <Label>New password</Label>
+              <Input 
+                type="password" 
+                value={passwordForm.newPassword} 
+                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} 
+                placeholder="Enter new password"
+              />
+            </div>
+            <div className="form-field">
+              <Label>Confirm new password</Label>
+              <Input 
+                type="password" 
+                value={passwordForm.confirm} 
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} 
+                placeholder="Confirm new password"
+              />
+            </div>
+            <Button type="submit" disabled={savingPassword}>
+              {savingPassword ? "Updating..." : "Update password"}
+            </Button>
+          </form>
+        </section>
 
         {/* Danger Zone */}
         <section className="health-card border-destructive/50">
