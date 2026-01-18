@@ -185,11 +185,20 @@ export default function Appointments() {
   if (viewingAppointment) {
     const dt = new Date(viewingAppointment.datetime_start);
     const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
+    const fromDashboard = searchParams.get("from") === "dashboard";
+    
+    const handleBack = () => {
+      if (fromDashboard) {
+        window.location.href = "/";
+      } else {
+        setViewingAppointment(null);
+      }
+    };
     
     return (
       <div className="animate-fade-in">
-        <Button variant="ghost" onClick={() => setViewingAppointment(null)} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />Back to Appointments
+        <Button variant="ghost" onClick={handleBack} className="mb-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />{fromDashboard ? "Back to dashboard" : "Back to appointments"}
         </Button>
         
         <div className="max-w-2xl space-y-6">
