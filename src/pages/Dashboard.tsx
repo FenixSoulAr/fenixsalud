@@ -187,7 +187,9 @@ export default function Dashboard() {
             {selectedMedication?.times && selectedMedication.times.length > 0 && (
               <div><Label className="text-muted-foreground text-xs">Times</Label><p>{selectedMedication.times.join(", ")}</p></div>
             )}
-            <div><Label className="text-muted-foreground text-xs">Status</Label><StatusBadge status={normalizeStatus(selectedMedication?.status)} /></div>
+            {selectedMedication?.status && (
+              <div><Label className="text-muted-foreground text-xs">Status</Label><StatusBadge status={normalizeStatus(selectedMedication.status)} /></div>
+            )}
             {selectedMedication?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{selectedMedication.notes}</p></div>}
           </div>
           <div className="flex gap-2 mt-4">
