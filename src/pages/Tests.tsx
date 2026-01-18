@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, FlaskConical, Pencil, Trash2 } from "lucide-react";
+import { Plus, FlaskConical, Pencil, Trash2, Eye, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
+import { FileAttachments } from "@/components/FileAttachments";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -24,6 +25,7 @@ export default function Tests() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [viewingTest, setViewingTest] = useState<any | null>(null);
   const [form, setForm] = useState({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled" });
 
   useEffect(() => { if (user) fetchData(); }, [user]);
@@ -48,6 +50,7 @@ export default function Tests() {
       institution_id: test.institution_id || "",
       status: test.status || "Scheduled",
     });
+    setViewingTest(null);
     setDialogOpen(true);
   }
 
@@ -87,12 +90,67 @@ export default function Tests() {
     if (!deleteId) return;
     const { error } = await supabase.from("tests").delete().eq("id", deleteId);
     if (error) { toast.error("Something went wrong. Please try again."); return; }
-    toast.success("Test deleted.");
+    toast.success("Deleted successfully.");
     setDeleteId(null);
+    setViewingTest(null);
     fetchData();
   }
 
   if (loading) return <LoadingPage />;
+
+  // Detail View
+  if (viewingTest) {
+    return (
+      <div className="animate-fade-in">
+        <Button variant="ghost" onClick={() => setViewingTest(null)} className="mb-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />Back to Tests
+        </Button>
+        
+        <div className="max-w-2xl space-y-6">
+          <div className="health-card">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h1 className="text-2xl font-bold">{viewingTest.type}</h1>
+                <p className="text-muted-foreground">{format(new Date(viewingTest.date), "MMMM d, yyyy")}</p>
+              </div>
+              <StatusBadge status={normalizeStatus(viewingTest.status)} />
+            </div>
+            
+            <div className="space-y-3 text-sm">
+              <div><span className="font-medium">Institution:</span> {viewingTest.institutions?.name || "—"}</div>
+              {viewingTest.notes && <div><span className="font-medium">Notes:</span> {viewingTest.notes}</div>}
+            </div>
+            
+            <div className="flex gap-2 mt-6 pt-4 border-t">
+              <Button onClick={() => openEdit(viewingTest)}>
+                <Pencil className="h-4 w-4 mr-2" />Edit
+              </Button>
+              <Button variant="destructive" onClick={() => setDeleteId(viewingTest.id)}>
+                <Trash2 className="h-4 w-4 mr-2" />Delete
+              </Button>
+            </div>
+          </div>
+          
+          <div className="health-card">
+            <FileAttachments entityType="TestStudy" entityId={viewingTest.id} />
+          </div>
+        </div>
+        
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete item?</AlertDialogTitle>
+              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">
@@ -134,8 +192,8 @@ export default function Tests() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete test?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone. The test record will be permanently removed.</AlertDialogDescription>
+            <AlertDialogTitle>Delete item?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -159,6 +217,9 @@ export default function Tests() {
                   <td className="p-4"><StatusBadge status={normalizeStatus(t.status)} /></td>
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => setViewingTest(t)} aria-label="View test">
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(t)} aria-label="Edit test">
                         <Pencil className="h-4 w-4" />
                       </Button>
