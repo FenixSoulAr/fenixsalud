@@ -423,35 +423,75 @@ export default function Appointments() {
       {appointments.length === 0 ? (
         <EmptyState icon={Calendar} title="No appointments yet" description="Schedule your first appointment to keep track of your visits." action={{ label: "Add appointment", onClick: () => setDialogOpen(true) }} />
       ) : (
-        <div className="data-grid">
-          <table className="w-full">
-            <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Date & Time</th><th className="text-left p-4 font-medium">Doctor</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Reason</th><th className="text-left p-4 font-medium">Status</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
-            <tbody>
-              {appointments.map((apt) => (
-                <tr key={apt.id} className="border-b hover:bg-muted/30 transition-colors">
-                  <td className="p-4">{format(new Date(apt.datetime_start), "MMM d, yyyy h:mm a")}</td>
-                  <td className="p-4">{apt.doctors?.full_name || "—"}</td>
-                  <td className="p-4">{apt.institutions?.name || "—"}</td>
-                  <td className="p-4">{apt.reason || "—"}</td>
-                  <td className="p-4"><StatusBadge status={normalizeStatus(apt.status)} /></td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => setViewingAppointment(apt)} aria-label="View appointment">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(apt)} aria-label="Edit appointment">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(apt.id)} aria-label="Delete appointment">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+        <>
+          {/* Mobile Card Layout */}
+          <div className="md:hidden space-y-3">
+            {appointments.map((apt) => {
+              const dt = new Date(apt.datetime_start);
+              const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
+              return (
+                <div key={apt.id} className="health-card">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm">
+                        {format(dt, "MMM d, yyyy")}
+                        {hasTime && ` at ${format(dt, "h:mm a")}`}
+                      </p>
+                      {apt.reason && <p className="text-foreground mt-1">{apt.reason}</p>}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    <StatusBadge status={normalizeStatus(apt.status)} />
+                  </div>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    {apt.doctors?.full_name && <p>Doctor: {apt.doctors.full_name}</p>}
+                    {apt.institutions?.name && <p>Institution: {apt.institutions.name}</p>}
+                  </div>
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                    <Button variant="ghost" size="sm" onClick={() => setViewingAppointment(apt)}>
+                      <Eye className="h-4 w-4 mr-1" />View
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(apt)}>
+                      <Pencil className="h-4 w-4 mr-1" />Edit
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(apt.id)}>
+                      <Trash2 className="h-4 w-4 mr-1 text-destructive" />Delete
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table Layout */}
+          <div className="hidden md:block data-grid overflow-x-auto">
+            <table className="w-full">
+              <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Date & Time</th><th className="text-left p-4 font-medium">Doctor</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Reason</th><th className="text-left p-4 font-medium">Status</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
+              <tbody>
+                {appointments.map((apt) => (
+                  <tr key={apt.id} className="border-b hover:bg-muted/30 transition-colors">
+                    <td className="p-4">{format(new Date(apt.datetime_start), "MMM d, yyyy h:mm a")}</td>
+                    <td className="p-4">{apt.doctors?.full_name || "—"}</td>
+                    <td className="p-4">{apt.institutions?.name || "—"}</td>
+                    <td className="p-4">{apt.reason || "—"}</td>
+                    <td className="p-4"><StatusBadge status={normalizeStatus(apt.status)} /></td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => setViewingAppointment(apt)} aria-label="View appointment">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(apt)} aria-label="Edit appointment">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(apt.id)} aria-label="Delete appointment">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

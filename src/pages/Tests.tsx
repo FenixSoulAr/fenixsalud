@@ -205,34 +205,66 @@ export default function Tests() {
       {tests.length === 0 ? (
         <EmptyState icon={FlaskConical} title="No tests yet" description="Add your first test to track results and history." action={{ label: "Add test", onClick: () => setDialogOpen(true) }} />
       ) : (
-        <div className="data-grid">
-          <table className="w-full">
-            <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Type</th><th className="text-left p-4 font-medium">Date</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Status</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
-            <tbody>
-              {tests.map((t) => (
-                <tr key={t.id} className="border-b hover:bg-muted/30 transition-colors">
-                  <td className="p-4">{t.type}</td>
-                  <td className="p-4">{format(new Date(t.date), "MMM d, yyyy")}</td>
-                  <td className="p-4">{t.institutions?.name || "—"}</td>
-                  <td className="p-4"><StatusBadge status={normalizeStatus(t.status)} /></td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => setViewingTest(t)} aria-label="View test">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(t)} aria-label="Edit test">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(t.id)} aria-label="Delete test">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Mobile Card Layout */}
+          <div className="md:hidden space-y-3">
+            {tests.map((t) => (
+              <div key={t.id} className="health-card">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{t.type}</p>
+                    <p className="text-sm text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")}</p>
+                  </div>
+                  <StatusBadge status={normalizeStatus(t.status)} />
+                </div>
+                {t.institutions?.name && (
+                  <p className="text-sm text-muted-foreground">Institution: {t.institutions.name}</p>
+                )}
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                  <Button variant="ghost" size="sm" onClick={() => setViewingTest(t)}>
+                    <Eye className="h-4 w-4 mr-1" />View
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(t)}>
+                    <Pencil className="h-4 w-4 mr-1" />Edit
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setDeleteId(t.id)}>
+                    <Trash2 className="h-4 w-4 mr-1 text-destructive" />Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table Layout */}
+          <div className="hidden md:block data-grid overflow-x-auto">
+            <table className="w-full">
+              <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Type</th><th className="text-left p-4 font-medium">Date</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Status</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
+              <tbody>
+                {tests.map((t) => (
+                  <tr key={t.id} className="border-b hover:bg-muted/30 transition-colors">
+                    <td className="p-4">{t.type}</td>
+                    <td className="p-4">{format(new Date(t.date), "MMM d, yyyy")}</td>
+                    <td className="p-4">{t.institutions?.name || "—"}</td>
+                    <td className="p-4"><StatusBadge status={normalizeStatus(t.status)} /></td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => setViewingTest(t)} aria-label="View test">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(t)} aria-label="Edit test">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(t.id)} aria-label="Delete test">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
