@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Download, Printer, FileText, Pill, FlaskConical, Syringe, Calendar } from "lucide-react";
+import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { format, subMonths, isAfter } from "date-fns";
-import { toast } from "sonner";
 
 export default function ClinicalSummary() {
   const { user } = useAuth();
@@ -90,52 +89,8 @@ export default function ClinicalSummary() {
     window.print();
   }
 
-  async function handleDownloadPDF() {
-    toast.info("Preparing PDF for download...");
-    
-    // Use browser print to PDF functionality
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error("Could not open print window. Please allow popups.");
-      return;
-    }
-    
-    const content = printRef.current?.innerHTML || '';
-    const styles = `
-      <style>
-        * { font-family: system-ui, -apple-system, sans-serif; }
-        body { padding: 40px; max-width: 800px; margin: 0 auto; }
-        h1 { font-size: 24px; margin-bottom: 8px; }
-        h2 { font-size: 18px; margin-top: 24px; margin-bottom: 12px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
-        h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-        p, li { font-size: 13px; line-height: 1.5; }
-        .text-muted { color: #6b7280; }
-        .section { margin-bottom: 24px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e5e7eb; }
-        th { font-weight: 600; background: #f9fafb; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500; }
-        .badge-green { background: #dcfce7; color: #166534; }
-        .badge-amber { background: #fef3c7; color: #92400e; }
-        .badge-red { background: #fee2e2; color: #991b1b; }
-        @media print { body { padding: 20px; } }
-      </style>
-    `;
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head><title>Clinical Summary - ${profile?.full_name || 'Patient'}</title>${styles}</head>
-        <body>${content}</body>
-      </html>
-    `);
-    printWindow.document.close();
-    
-    // Wait for content to load then trigger print
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 500);
+  function handleSaveAsPDF() {
+    window.print();
   }
 
   if (loading) return <LoadingPage />;
@@ -154,18 +109,23 @@ export default function ClinicalSummary() {
         <ArrowLeft className="h-4 w-4 mr-2" />Back
       </Button>
 
-      <div className="flex items-center justify-between mb-6 print:hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 print:hidden">
         <div>
           <h1 className="text-2xl font-bold">Clinical Summary</h1>
           <p className="text-muted-foreground">Generated on {today}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="h-4 w-4 mr-2" />Print
-          </Button>
-          <Button onClick={handleDownloadPDF}>
-            <Download className="h-4 w-4 mr-2" />Download PDF
-          </Button>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-2" />Print
+            </Button>
+            <Button onClick={handleSaveAsPDF}>
+              <FileDown className="h-4 w-4 mr-2" />Save as PDF
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            To download, choose "Save as PDF" in the print dialog.
+          </p>
         </div>
       </div>
 
