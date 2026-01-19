@@ -59,7 +59,7 @@ export default function Appointments() {
   async function fetchData() {
     setLoading(true);
     const [apptRes, docRes, instRes] = await Promise.all([
-      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").order("datetime_start", { ascending: false }),
+      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").order("datetime_start", { ascending: true }),
       supabase.from("doctors").select("id, full_name"),
       supabase.from("institutions").select("id, name"),
     ]);

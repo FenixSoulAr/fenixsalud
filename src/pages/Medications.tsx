@@ -40,7 +40,7 @@ export default function Medications() {
 
   async function fetchData() {
     setLoading(true);
-    const { data } = await supabase.from("medications").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("medications").select("*").order("name", { ascending: true });
     setMedications(data || []);
     setLoading(false);
   }
