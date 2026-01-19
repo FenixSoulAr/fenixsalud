@@ -208,6 +208,11 @@
     @apply bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary;
   }
 
+  /* Past status - gray like completed */
+  .status-past {
+    @apply bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground;
+  }
+
   /* Additional states */
   .status-taken {
     @apply bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary;

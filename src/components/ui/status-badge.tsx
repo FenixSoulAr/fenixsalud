@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 
 type StatusType = 
   | "upcoming" 
+  | "past"
   | "completed" 
   | "cancelled" 
   | "active" 
@@ -18,8 +19,9 @@ interface StatusBadgeProps {
 }
 
 const statusConfig: Record<StatusType, { label: string; className: string }> = {
-  // Appointments: Upcoming → green, Completed → gray, Cancelled → gray
+  // Appointments: Upcoming → green, Past → gray, Completed → gray, Cancelled → gray
   upcoming: { label: "Upcoming", className: "status-upcoming" },
+  past: { label: "Past", className: "status-past" },
   completed: { label: "Completed", className: "status-completed" },
   cancelled: { label: "Cancelled", className: "status-cancelled" },
   

@@ -19,8 +19,16 @@ import { AttachmentIndicator } from "@/components/AttachmentIndicator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
+
+// Helper to compute display status based on date
+function getDisplayStatus(apt: any): "Upcoming" | "Past" | "Completed" | "Cancelled" {
+  if (apt.status === "Cancelled") return "Cancelled";
+  if (apt.status === "Completed") return "Completed";
+  const dt = new Date(apt.datetime_start);
+  return isPast(dt) ? "Past" : "Upcoming";
+}
 
 export default function Appointments() {
   const { user } = useAuth();
@@ -230,7 +238,7 @@ export default function Appointments() {
                   {hasTime && ` at ${format(dt, "h:mm a")}`}
                 </p>
               </div>
-              <StatusBadge status={normalizeStatus(viewingAppointment.status)} />
+              <StatusBadge status={getDisplayStatus(viewingAppointment) === "Past" ? "past" : normalizeStatus(getDisplayStatus(viewingAppointment))} />
             </div>
             
             <div className="space-y-3 text-sm">
@@ -443,89 +451,103 @@ export default function Appointments() {
         <EmptyState icon={Calendar} title="No appointments yet" description="Schedule your first appointment to keep track of your visits." action={{ label: "Add appointment", onClick: () => setDialogOpen(true) }} />
       ) : (
         <>
-          {/* Mobile Card Layout */}
-          <div className="md:hidden space-y-3">
-            {appointments.map((apt) => {
-              const dt = new Date(apt.datetime_start);
-              const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
-              const attachCount = attachmentCounts[apt.id] || 0;
-              return (
-                <div key={apt.id} className="health-card">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm">
-                        {format(dt, "MMM d, yyyy")}
-                        {hasTime && ` at ${format(dt, "h:mm a")}`}
-                      </p>
-                      {apt.reason && <p className="text-foreground mt-1">{apt.reason}</p>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {attachCount > 0 && (
-                        <AttachmentIndicator entityType="Appointment" entityId={apt.id} count={attachCount} />
-                      )}
-                      <StatusBadge status={normalizeStatus(apt.status)} />
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    {apt.doctors?.full_name && <p>Doctor: {apt.doctors.full_name}</p>}
-                    {apt.institutions?.name && <p>Institution: {apt.institutions.name}</p>}
-                  </div>
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                    <Button variant="ghost" size="sm" onClick={() => setViewingAppointment(apt)}>
-                      <Eye className="h-4 w-4 mr-1" />View
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(apt)}>
-                      <Pencil className="h-4 w-4 mr-1" />Edit
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(apt.id)}>
-                      <Trash2 className="h-4 w-4 mr-1 text-destructive" />Delete
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {/* Sort: upcoming first (ascending), then past (descending) */}
+          {(() => {
+            const now = new Date();
+            const upcoming = appointments.filter(apt => new Date(apt.datetime_start) >= now).sort((a, b) => new Date(a.datetime_start).getTime() - new Date(b.datetime_start).getTime());
+            const past = appointments.filter(apt => new Date(apt.datetime_start) < now).sort((a, b) => new Date(b.datetime_start).getTime() - new Date(a.datetime_start).getTime());
+            const sortedAppointments = [...upcoming, ...past];
 
-          {/* Desktop Table Layout */}
-          <div className="hidden md:block data-grid overflow-x-auto">
-            <table className="w-full">
-              <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Date & Time</th><th className="text-left p-4 font-medium">Doctor</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Reason</th><th className="text-left p-4 font-medium">Status</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
-              <tbody>
-                {appointments.map((apt) => {
-                  const attachCount = attachmentCounts[apt.id] || 0;
-                  return (
-                    <tr key={apt.id} className="border-b hover:bg-muted/30 transition-colors">
-                      <td className="p-4">{format(new Date(apt.datetime_start), "MMM d, yyyy h:mm a")}</td>
-                      <td className="p-4">{apt.doctors?.full_name || "—"}</td>
-                      <td className="p-4">{apt.institutions?.name || "—"}</td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <span>{apt.reason || "—"}</span>
-                          {attachCount > 0 && (
-                            <AttachmentIndicator entityType="Appointment" entityId={apt.id} count={attachCount} />
-                          )}
+            return (
+              <>
+                {/* Mobile Card Layout */}
+                <div className="md:hidden space-y-3">
+                  {sortedAppointments.map((apt) => {
+                    const dt = new Date(apt.datetime_start);
+                    const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
+                    const attachCount = attachmentCounts[apt.id] || 0;
+                    const displayStatus = getDisplayStatus(apt);
+                    return (
+                      <div key={apt.id} className="health-card">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm">
+                              {format(dt, "MMM d, yyyy")}
+                              {hasTime && ` at ${format(dt, "h:mm a")}`}
+                            </p>
+                            {apt.reason && <p className="text-foreground mt-1">{apt.reason}</p>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {attachCount > 0 && (
+                              <AttachmentIndicator entityType="Appointment" entityId={apt.id} count={attachCount} />
+                            )}
+                            <StatusBadge status={displayStatus === "Past" ? "past" : normalizeStatus(displayStatus)} />
+                          </div>
                         </div>
-                      </td>
-                      <td className="p-4"><StatusBadge status={normalizeStatus(apt.status)} /></td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => setViewingAppointment(apt)} aria-label="View appointment">
-                            <Eye className="h-4 w-4" />
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          {apt.doctors?.full_name && <p>Doctor: {apt.doctors.full_name}</p>}
+                          {apt.institutions?.name && <p>Institution: {apt.institutions.name}</p>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                          <Button variant="ghost" size="sm" onClick={() => setViewingAppointment(apt)}>
+                            <Eye className="h-4 w-4 mr-1" />View
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(apt)} aria-label="Edit appointment">
-                            <Pencil className="h-4 w-4" />
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(apt)}>
+                            <Pencil className="h-4 w-4 mr-1" />Edit
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(apt.id)} aria-label="Delete appointment">
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                          <Button variant="ghost" size="sm" onClick={() => setDeleteId(apt.id)}>
+                            <Trash2 className="h-4 w-4 mr-1 text-destructive" />Delete
                           </Button>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Table Layout */}
+                <div className="hidden md:block data-grid overflow-x-auto">
+                  <table className="w-full">
+                    <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Date & Time</th><th className="text-left p-4 font-medium">Doctor</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Reason</th><th className="text-left p-4 font-medium">Status</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
+                    <tbody>
+                      {sortedAppointments.map((apt) => {
+                        const attachCount = attachmentCounts[apt.id] || 0;
+                        const displayStatus = getDisplayStatus(apt);
+                        return (
+                          <tr key={apt.id} className="border-b hover:bg-muted/30 transition-colors">
+                            <td className="p-4">{format(new Date(apt.datetime_start), "MMM d, yyyy h:mm a")}</td>
+                            <td className="p-4">{apt.doctors?.full_name || "—"}</td>
+                            <td className="p-4">{apt.institutions?.name || "—"}</td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <span>{apt.reason || "—"}</span>
+                                {attachCount > 0 && (
+                                  <AttachmentIndicator entityType="Appointment" entityId={apt.id} count={attachCount} />
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-4"><StatusBadge status={displayStatus === "Past" ? "past" : normalizeStatus(displayStatus)} /></td>
+                            <td className="p-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => setViewingAppointment(apt)} aria-label="View appointment">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => openEdit(apt)} aria-label="Edit appointment">
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => setDeleteId(apt.id)} aria-label="Delete appointment">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            );
+          })()}
         </>
       )}
     </div>
