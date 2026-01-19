@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Trash2, User, Shield, FileText } from "lucide-react";
+import { Trash2, User, Shield, FileText, Mail, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +13,61 @@ import { LoadingPage } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-
+import { getLanguage, useTranslations } from "@/i18n";
 const timezones = ["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "Europe/Paris", "Asia/Tokyo", "Asia/Singapore", "Australia/Sydney"];
+
+// Support section component
+function SupportSection() {
+  const t = useTranslations();
+  const lang = getLanguage();
+  
+  const deviceInfo = typeof navigator !== "undefined" ? navigator.userAgent : "Unknown";
+  
+  const handleContact = () => {
+    const isSpanish = lang === "es";
+    
+    const subject = encodeURIComponent("Feedback – Health App");
+    
+    const body = isSpanish
+      ? `Hola,
+
+Quería compartir el siguiente comentario sobre la app:
+
+(escribí acá)
+
+Dispositivo: ${deviceInfo}
+Idioma: ${lang}`
+      : `Hi,
+
+I'd like to share the following feedback about the app:
+
+(write here)
+
+Device: ${deviceInfo}
+Language: ${lang}`;
+    
+    const mailtoUrl = `mailto:fenixsoular@gmail.com?subject=${subject}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
+  };
+  
+  return (
+    <section className="health-card">
+      <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <MessageSquare className="h-5 w-5" />
+        {lang === "es" ? "Soporte" : "Support"}
+      </h2>
+      <p className="text-sm text-muted-foreground mb-4">
+        {lang === "es" 
+          ? "¿Tenés comentarios o sugerencias? Nos encantaría escucharte."
+          : "Have feedback or suggestions? We'd love to hear from you."}
+      </p>
+      <Button variant="outline" onClick={handleContact}>
+        <Mail className="h-4 w-4 mr-2" />
+        {lang === "es" ? "Contactar" : "Contact"}
+      </Button>
+    </section>
+  );
+}
 
 interface ProfileData {
   first_name: string;
@@ -404,6 +457,9 @@ export default function Settings() {
             </Button>
           </form>
         </section>
+
+        {/* Support Section */}
+        <SupportSection />
 
         {/* Danger Zone */}
         <section className="health-card border-destructive/50">
