@@ -31,9 +31,11 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
 
-  async function handleUpload(file: File): Promise<boolean> {
+  async function handleUpload(file: File): Promise<{ success: boolean; error?: string }> {
+    console.log("[FileAttachments] handleUpload called with:", file.name, file.size, file.type);
     const result = await uploadFile(file);
-    return result.success;
+    console.log("[FileAttachments] uploadFile result:", result);
+    return result;
   }
 
   async function handleOpen(filePath: string, attachmentId: string) {

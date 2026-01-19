@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import { Upload, X, FileText, Image, AlertTriangle, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -6,12 +6,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 interface StagedFile {
   file: File;
   name: string;
+  size: number;
   type: string;
   preview?: string;
 }
 
 interface MobileFileUploaderProps {
-  onUpload: (file: File) => Promise<boolean>;
+  onUpload: (file: File) => Promise<{ success: boolean; error?: string }>;
   uploading: boolean;
   disabled?: boolean;
 }
@@ -73,77 +74,97 @@ function getMimeType(file: File): string {
 export function MobileFileUploader({ onUpload, uploading, disabled }: MobileFileUploaderProps) {
   const [stagedFile, setStagedFile] = useState<StagedFile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const [inAppBrowser, setInAppBrowser] = useState<{ isInApp: boolean; browserName: string | null }>({ isInApp: false, browserName: null });
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Generate stable ID
-  const [inputId] = useState(() => `file-input-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
+  // Use React's useId for stable ID generation
+  const inputId = useId();
 
   useEffect(() => {
     setInAppBrowser(detectInAppBrowser());
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("[MobileFileUploader] File input change event fired");
+    console.log("[MobileFileUploader] === FILE INPUT CHANGE EVENT ===");
     setError(null);
+    setDebugInfo(null);
     
-    const files = e.target.files;
-    console.log("[MobileFileUploader] Files:", files?.length || 0);
-    
-    if (!files || files.length === 0) {
-      console.log("[MobileFileUploader] No files selected");
-      return;
-    }
+    try {
+      const files = e.target.files;
+      console.log("[MobileFileUploader] e.target.files:", files);
+      console.log("[MobileFileUploader] files length:", files?.length ?? "null");
+      
+      if (!files || files.length === 0) {
+        console.log("[MobileFileUploader] No files in input");
+        setDebugInfo("No file was captured from input");
+        return;
+      }
 
-    const file = files[0];
-    console.log("[MobileFileUploader] File selected:", file.name, "Type:", file.type, "Size:", file.size);
-    
-    const mimeType = getMimeType(file);
-    console.log("[MobileFileUploader] Resolved MIME type:", mimeType);
+      const file = files[0];
+      console.log("[MobileFileUploader] File object:", file);
+      console.log("[MobileFileUploader] File.name:", file.name);
+      console.log("[MobileFileUploader] File.type:", file.type);
+      console.log("[MobileFileUploader] File.size:", file.size);
+      
+      setDebugInfo(`Captured: ${file.name} (${formatFileSize(file.size)})`);
+      
+      const mimeType = getMimeType(file);
+      console.log("[MobileFileUploader] Resolved MIME type:", mimeType);
 
-    // Validate type
-    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
-    if (!allowedTypes.includes(mimeType)) {
-      const msg = `Unsupported file type "${mimeType || "unknown"}". Please select a PDF, JPG, or PNG.`;
-      console.log("[MobileFileUploader] Validation failed:", msg);
-      setError(msg);
-      resetInput();
-      return;
-    }
+      // Validate type
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+      if (!allowedTypes.includes(mimeType)) {
+        const msg = `Unsupported file type. Please select a PDF, JPG, or PNG.`;
+        console.log("[MobileFileUploader] Type validation failed:", mimeType);
+        setError(msg);
+        resetInput();
+        return;
+      }
 
-    // Validate size (20MB)
-    if (file.size > 20 * 1024 * 1024) {
-      const msg = "File is too large. Maximum size is 20MB.";
-      console.log("[MobileFileUploader] Validation failed:", msg);
-      setError(msg);
-      resetInput();
-      return;
-    }
+      // Validate size (20MB)
+      if (file.size > 20 * 1024 * 1024) {
+        const msg = "File is too large. Maximum size is 20MB.";
+        console.log("[MobileFileUploader] Size validation failed:", file.size);
+        setError(msg);
+        resetInput();
+        return;
+      }
 
-    // Stage the file
-    const staged: StagedFile = {
-      file,
-      name: file.name,
-      type: mimeType,
-    };
-
-    // Create preview for images
-    if (mimeType.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        staged.preview = loadEvent.target?.result as string;
-        setStagedFile({ ...staged });
-        console.log("[MobileFileUploader] Image preview created, file staged");
+      // Stage the file immediately
+      const staged: StagedFile = {
+        file,
+        name: file.name,
+        size: file.size,
+        type: mimeType,
       };
-      reader.onerror = () => {
-        // Still stage the file even if preview fails
+
+      // Create preview for images
+      if (mimeType.startsWith("image/")) {
+        try {
+          const reader = new FileReader();
+          reader.onload = (loadEvent) => {
+            staged.preview = loadEvent.target?.result as string;
+            setStagedFile({ ...staged });
+            console.log("[MobileFileUploader] Image preview created, file staged");
+          };
+          reader.onerror = (readerError) => {
+            console.log("[MobileFileUploader] FileReader error:", readerError);
+            // Still stage the file even if preview fails
+            setStagedFile(staged);
+          };
+          reader.readAsDataURL(file);
+        } catch (readerErr) {
+          console.error("[MobileFileUploader] FileReader exception:", readerErr);
+          setStagedFile(staged);
+        }
+      } else {
         setStagedFile(staged);
-        console.log("[MobileFileUploader] Image preview failed, file staged without preview");
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setStagedFile(staged);
-      console.log("[MobileFileUploader] File staged (non-image)");
+        console.log("[MobileFileUploader] PDF file staged");
+      }
+    } catch (err) {
+      console.error("[MobileFileUploader] Exception in handleFileChange:", err);
+      setError(`File selection failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   };
 
@@ -156,27 +177,31 @@ export function MobileFileUploader({ onUpload, uploading, disabled }: MobileFile
   const handleClearStaged = () => {
     setStagedFile(null);
     setError(null);
+    setDebugInfo(null);
     resetInput();
   };
 
   const handleUpload = async () => {
     if (!stagedFile) return;
 
-    console.log("[MobileFileUploader] Starting upload for:", stagedFile.name);
+    console.log("[MobileFileUploader] === STARTING UPLOAD ===");
+    console.log("[MobileFileUploader] File:", stagedFile.name, stagedFile.size, stagedFile.type);
     setError(null);
     
     try {
-      const success = await onUpload(stagedFile.file);
-      console.log("[MobileFileUploader] Upload result:", success);
+      const result = await onUpload(stagedFile.file);
+      console.log("[MobileFileUploader] Upload result:", result);
       
-      if (success) {
+      if (result.success) {
         setStagedFile(null);
+        setDebugInfo(null);
         resetInput();
       } else {
-        setError("Upload failed. Please check your connection and try again.");
+        const errorMsg = result.error || "Upload failed. Please try again.";
+        setError(errorMsg);
       }
     } catch (err) {
-      console.error("[MobileFileUploader] Upload error:", err);
+      console.error("[MobileFileUploader] Upload exception:", err);
       const message = err instanceof Error ? err.message : "Upload failed unexpectedly.";
       setError(message);
     }
@@ -210,7 +235,7 @@ export function MobileFileUploader({ onUpload, uploading, disabled }: MobileFile
               ? `${inAppBrowser.browserName}'s browser may block file uploads.`
               : "In-app browsers may block file uploads."
             }
-            {" "}Open this page in Safari or Chrome to upload files.
+            {" "}Open this page in Safari or Chrome.
           </AlertDescription>
           <Button 
             variant="outline" 
@@ -220,60 +245,64 @@ export function MobileFileUploader({ onUpload, uploading, disabled }: MobileFile
             type="button"
           >
             <ExternalLink className="h-3 w-3 mr-1" />
-            Try Open in Browser
+            Open in Browser
           </Button>
         </Alert>
       )}
 
-      {/* Native file input - VISIBLE and directly tappable for mobile reliability */}
+      {/* File input section - only show when no file is staged */}
       {!stagedFile && (
         <div className="space-y-2">
           {/* 
-            Mobile-safe approach: 
-            - The input is visible (not hidden via CSS tricks)
-            - Wrapped in a styled container for appearance
-            - Uses opacity: 0 overlay technique which is more reliable than sr-only
+            CRITICAL: Use a <label> wrapping the visual content with the input inside.
+            This ensures direct user interaction triggers the native file picker on mobile.
+            The input is styled to be visible but covering the label area.
           */}
-          <div 
+          <label 
+            htmlFor={inputId}
             className={`
-              relative flex items-center justify-center gap-2 w-full p-4
+              flex items-center justify-center gap-2 w-full p-4 cursor-pointer
               border-2 border-dashed rounded-lg
               transition-colors
               ${isDisabled 
-                ? "bg-muted/50 border-muted-foreground/20 opacity-50" 
-                : "bg-muted/30 border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/50"
+                ? "bg-muted/50 border-muted-foreground/20 opacity-50 cursor-not-allowed" 
+                : "bg-muted/30 border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/50 active:bg-muted/60"
               }
             `}
           >
-            <Upload className="h-5 w-5 text-muted-foreground pointer-events-none" />
-            <span className="text-sm font-medium text-muted-foreground pointer-events-none">
+            <Upload className="h-5 w-5 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">
               Tap to select file
             </span>
-            
-            {/* 
-              The actual input covers the entire area with opacity 0.
-              This ensures the native file picker opens on tap.
-            */}
-            <input
-              ref={fileInputRef}
-              id={inputId}
-              name={inputId}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-              onChange={handleFileChange}
-              disabled={isDisabled}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              style={{ 
-                // Ensure it's interactive and not clipped
-                WebkitAppearance: 'none',
-                appearance: 'none',
-              }}
-              aria-label="Select file to upload"
-            />
-          </div>
+          </label>
+          
+          {/* 
+            The file input is visually hidden but accessible.
+            Using standard visually-hidden pattern that works on mobile.
+          */}
+          <input
+            ref={fileInputRef}
+            id={inputId}
+            name={inputId}
+            type="file"
+            accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+            onChange={handleFileChange}
+            disabled={isDisabled}
+            className="absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0"
+            style={{ clip: 'rect(0, 0, 0, 0)' }}
+            aria-label="Select file to upload"
+          />
+          
           <p className="text-xs text-muted-foreground text-center">
             PDF, JPG, or PNG • Max 20MB
           </p>
+        </div>
+      )}
+
+      {/* Debug info - shows what was captured */}
+      {debugInfo && !stagedFile && (
+        <div className="p-2 rounded bg-muted/50 border">
+          <p className="text-xs text-muted-foreground font-mono">{debugInfo}</p>
         </div>
       )}
 
@@ -300,7 +329,7 @@ export function MobileFileUploader({ onUpload, uploading, disabled }: MobileFile
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{stagedFile.name}</p>
               <p className="text-xs text-muted-foreground">
-                {formatFileSize(stagedFile.file.size)}
+                Selected file: {formatFileSize(stagedFile.size)}
               </p>
             </div>
 
