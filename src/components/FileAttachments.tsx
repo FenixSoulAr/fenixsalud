@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Paperclip, FileText, Image, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import { Paperclip, FileText, Image, Trash2, ExternalLink, Loader2, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useFileAttachments } from "@/hooks/useFileAttachments";
 import { MobileFileUploader } from "@/components/MobileFileUploader";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -30,6 +32,7 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
   const { attachments, loading, uploading, uploadFile, deleteFile, getSignedUrl } = useFileAttachments(entityType, entityId);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   async function handleUpload(file: File): Promise<{ success: boolean; error?: string }> {
     console.log("[FileAttachments] handleUpload called with:", file.name, file.size, file.type);
@@ -68,12 +71,22 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
         <h3 className="text-sm font-medium">Attachments</h3>
       </div>
 
-      {/* Mobile-friendly file uploader */}
-      <MobileFileUploader 
-        onUpload={handleUpload}
-        uploading={uploading}
-        disabled={!entityId}
-      />
+      {/* Show mobile notice or desktop uploader */}
+      {isMobile ? (
+        <Alert>
+          <Monitor className="h-4 w-4" />
+          <AlertTitle>File upload not available on mobile</AlertTitle>
+          <AlertDescription>
+            For now, documents can only be uploaded from a computer. You can still view existing files on your phone.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <MobileFileUploader 
+          onUpload={handleUpload}
+          uploading={uploading}
+          disabled={!entityId}
+        />
+      )}
 
       {loading ? (
         <div className="text-sm text-muted-foreground">Loading attachments...</div>
