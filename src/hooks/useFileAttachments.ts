@@ -47,14 +47,24 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
     fetchAttachments();
   }, [fetchAttachments]);
 
-  const uploadFile = async (file: File): Promise<boolean> => {
-    if (!user || !entityId) return false;
+  const uploadFile = async (file: File): Promise<{ success: boolean; error?: string }> => {
+    if (!user || !entityId) {
+      return { success: false, error: "Not authenticated or missing entity ID." };
+    }
 
     // Normalize MIME type for mobile compatibility (some devices report different types)
     let mimeType = file.type?.toLowerCase() || "";
     
-    // Handle edge cases where mobile might report different MIME types
+    // Handle edge cases where mobile might report different MIME types or empty type
     if (!mimeType && file.name) {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      if (ext === "pdf") mimeType = "application/pdf";
+      else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
+      else if (ext === "png") mimeType = "image/png";
+    }
+
+    // Additional fallback: check for common mobile MIME variations
+    if (mimeType === "application/octet-stream" && file.name) {
       const ext = file.name.split(".").pop()?.toLowerCase();
       if (ext === "pdf") mimeType = "application/pdf";
       else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
@@ -63,14 +73,16 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
 
     // Validate file type
     if (!ALLOWED_TYPES.includes(mimeType)) {
-      toast.error("Unsupported file type. Please upload a PDF, JPG, or PNG.");
-      return false;
+      const errorMsg = "Unsupported file type. Please upload a PDF, JPG, or PNG.";
+      toast.error(errorMsg);
+      return { success: false, error: errorMsg };
     }
 
     // Validate file size
     if (file.size > MAX_SIZE_BYTES) {
-      toast.error("File is too large. Maximum size is 20MB.");
-      return false;
+      const errorMsg = "File is too large. Maximum size is 20MB.";
+      toast.error(errorMsg);
+      return { success: false, error: errorMsg };
     }
 
     setUploading(true);
@@ -87,12 +99,14 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
         .upload(filePath, file, {
           contentType: mimeType,
           cacheControl: "3600",
+          upsert: false,
         });
 
       if (uploadError) {
         console.error("Upload error:", uploadError);
-        toast.error("We couldn't upload this file. Please try again.");
-        return false;
+        const errorMsg = `Upload failed: ${uploadError.message}`;
+        toast.error(errorMsg);
+        return { success: false, error: errorMsg };
       }
 
       // Create file_attachments record
@@ -111,17 +125,21 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
         console.error("DB error:", dbError);
         // Try to clean up uploaded file
         await supabase.storage.from("health-files").remove([filePath]);
-        toast.error("We couldn't upload this file. Please try again.");
-        return false;
+        const errorMsg = `Failed to save file record: ${dbError.message}`;
+        toast.error(errorMsg);
+        return { success: false, error: errorMsg };
       }
 
       await fetchAttachments();
       toast.success("File uploaded.");
-      return true;
+      return { success: true };
     } catch (error) {
       console.error("Unexpected error:", error);
-      toast.error("We couldn't upload this file. Please try again.");
-      return false;
+      const errorMsg = error instanceof Error 
+        ? `Upload failed: ${error.message}` 
+        : "Upload failed. Please check your connection and try again.";
+      toast.error(errorMsg);
+      return { success: false, error: errorMsg };
     } finally {
       setUploading(false);
     }
