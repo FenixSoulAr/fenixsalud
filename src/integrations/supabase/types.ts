@@ -259,6 +259,60 @@ export type Database = {
         }
         Relationships: []
       }
+      procedures: {
+        Row: {
+          created_at: string
+          date: string
+          doctor_id: string | null
+          id: string
+          institution_id: string | null
+          notes: string | null
+          title: string
+          type: Database["public"]["Enums"]["procedure_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          doctor_id?: string | null
+          id?: string
+          institution_id?: string | null
+          notes?: string | null
+          title: string
+          type: Database["public"]["Enums"]["procedure_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          doctor_id?: string | null
+          id?: string
+          institution_id?: string | null
+          notes?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["procedure_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procedures_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procedures_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           allergies: string | null
@@ -411,11 +465,12 @@ export type Database = {
     }
     Enums: {
       appointment_status: "Upcoming" | "Completed" | "Cancelled"
-      entity_type: "Appointment" | "TestStudy"
+      entity_type: "Appointment" | "TestStudy" | "Procedure"
       institution_type: "Clinic" | "Lab" | "Hospital" | "Other"
       medication_log_status: "Taken" | "Skipped"
       medication_schedule_type: "Daily" | "Weekly" | "As needed"
       medication_status: "Active" | "Paused" | "Completed"
+      procedure_type: "Surgery" | "Hospitalization" | "Vaccine"
       reminder_type:
         | "Checkup"
         | "Appointment follow-up"
@@ -551,11 +606,12 @@ export const Constants = {
   public: {
     Enums: {
       appointment_status: ["Upcoming", "Completed", "Cancelled"],
-      entity_type: ["Appointment", "TestStudy"],
+      entity_type: ["Appointment", "TestStudy", "Procedure"],
       institution_type: ["Clinic", "Lab", "Hospital", "Other"],
       medication_log_status: ["Taken", "Skipped"],
       medication_schedule_type: ["Daily", "Weekly", "As needed"],
       medication_status: ["Active", "Paused", "Completed"],
+      procedure_type: ["Surgery", "Hospitalization", "Vaccine"],
       reminder_type: [
         "Checkup",
         "Appointment follow-up",

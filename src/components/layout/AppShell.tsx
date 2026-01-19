@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Calendar,
   FlaskConical,
+  Syringe,
   Pill,
   Stethoscope,
   Building2,
@@ -13,6 +14,7 @@ import {
   X,
   LogOut,
   Heart,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,10 +28,12 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Appointments", href: "/appointments", icon: Calendar },
   { name: "Tests", href: "/tests", icon: FlaskConical },
+  { name: "Procedures", href: "/procedures", icon: Syringe },
   { name: "Medications", href: "/medications", icon: Pill },
   { name: "Doctors", href: "/doctors", icon: Stethoscope },
   { name: "Institutions", href: "/institutions", icon: Building2 },
   { name: "Reminders", href: "/reminders", icon: Bell },
+  { name: "Clinical Summary", href: "/clinical-summary", icon: FileText },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

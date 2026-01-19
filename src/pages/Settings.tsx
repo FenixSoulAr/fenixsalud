@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Trash2, User, Shield } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Trash2, User, Shield, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -198,7 +199,15 @@ export default function Settings() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Settings" description="Manage your account and preferences" />
+      <PageHeader 
+        title="Settings" 
+        description="Manage your account and preferences"
+        actions={
+          <Button variant="outline" asChild>
+            <Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />Clinical Summary</Link>
+          </Button>
+        }
+      />
 
       <div className="max-w-2xl space-y-8">
         {/* Profile Section */}
