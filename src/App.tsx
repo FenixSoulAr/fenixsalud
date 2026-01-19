@@ -13,11 +13,13 @@ import SignIn from "./pages/auth/SignIn";
 import SignUp from "./pages/auth/SignUp";
 import Appointments from "./pages/Appointments";
 import Tests from "./pages/Tests";
+import Procedures from "./pages/Procedures";
 import Medications from "./pages/Medications";
 import Doctors from "./pages/Doctors";
 import Institutions from "./pages/Institutions";
 import Reminders from "./pages/Reminders";
 import Settings from "./pages/Settings";
+import ClinicalSummary from "./pages/ClinicalSummary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,12 +55,15 @@ function AppRoutes() {
       <Route path="/appointments/:id" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
       <Route path="/tests" element={<ProtectedRoute><Tests /></ProtectedRoute>} />
       <Route path="/tests/:id" element={<ProtectedRoute><Tests /></ProtectedRoute>} />
+      <Route path="/procedures" element={<ProtectedRoute><Procedures /></ProtectedRoute>} />
+      <Route path="/procedures/:id" element={<ProtectedRoute><Procedures /></ProtectedRoute>} />
       <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
       <Route path="/medications/:id" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
       <Route path="/doctors" element={<ProtectedRoute><Doctors /></ProtectedRoute>} />
       <Route path="/institutions" element={<ProtectedRoute><Institutions /></ProtectedRoute>} />
       <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/clinical-summary" element={<ProtectedRoute><ClinicalSummary /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Calendar, FlaskConical, Pill, Bell, Clock, ArrowRight } from "lucide-react";
+import { Plus, Calendar, FlaskConical, Pill, Bell, Clock, ArrowRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -61,6 +61,7 @@ export default function Dashboard() {
             <Button asChild><Link to="/appointments?new=true"><Plus className="h-4 w-4 mr-2" />Add appointment</Link></Button>
             <Button variant="outline" asChild><Link to="/tests?new=true">Add test</Link></Button>
             <Button variant="outline" asChild><Link to="/medications?new=true">Add medication</Link></Button>
+            <Button variant="outline" asChild><Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />Clinical Summary</Link></Button>
           </div>
         }
       />
