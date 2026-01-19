@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { FileAttachments } from "@/components/FileAttachments";
+import { AttachmentIndicator } from "@/components/AttachmentIndicator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -30,14 +31,33 @@ export default function Tests() {
 
   useEffect(() => { if (user) fetchData(); }, [user]);
 
+  const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
+
   async function fetchData() {
     setLoading(true);
     const [testRes, instRes] = await Promise.all([
       supabase.from("tests").select("*, institutions(name)").order("date", { ascending: false }),
       supabase.from("institutions").select("id, name"),
     ]);
-    setTests(testRes.data || []);
+    const testsData = testRes.data || [];
+    setTests(testsData);
     setInstitutions(instRes.data || []);
+    
+    // Fetch attachment counts for all tests
+    if (testsData.length > 0) {
+      const { data: attachments } = await supabase
+        .from("file_attachments")
+        .select("entity_id")
+        .eq("entity_type", "TestStudy")
+        .in("entity_id", testsData.map(t => t.id));
+      
+      const counts: Record<string, number> = {};
+      (attachments || []).forEach(att => {
+        counts[att.entity_id] = (counts[att.entity_id] || 0) + 1;
+      });
+      setAttachmentCounts(counts);
+    }
+    
     setLoading(false);
   }
 
@@ -208,31 +228,39 @@ export default function Tests() {
         <>
           {/* Mobile Card Layout */}
           <div className="md:hidden space-y-3">
-            {tests.map((t) => (
-              <div key={t.id} className="health-card">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">{t.type}</p>
-                    <p className="text-sm text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")}</p>
+            {tests.map((t) => {
+              const attachCount = attachmentCounts[t.id] || 0;
+              return (
+                <div key={t.id} className="health-card">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{t.type}</p>
+                      <p className="text-sm text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {attachCount > 0 && (
+                        <AttachmentIndicator entityType="TestStudy" entityId={t.id} count={attachCount} />
+                      )}
+                      <StatusBadge status={normalizeStatus(t.status)} />
+                    </div>
                   </div>
-                  <StatusBadge status={normalizeStatus(t.status)} />
+                  {t.institutions?.name && (
+                    <p className="text-sm text-muted-foreground">Institution: {t.institutions.name}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                    <Button variant="ghost" size="sm" onClick={() => setViewingTest(t)}>
+                      <Eye className="h-4 w-4 mr-1" />View
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(t)}>
+                      <Pencil className="h-4 w-4 mr-1" />Edit
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(t.id)}>
+                      <Trash2 className="h-4 w-4 mr-1 text-destructive" />Delete
+                    </Button>
+                  </div>
                 </div>
-                {t.institutions?.name && (
-                  <p className="text-sm text-muted-foreground">Institution: {t.institutions.name}</p>
-                )}
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                  <Button variant="ghost" size="sm" onClick={() => setViewingTest(t)}>
-                    <Eye className="h-4 w-4 mr-1" />View
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(t)}>
-                    <Pencil className="h-4 w-4 mr-1" />Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setDeleteId(t.id)}>
-                    <Trash2 className="h-4 w-4 mr-1 text-destructive" />Delete
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Desktop Table Layout */}
@@ -240,27 +268,37 @@ export default function Tests() {
             <table className="w-full">
               <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Type</th><th className="text-left p-4 font-medium">Date</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Status</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
               <tbody>
-                {tests.map((t) => (
-                  <tr key={t.id} className="border-b hover:bg-muted/30 transition-colors">
-                    <td className="p-4">{t.type}</td>
-                    <td className="p-4">{format(new Date(t.date), "MMM d, yyyy")}</td>
-                    <td className="p-4">{t.institutions?.name || "—"}</td>
-                    <td className="p-4"><StatusBadge status={normalizeStatus(t.status)} /></td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => setViewingTest(t)} aria-label="View test">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(t)} aria-label="Edit test">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(t.id)} aria-label="Delete test">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {tests.map((t) => {
+                  const attachCount = attachmentCounts[t.id] || 0;
+                  return (
+                    <tr key={t.id} className="border-b hover:bg-muted/30 transition-colors">
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <span>{t.type}</span>
+                          {attachCount > 0 && (
+                            <AttachmentIndicator entityType="TestStudy" entityId={t.id} count={attachCount} />
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4">{format(new Date(t.date), "MMM d, yyyy")}</td>
+                      <td className="p-4">{t.institutions?.name || "—"}</td>
+                      <td className="p-4"><StatusBadge status={normalizeStatus(t.status)} /></td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => setViewingTest(t)} aria-label="View test">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(t)} aria-label="Edit test">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(t.id)} aria-label="Delete test">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

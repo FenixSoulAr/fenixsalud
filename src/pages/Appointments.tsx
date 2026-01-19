@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Calendar, Pencil, Trash2, Stethoscope, Building2, Eye, ArrowLeft } from "lucide-react";
+import { Plus, Calendar, Pencil, Trash2, Stethoscope, Building2, Eye, ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -15,12 +15,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { FileAttachments } from "@/components/FileAttachments";
+import { AttachmentIndicator } from "@/components/AttachmentIndicator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown } from "lucide-react";
 
 export default function Appointments() {
   const { user } = useAuth();
@@ -56,6 +56,8 @@ export default function Appointments() {
     }
   }, [searchParams, appointments]);
 
+  const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
+
   async function fetchData() {
     setLoading(true);
     const [apptRes, docRes, instRes] = await Promise.all([
@@ -63,9 +65,26 @@ export default function Appointments() {
       supabase.from("doctors").select("id, full_name"),
       supabase.from("institutions").select("id, name"),
     ]);
-    setAppointments(apptRes.data || []);
+    const appts = apptRes.data || [];
+    setAppointments(appts);
     setDoctors(docRes.data || []);
     setInstitutions(instRes.data || []);
+    
+    // Fetch attachment counts for all appointments
+    if (appts.length > 0) {
+      const { data: attachments } = await supabase
+        .from("file_attachments")
+        .select("entity_id")
+        .eq("entity_type", "Appointment")
+        .in("entity_id", appts.map(a => a.id));
+      
+      const counts: Record<string, number> = {};
+      (attachments || []).forEach(att => {
+        counts[att.entity_id] = (counts[att.entity_id] || 0) + 1;
+      });
+      setAttachmentCounts(counts);
+    }
+    
     setLoading(false);
   }
 
@@ -429,6 +448,7 @@ export default function Appointments() {
             {appointments.map((apt) => {
               const dt = new Date(apt.datetime_start);
               const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
+              const attachCount = attachmentCounts[apt.id] || 0;
               return (
                 <div key={apt.id} className="health-card">
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -439,7 +459,12 @@ export default function Appointments() {
                       </p>
                       {apt.reason && <p className="text-foreground mt-1">{apt.reason}</p>}
                     </div>
-                    <StatusBadge status={normalizeStatus(apt.status)} />
+                    <div className="flex items-center gap-2">
+                      {attachCount > 0 && (
+                        <AttachmentIndicator entityType="Appointment" entityId={apt.id} count={attachCount} />
+                      )}
+                      <StatusBadge status={normalizeStatus(apt.status)} />
+                    </div>
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
                     {apt.doctors?.full_name && <p>Doctor: {apt.doctors.full_name}</p>}
@@ -466,28 +491,38 @@ export default function Appointments() {
             <table className="w-full">
               <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Date & Time</th><th className="text-left p-4 font-medium">Doctor</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Reason</th><th className="text-left p-4 font-medium">Status</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
               <tbody>
-                {appointments.map((apt) => (
-                  <tr key={apt.id} className="border-b hover:bg-muted/30 transition-colors">
-                    <td className="p-4">{format(new Date(apt.datetime_start), "MMM d, yyyy h:mm a")}</td>
-                    <td className="p-4">{apt.doctors?.full_name || "—"}</td>
-                    <td className="p-4">{apt.institutions?.name || "—"}</td>
-                    <td className="p-4">{apt.reason || "—"}</td>
-                    <td className="p-4"><StatusBadge status={normalizeStatus(apt.status)} /></td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => setViewingAppointment(apt)} aria-label="View appointment">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(apt)} aria-label="Edit appointment">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(apt.id)} aria-label="Delete appointment">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {appointments.map((apt) => {
+                  const attachCount = attachmentCounts[apt.id] || 0;
+                  return (
+                    <tr key={apt.id} className="border-b hover:bg-muted/30 transition-colors">
+                      <td className="p-4">{format(new Date(apt.datetime_start), "MMM d, yyyy h:mm a")}</td>
+                      <td className="p-4">{apt.doctors?.full_name || "—"}</td>
+                      <td className="p-4">{apt.institutions?.name || "—"}</td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <span>{apt.reason || "—"}</span>
+                          {attachCount > 0 && (
+                            <AttachmentIndicator entityType="Appointment" entityId={apt.id} count={attachCount} />
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4"><StatusBadge status={normalizeStatus(apt.status)} /></td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => setViewingAppointment(apt)} aria-label="View appointment">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(apt)} aria-label="Edit appointment">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(apt.id)} aria-label="Delete appointment">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
