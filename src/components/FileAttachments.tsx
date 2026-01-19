@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
-import { Paperclip, FileText, Image, Trash2, ExternalLink, Upload, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Paperclip, FileText, Image, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useFileAttachments } from "@/hooks/useFileAttachments";
+import { MobileFileUploader } from "@/components/MobileFileUploader";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -29,20 +30,10 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
   const { attachments, loading, uploading, uploadFile, deleteFile, getSignedUrl } = useFileAttachments(entityType, entityId);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files) return;
-
-    for (const file of Array.from(files)) {
-      await uploadFile(file);
-    }
-    
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+  async function handleUpload(file: File): Promise<boolean> {
+    const result = await uploadFile(file);
+    return result.success;
   }
 
   async function handleOpen(filePath: string, attachmentId: string) {
@@ -70,37 +61,17 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <Paperclip className="h-4 w-4" />
-          Attachments
-        </h3>
-        <div className="relative">
-          {/* Label-based file input for better mobile compatibility */}
-          <label
-            htmlFor={`file-upload-${entityId}`}
-            className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            <span>Upload</span>
-          </label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            id={`file-upload-${entityId}`}
-            accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
-            capture={false}
-            multiple
-            onChange={handleFileSelect}
-            className="sr-only"
-            aria-label="Upload file"
-          />
-        </div>
+      <div className="flex items-center gap-2">
+        <Paperclip className="h-4 w-4" />
+        <h3 className="text-sm font-medium">Attachments</h3>
       </div>
+
+      {/* Mobile-friendly file uploader */}
+      <MobileFileUploader 
+        onUpload={handleUpload}
+        uploading={uploading}
+        disabled={!entityId}
+      />
 
       {loading ? (
         <div className="text-sm text-muted-foreground">Loading attachments...</div>
