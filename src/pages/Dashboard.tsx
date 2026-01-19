@@ -12,10 +12,12 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
+import { useTranslations } from "@/i18n";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
@@ -54,14 +56,14 @@ export default function Dashboard() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Dashboard"
-        description="Your health at a glance"
+        title={t.dashboard.title}
+        description={t.dashboard.description}
         actions={
           <div className="flex gap-2 flex-wrap">
-            <Button asChild><Link to="/appointments?new=true"><Plus className="h-4 w-4 mr-2" />Add appointment</Link></Button>
-            <Button variant="outline" asChild><Link to="/tests?new=true">Add test</Link></Button>
-            <Button variant="outline" asChild><Link to="/medications?new=true">Add medication</Link></Button>
-            <Button variant="outline" asChild><Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />Clinical Summary</Link></Button>
+            <Button asChild><Link to="/appointments?new=true"><Plus className="h-4 w-4 mr-2" />{t.dashboard.addAppointment}</Link></Button>
+            <Button variant="outline" asChild><Link to="/tests?new=true">{t.dashboard.addTest}</Link></Button>
+            <Button variant="outline" asChild><Link to="/medications?new=true">{t.dashboard.addMedication}</Link></Button>
+            <Button variant="outline" asChild><Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />{t.nav.clinicalSummary}</Link></Button>
           </div>
         }
       />
@@ -69,15 +71,15 @@ export default function Dashboard() {
       {!hasData ? (
         <EmptyState
           icon={Calendar}
-          title="No health items yet"
-          description="Add your first appointment, test, or medication to get started."
-          action={{ label: "Add appointment", onClick: () => window.location.href = "/appointments?new=true" }}
+          title={t.dashboard.noHealthItems}
+          description={t.dashboard.noHealthItemsDescription}
+          action={{ label: t.dashboard.addAppointment, onClick: () => window.location.href = "/appointments?new=true" }}
         />
       ) : (
         <Tabs defaultValue="upcoming" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="upcoming">{t.dashboard.upcoming}</TabsTrigger>
+            <TabsTrigger value="timeline">{t.dashboard.timeline}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="upcoming" className="space-y-6">
@@ -85,8 +87,8 @@ export default function Dashboard() {
             {appointments.length > 0 && (
               <section className="health-card">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" />Upcoming Appointments</h2>
-                  <Link to="/appointments" className="text-sm text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="h-3 w-3" /></Link>
+                  <h2 className="text-lg font-semibold flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" />{t.dashboard.upcomingAppointments}</h2>
+                  <Link to="/appointments" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                 </div>
                 <div className="space-y-3">
                   {appointments.map((apt) => (
@@ -96,8 +98,8 @@ export default function Dashboard() {
                       className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors text-left min-h-[56px]"
                     >
                       <div>
-                        <p className="font-medium">{apt.reason || "Appointment"}</p>
-                        <p className="text-sm text-muted-foreground">{apt.doctors?.full_name || apt.institutions?.name || "No location"}</p>
+                        <p className="font-medium">{apt.reason || t.misc.appointment}</p>
+                        <p className="text-sm text-muted-foreground">{apt.doctors?.full_name || apt.institutions?.name || t.misc.noLocation}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">{format(new Date(apt.datetime_start), "MMM d, yyyy")}</p>
@@ -113,8 +115,8 @@ export default function Dashboard() {
             {medications.length > 0 && (
               <section className="health-card">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold flex items-center gap-2"><Pill className="h-5 w-5 text-primary" />Active Medications</h2>
-                  <Link to="/medications" className="text-sm text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="h-3 w-3" /></Link>
+                  <h2 className="text-lg font-semibold flex items-center gap-2"><Pill className="h-5 w-5 text-primary" />{t.dashboard.activeMedications}</h2>
+                  <Link to="/medications" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                 </div>
                 <div className="space-y-3">
                   {medications.map((med) => (
@@ -138,8 +140,8 @@ export default function Dashboard() {
             {reminders.length > 0 && (
               <section className="health-card">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold flex items-center gap-2"><Bell className="h-5 w-5 text-primary" />Reminders</h2>
-                  <Link to="/reminders" className="text-sm text-primary hover:underline flex items-center gap-1">View all <ArrowRight className="h-3 w-3" /></Link>
+                  <h2 className="text-lg font-semibold flex items-center gap-2"><Bell className="h-5 w-5 text-primary" />{t.nav.reminders}</h2>
+                  <Link to="/reminders" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                 </div>
                 <div className="space-y-3">
                   {reminders.map((rem) => (
@@ -183,19 +185,19 @@ export default function Dashboard() {
         <DialogContent>
           <DialogHeader><DialogTitle>{selectedMedication?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label className="text-muted-foreground text-xs">Dose</Label><p>{selectedMedication?.dose_text}</p></div>
-            <div><Label className="text-muted-foreground text-xs">Schedule</Label><p>{selectedMedication?.schedule_type}</p></div>
+            <div><Label className="text-muted-foreground text-xs">{t.medications.dose}</Label><p>{selectedMedication?.dose_text}</p></div>
+            <div><Label className="text-muted-foreground text-xs">{t.medications.schedule}</Label><p>{selectedMedication?.schedule_type}</p></div>
             {selectedMedication?.times && selectedMedication.times.length > 0 && (
-              <div><Label className="text-muted-foreground text-xs">Times</Label><p>{selectedMedication.times.join(", ")}</p></div>
+              <div><Label className="text-muted-foreground text-xs">{t.medications.times}</Label><p>{selectedMedication.times.join(", ")}</p></div>
             )}
             {selectedMedication?.status && (
-              <div><Label className="text-muted-foreground text-xs">Status</Label><StatusBadge status={normalizeStatus(selectedMedication.status)} /></div>
+              <div><Label className="text-muted-foreground text-xs">{t.medications.status}</Label><StatusBadge status={normalizeStatus(selectedMedication.status)} /></div>
             )}
-            {selectedMedication?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{selectedMedication.notes}</p></div>}
+            {selectedMedication?.notes && <div><Label className="text-muted-foreground text-xs">{t.medications.notes}</Label><p>{selectedMedication.notes}</p></div>}
           </div>
           <div className="flex gap-2 mt-4">
             <Button onClick={() => { setSelectedMedication(null); navigate(`/medications?edit=${selectedMedication?.id}`); }}>
-              Edit in Medications
+              {t.dashboard.editInMedications}
             </Button>
           </div>
         </DialogContent>
@@ -206,14 +208,14 @@ export default function Dashboard() {
         <DialogContent>
           <DialogHeader><DialogTitle>{selectedReminder?.title}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label className="text-muted-foreground text-xs">Type</Label><p>{selectedReminder?.type}</p></div>
-            <div><Label className="text-muted-foreground text-xs">Due</Label><p>{selectedReminder?.due_date_time ? format(new Date(selectedReminder.due_date_time), "MMM d, yyyy h:mm a") : "-"}</p></div>
-            <div><Label className="text-muted-foreground text-xs">Repeat</Label><p>{selectedReminder?.repeat_rule === "None" ? "One-time" : selectedReminder?.repeat_rule}</p></div>
-            {selectedReminder?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{selectedReminder.notes}</p></div>}
+            <div><Label className="text-muted-foreground text-xs">{t.reminders.type}</Label><p>{selectedReminder?.type}</p></div>
+            <div><Label className="text-muted-foreground text-xs">{t.reminders.date}</Label><p>{selectedReminder?.due_date_time ? format(new Date(selectedReminder.due_date_time), "MMM d, yyyy h:mm a") : "-"}</p></div>
+            <div><Label className="text-muted-foreground text-xs">{t.reminders.repeat}</Label><p>{selectedReminder?.repeat_rule === "None" ? t.reminders.oneTime : selectedReminder?.repeat_rule}</p></div>
+            {selectedReminder?.notes && <div><Label className="text-muted-foreground text-xs">{t.reminders.notes}</Label><p>{selectedReminder.notes}</p></div>}
           </div>
           <div className="flex gap-2 mt-4">
             <Button onClick={() => { setSelectedReminder(null); navigate(`/reminders?edit=${selectedReminder?.id}`); }}>
-              Edit in Reminders
+              {t.dashboard.editInReminders}
             </Button>
           </div>
         </DialogContent>

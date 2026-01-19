@@ -19,28 +19,30 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/i18n";
 
 interface AppShellProps {
   children: ReactNode;
 }
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Appointments", href: "/appointments", icon: Calendar },
-  { name: "Tests", href: "/tests", icon: FlaskConical },
-  { name: "Procedures", href: "/procedures", icon: Syringe },
-  { name: "Medications", href: "/medications", icon: Pill },
-  { name: "Doctors", href: "/doctors", icon: Stethoscope },
-  { name: "Institutions", href: "/institutions", icon: Building2 },
-  { name: "Reminders", href: "/reminders", icon: Bell },
-  { name: "Clinical Summary", href: "/clinical-summary", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
-];
-
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { signOut, user } = useAuth();
+  const t = useTranslations();
+
+  const navigation = [
+    { name: t.nav.dashboard, href: "/", icon: LayoutDashboard },
+    { name: t.nav.appointments, href: "/appointments", icon: Calendar },
+    { name: t.nav.tests, href: "/tests", icon: FlaskConical },
+    { name: t.nav.procedures, href: "/procedures", icon: Syringe },
+    { name: t.nav.medications, href: "/medications", icon: Pill },
+    { name: t.nav.doctors, href: "/doctors", icon: Stethoscope },
+    { name: t.nav.institutions, href: "/institutions", icon: Building2 },
+    { name: t.nav.reminders, href: "/reminders", icon: Bell },
+    { name: t.nav.clinicalSummary, href: "/clinical-summary", icon: FileText },
+    { name: t.nav.settings, href: "/settings", icon: Settings },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,7 +89,7 @@ export function AppShell({ children }: AppShellProps) {
                 (item.href !== "/" && location.pathname.startsWith(item.href));
               return (
                 <Link
-                  key={item.name}
+                  key={item.href}
                   to={item.href}
                   onClick={() => setSidebarOpen(false)}
                   className={cn(
@@ -121,7 +123,7 @@ export function AppShell({ children }: AppShellProps) {
               onClick={signOut}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Sign out
+              {t.nav.signOut}
             </Button>
           </div>
         </div>
