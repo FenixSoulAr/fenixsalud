@@ -50,8 +50,19 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
   const uploadFile = async (file: File): Promise<boolean> => {
     if (!user || !entityId) return false;
 
+    // Normalize MIME type for mobile compatibility (some devices report different types)
+    let mimeType = file.type?.toLowerCase() || "";
+    
+    // Handle edge cases where mobile might report different MIME types
+    if (!mimeType && file.name) {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      if (ext === "pdf") mimeType = "application/pdf";
+      else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
+      else if (ext === "png") mimeType = "image/png";
+    }
+
     // Validate file type
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(mimeType)) {
       toast.error("Unsupported file type. Please upload a PDF, JPG, or PNG.");
       return false;
     }
@@ -70,14 +81,17 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
       const filePath = `${user.id}/${entityType}/${entityId}/${timestamp}_${safeName}`;
 
-      // Upload to storage
+      // Upload to storage with explicit content type for mobile compatibility
       const { error: uploadError } = await supabase.storage
         .from("health-files")
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          contentType: mimeType,
+          cacheControl: "3600",
+        });
 
       if (uploadError) {
         console.error("Upload error:", uploadError);
-        toast.error("Failed to upload file. Please try again.");
+        toast.error("We couldn't upload this file. Please try again.");
         return false;
       }
 
@@ -90,14 +104,14 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
           entity_id: entityId,
           file_name: file.name,
           file_url: filePath,
-          mime_type: file.type,
+          mime_type: mimeType,
         });
 
       if (dbError) {
         console.error("DB error:", dbError);
         // Try to clean up uploaded file
         await supabase.storage.from("health-files").remove([filePath]);
-        toast.error("Failed to save file record. Please try again.");
+        toast.error("We couldn't upload this file. Please try again.");
         return false;
       }
 
@@ -106,7 +120,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       return true;
     } catch (error) {
       console.error("Unexpected error:", error);
-      toast.error("Failed to upload file. Please try again.");
+      toast.error("We couldn't upload this file. Please try again.");
       return false;
     } finally {
       setUploading(false);

@@ -75,30 +75,30 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
           <Paperclip className="h-4 w-4" />
           Attachments
         </h3>
-        <div>
+        <div className="relative">
+          {/* Label-based file input for better mobile compatibility */}
+          <label
+            htmlFor={`file-upload-${entityId}`}
+            className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            <span>Upload</span>
+          </label>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
+            id={`file-upload-${entityId}`}
+            accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+            capture={false}
             multiple
             onChange={handleFileSelect}
-            className="hidden"
-            id="file-upload"
+            className="sr-only"
+            aria-label="Upload file"
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
-            Upload
-          </Button>
         </div>
       </div>
 
