@@ -64,6 +64,7 @@ export const es: Translations = {
     date: "Fecha",
     time: "Hora",
     reason: "Motivo",
+    reasonPlaceholder: "ej., Control anual",
     notes: "Notas",
     doctor: "Médico",
     institution: "Institución",
@@ -83,6 +84,7 @@ export const es: Translations = {
     completed: "Completada",
     cancelled: "Cancelada",
     past: "Pasada",
+    createAppointment: "Crear cita",
   },
   
   // Tests
@@ -95,15 +97,19 @@ export const es: Translations = {
     noTests: "Sin estudios",
     noTestsDescription: "Agrega tu primer estudio para registrar tus resultados.",
     type: "Tipo",
+    typePlaceholder: "ej., Análisis de sangre",
     date: "Fecha",
     status: "Estado",
     institution: "Institución",
+    selectInstitution: "Seleccionar institución",
     notes: "Notas",
     scheduled: "Programado",
     done: "Realizado",
     resultReceived: "Resultado recibido",
     typeRequired: "El tipo es obligatorio.",
     dateRequired: "La fecha es obligatoria.",
+    createTest: "Crear estudio",
+    backToTests: "Volver a Estudios",
   },
   
   // Procedures
@@ -117,9 +123,12 @@ export const es: Translations = {
     noProceduresDescription: "Agrega tu primer procedimiento para registrar tu historial médico.",
     type: "Tipo",
     title_field: "Título",
+    titlePlaceholder: "ej., Apendicectomía",
     date: "Fecha",
     doctor: "Médico",
+    selectDoctor: "Seleccionar médico",
     institution: "Institución",
+    selectInstitution: "Seleccionar institución",
     notes: "Notas",
     surgery: "Cirugía",
     hospitalization: "Internación",
@@ -127,6 +136,8 @@ export const es: Translations = {
     allTypes: "Todos los tipos",
     titleRequired: "El título es obligatorio.",
     dateRequired: "La fecha es obligatoria.",
+    createProcedure: "Crear procedimiento",
+    backToProcedures: "Volver a Procedimientos",
   },
   
   // Medications
@@ -139,9 +150,12 @@ export const es: Translations = {
     noMedications: "Sin medicación",
     noMedicationsDescription: "Agrega tu primera medicación para registrar tu tratamiento.",
     name: "Nombre",
+    namePlaceholder: "ej., Aspirina",
     dose: "Dosis",
+    dosePlaceholder: "ej., 100mg",
     schedule: "Frecuencia",
-    times: "Horarios",
+    times: "Horarios (separados por coma)",
+    timesPlaceholder: "ej., 8:00, 20:00",
     startDate: "Fecha de inicio",
     endDate: "Fecha de fin",
     status: "Estado",
@@ -154,6 +168,10 @@ export const es: Translations = {
     asNeeded: "Según necesidad",
     nameRequired: "El nombre es obligatorio.",
     doseRequired: "La dosis es obligatoria.",
+    timesRequired: "Agregá al menos un horario.",
+    deleteMedication: "¿Eliminar medicación?",
+    deleteMedicationDesc: "Esta acción no se puede deshacer. El registro se eliminará permanentemente.",
+    noMedicationsTab: "Sin medicación",
   },
   
   // Doctors
@@ -167,6 +185,7 @@ export const es: Translations = {
     noDoctorsDescription: "Agrega tu primer médico para registrar tus profesionales de la salud.",
     fullName: "Nombre completo",
     specialty: "Especialidad",
+    specialtyPlaceholder: "ej., Cardiología",
     phone: "Teléfono",
     email: "Email",
     notes: "Notas",
@@ -193,6 +212,7 @@ export const es: Translations = {
     hospital: "Hospital",
     other: "Otro",
     nameRequired: "El nombre es obligatorio.",
+    addNewInstitution: "Agregar nueva institución",
   },
   
   // Reminders

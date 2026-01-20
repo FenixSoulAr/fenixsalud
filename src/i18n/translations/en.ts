@@ -58,6 +58,7 @@ export interface Translations {
     date: string;
     time: string;
     reason: string;
+    reasonPlaceholder: string;
     notes: string;
     doctor: string;
     institution: string;
@@ -77,6 +78,7 @@ export interface Translations {
     completed: string;
     cancelled: string;
     past: string;
+    createAppointment: string;
   };
   tests: {
     title: string;
@@ -87,15 +89,19 @@ export interface Translations {
     noTests: string;
     noTestsDescription: string;
     type: string;
+    typePlaceholder: string;
     date: string;
     status: string;
     institution: string;
+    selectInstitution: string;
     notes: string;
     scheduled: string;
     done: string;
     resultReceived: string;
     typeRequired: string;
     dateRequired: string;
+    createTest: string;
+    backToTests: string;
   };
   procedures: {
     title: string;
@@ -107,9 +113,12 @@ export interface Translations {
     noProceduresDescription: string;
     type: string;
     title_field: string;
+    titlePlaceholder: string;
     date: string;
     doctor: string;
+    selectDoctor: string;
     institution: string;
+    selectInstitution: string;
     notes: string;
     surgery: string;
     hospitalization: string;
@@ -117,6 +126,8 @@ export interface Translations {
     allTypes: string;
     titleRequired: string;
     dateRequired: string;
+    createProcedure: string;
+    backToProcedures: string;
   };
   medications: {
     title: string;
@@ -127,9 +138,12 @@ export interface Translations {
     noMedications: string;
     noMedicationsDescription: string;
     name: string;
+    namePlaceholder: string;
     dose: string;
+    dosePlaceholder: string;
     schedule: string;
     times: string;
+    timesPlaceholder: string;
     startDate: string;
     endDate: string;
     status: string;
@@ -142,6 +156,10 @@ export interface Translations {
     asNeeded: string;
     nameRequired: string;
     doseRequired: string;
+    timesRequired: string;
+    deleteMedication: string;
+    deleteMedicationDesc: string;
+    noMedicationsTab: string;
   };
   doctors: {
     title: string;
@@ -153,6 +171,7 @@ export interface Translations {
     noDoctorsDescription: string;
     fullName: string;
     specialty: string;
+    specialtyPlaceholder: string;
     phone: string;
     email: string;
     notes: string;
@@ -177,6 +196,7 @@ export interface Translations {
     hospital: string;
     other: string;
     nameRequired: string;
+    addNewInstitution: string;
   };
   reminders: {
     title: string;
@@ -413,6 +433,7 @@ export const en: Translations = {
     date: "Date",
     time: "Time",
     reason: "Reason",
+    reasonPlaceholder: "e.g., Annual checkup",
     notes: "Notes",
     doctor: "Doctor",
     institution: "Institution",
@@ -432,6 +453,7 @@ export const en: Translations = {
     completed: "Completed",
     cancelled: "Cancelled",
     past: "Past",
+    createAppointment: "Create Appointment",
   },
   
   // Tests
@@ -444,15 +466,19 @@ export const en: Translations = {
     noTests: "No tests yet",
     noTestsDescription: "Add your first test to track your results.",
     type: "Type",
+    typePlaceholder: "e.g., Blood test",
     date: "Date",
     status: "Status",
     institution: "Institution",
+    selectInstitution: "Select institution",
     notes: "Notes",
     scheduled: "Scheduled",
     done: "Done",
     resultReceived: "Result received",
     typeRequired: "Type is required.",
     dateRequired: "Date is required.",
+    createTest: "Create Test",
+    backToTests: "Back to Tests",
   },
   
   // Procedures
@@ -466,9 +492,12 @@ export const en: Translations = {
     noProceduresDescription: "Add your first procedure to track your medical history.",
     type: "Type",
     title_field: "Title",
+    titlePlaceholder: "e.g., Appendectomy",
     date: "Date",
     doctor: "Doctor",
+    selectDoctor: "Select doctor",
     institution: "Institution",
+    selectInstitution: "Select institution",
     notes: "Notes",
     surgery: "Surgery",
     hospitalization: "Hospitalization",
@@ -476,6 +505,8 @@ export const en: Translations = {
     allTypes: "All types",
     titleRequired: "Title is required.",
     dateRequired: "Date is required.",
+    createProcedure: "Create Procedure",
+    backToProcedures: "Back to Procedures",
   },
   
   // Medications
@@ -488,9 +519,12 @@ export const en: Translations = {
     noMedications: "No medications yet",
     noMedicationsDescription: "Add your first medication to track your treatment.",
     name: "Name",
+    namePlaceholder: "e.g., Aspirin",
     dose: "Dose",
+    dosePlaceholder: "e.g., 100mg",
     schedule: "Schedule",
-    times: "Times",
+    times: "Times (comma-separated)",
+    timesPlaceholder: "e.g., 8:00, 20:00",
     startDate: "Start date",
     endDate: "End date",
     status: "Status",
@@ -503,6 +537,10 @@ export const en: Translations = {
     asNeeded: "As needed",
     nameRequired: "Name is required.",
     doseRequired: "Dose is required.",
+    timesRequired: "Add at least one time.",
+    deleteMedication: "Delete medication?",
+    deleteMedicationDesc: "This action cannot be undone. The medication record will be permanently removed.",
+    noMedicationsTab: "No medications",
   },
   
   // Doctors
@@ -516,6 +554,7 @@ export const en: Translations = {
     noDoctorsDescription: "Add your first doctor to keep track of your healthcare providers.",
     fullName: "Full name",
     specialty: "Specialty",
+    specialtyPlaceholder: "e.g., Cardiology",
     phone: "Phone",
     email: "Email",
     notes: "Notes",
@@ -542,6 +581,7 @@ export const en: Translations = {
     hospital: "Hospital",
     other: "Other",
     nameRequired: "Name is required.",
+    addNewInstitution: "Add New Institution",
   },
   
   // Reminders
