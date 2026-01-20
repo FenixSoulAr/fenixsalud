@@ -14,7 +14,7 @@ import { LoadingPage } from "@/components/ui/loading-spinner";
 import { FileAttachments } from "@/components/FileAttachments";
 import { AttachmentIndicator } from "@/components/AttachmentIndicator";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTranslations } from "@/i18n";
@@ -33,7 +33,7 @@ function getProcedureStatusStyle(type: ProcedureType) {
 }
 
 export default function Procedures() {
-  const { user } = useAuth();
+  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [procedures, setProcedures] = useState<any[]>([]);
@@ -54,7 +54,7 @@ export default function Procedures() {
   });
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
-  useEffect(() => { if (user) fetchData(); }, [user]);
+  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
 
   // Helper to get translated procedure type
   function getTranslatedType(type: ProcedureType) {
@@ -134,7 +134,8 @@ export default function Procedures() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      const { error } = await supabase.from("procedures").insert({ ...payload, user_id: user!.id });
+      if (!dataOwnerId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("procedures").insert({ ...payload, user_id: dataOwnerId });
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }
