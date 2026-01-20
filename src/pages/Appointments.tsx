@@ -18,8 +18,7 @@ import { FileAttachments } from "@/components/FileAttachments";
 import { AttachmentIndicator } from "@/components/AttachmentIndicator";
 
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSharing } from "@/contexts/SharingContext";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -34,8 +33,7 @@ function getDisplayStatus(apt: any): "Upcoming" | "Past" | "Completed" | "Cancel
 }
 
 export default function Appointments() {
-  const { user } = useAuth();
-  const { canEdit, canDelete } = useSharing();
+  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -58,7 +56,7 @@ export default function Appointments() {
   const [doctorOpen, setDoctorOpen] = useState(false);
   const [institutionOpen, setInstitutionOpen] = useState(false);
 
-  useEffect(() => { if (user) fetchData(); }, [user]);
+  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
   
   // Handle URL params for opening view
   useEffect(() => {
@@ -147,7 +145,8 @@ export default function Appointments() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      const { error } = await supabase.from("appointments").insert({ ...payload, user_id: user!.id });
+      if (!dataOwnerId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("appointments").insert({ ...payload, user_id: dataOwnerId });
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }
@@ -170,9 +169,10 @@ export default function Appointments() {
   async function handleAddDoctor(e: React.FormEvent) {
     e.preventDefault();
     if (!newDoctor.full_name) { toast.error(t.doctors.nameRequired); return; }
+    if (!dataOwnerId) { toast.error("No active profile"); return; }
     
     const { data, error } = await supabase.from("doctors").insert({ 
-      user_id: user!.id, 
+      user_id: dataOwnerId, 
       full_name: newDoctor.full_name, 
       specialty: newDoctor.specialty || null 
     }).select().single();
@@ -192,9 +192,10 @@ export default function Appointments() {
   async function handleAddInstitution(e: React.FormEvent) {
     e.preventDefault();
     if (!newInstitution.name) { toast.error(t.institutions.nameRequired); return; }
+    if (!dataOwnerId) { toast.error("No active profile"); return; }
     
     const { data, error } = await supabase.from("institutions").insert({ 
-      user_id: user!.id, 
+      user_id: dataOwnerId, 
       name: newInstitution.name, 
       type: newInstitution.type as any
     }).select().single();

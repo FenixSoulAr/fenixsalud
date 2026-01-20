@@ -14,12 +14,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { useTranslations } from "@/i18n";
 
 export default function Medications() {
-  const { user } = useAuth();
+  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -29,7 +29,7 @@ export default function Medications() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active" });
 
-  useEffect(() => { if (user) fetchData(); }, [user]);
+  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
   
   // Handle URL params for auto-editing
   useEffect(() => {
@@ -85,7 +85,8 @@ export default function Medications() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      const { error } = await supabase.from("medications").insert({ ...payload, user_id: user!.id });
+      if (!dataOwnerId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("medications").insert({ ...payload, user_id: dataOwnerId });
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }

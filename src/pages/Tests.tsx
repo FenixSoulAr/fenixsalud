@@ -14,13 +14,13 @@ import { LoadingPage } from "@/components/ui/loading-spinner";
 import { FileAttachments } from "@/components/FileAttachments";
 import { AttachmentIndicator } from "@/components/AttachmentIndicator";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTranslations } from "@/i18n";
 
 export default function Tests() {
-  const { user } = useAuth();
+  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState<any[]>([]);
@@ -31,7 +31,7 @@ export default function Tests() {
   const [viewingTest, setViewingTest] = useState<any | null>(null);
   const [form, setForm] = useState({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled" });
 
-  useEffect(() => { if (user) fetchData(); }, [user]);
+  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
 
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
@@ -98,7 +98,8 @@ export default function Tests() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      const { error } = await supabase.from("tests").insert({ ...payload, user_id: user!.id });
+      if (!dataOwnerId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("tests").insert({ ...payload, user_id: dataOwnerId });
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }

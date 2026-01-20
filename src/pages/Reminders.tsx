@@ -13,12 +13,12 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
 export default function Reminders() {
-  const { user } = useAuth();
+  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [reminders, setReminders] = useState<any[]>([]);
@@ -29,7 +29,7 @@ export default function Reminders() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: "", type: "Custom", due_date: "", due_time: "", repeat_rule: "None", notes: "" });
 
-  useEffect(() => { if (user) fetchData(); }, [user]);
+  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
   
   // Handle URL params for auto-editing
   useEffect(() => {
@@ -97,7 +97,8 @@ export default function Reminders() {
       if (error) { toast.error("Something went wrong. Please try again."); return; }
       toast.success("Changes updated.");
     } else {
-      const { error } = await supabase.from("reminders").insert({ user_id: user!.id, ...payload });
+      if (!dataOwnerId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("reminders").insert({ user_id: dataOwnerId, ...payload });
       if (error) { toast.error("Something went wrong. Please try again."); return; }
       toast.success("Saved successfully.");
     }

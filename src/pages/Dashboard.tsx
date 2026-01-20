@@ -11,14 +11,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSharing } from "@/contexts/SharingContext";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { format } from "date-fns";
 import { useTranslations } from "@/i18n";
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const { canEdit } = useSharing();
+  const { canEdit, activeProfileOwnerId } = useActiveProfile();
   const navigate = useNavigate();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
@@ -30,9 +28,10 @@ export default function Dashboard() {
   // Detail view states
   const [selectedMedication, setSelectedMedication] = useState<any | null>(null);
   const [selectedReminder, setSelectedReminder] = useState<any | null>(null);
+
   useEffect(() => {
-    if (user) fetchData();
-  }, [user]);
+    if (activeProfileOwnerId) fetchData();
+  }, [activeProfileOwnerId]);
 
   async function fetchData() {
     setLoading(true);
