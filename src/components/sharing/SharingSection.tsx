@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, Mail, Trash2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,14 +8,19 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useSharing } from "@/contexts/SharingContext";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
-
+import { Badge } from "@/components/ui/badge";
 export function SharingSection() {
-  const { myShares, inviteUser, revokeAccess, updateRole, canManageSharing } = useSharing();
+  const { myShares, inviteUser, revokeAccess, updateRole, canManageSharing, refreshShares, loading } = useSharing();
   const lang = getLanguage();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"viewer" | "contributor">("viewer");
   const [inviting, setInviting] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
+
+  // Force refresh shares on mount to ensure list is up-to-date
+  useEffect(() => {
+    refreshShares();
+  }, [refreshShares]);
 
   if (!canManageSharing) {
     return null;
@@ -120,6 +125,13 @@ export function SharingSection() {
     return lang === "es" ? "Colaborador" : "Contributor";
   };
 
+  const getStatusLabel = (status: "pending" | "active") => {
+    if (status === "pending") {
+      return lang === "es" ? "Pendiente" : "Pending";
+    }
+    return lang === "es" ? "Activo" : "Active";
+  };
+
   return (
     <section className="health-card">
       <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -144,10 +156,18 @@ export function SharingSection() {
             >
               <div className="flex items-center gap-3 min-w-0">
                 <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{share.shared_with_email}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">{share.shared_with_email}</p>
+                    <Badge 
+                      variant={share.status === "active" ? "default" : "secondary"}
+                      className="text-xs shrink-0"
+                    >
+                      {getStatusLabel(share.status)}
+                    </Badge>
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    {share.shared_with_user_id 
+                    {share.status === "active"
                       ? (lang === "es" ? "Cuenta vinculada" : "Account linked")
                       : (lang === "es" ? "Pendiente de registro" : "Pending registration")}
                   </p>
