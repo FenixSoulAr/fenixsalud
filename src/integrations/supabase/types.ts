@@ -313,6 +313,36 @@ export type Database = {
           },
         ]
       }
+      profile_shares: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          role: Database["public"]["Enums"]["sharing_role"]
+          shared_with_email: string
+          shared_with_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          role?: Database["public"]["Enums"]["sharing_role"]
+          shared_with_email: string
+          shared_with_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          role?: Database["public"]["Enums"]["sharing_role"]
+          shared_with_email?: string
+          shared_with_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           allergies: string | null
@@ -461,7 +491,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_access_profile: {
+        Args: { _profile_owner_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_modify_data: {
+        Args: { _profile_owner_id: string; _user_id: string }
+        Returns: boolean
+      }
+      get_sharing_role: {
+        Args: { _profile_owner_id: string; _user_id: string }
+        Returns: string
+      }
+      is_data_owner: {
+        Args: { _data_owner_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       appointment_status: "Upcoming" | "Completed" | "Cancelled"
@@ -477,6 +522,7 @@ export type Database = {
         | "Test follow-up"
         | "Custom"
       repeat_rule: "None" | "Daily" | "Weekly" | "Monthly" | "Yearly"
+      sharing_role: "viewer" | "contributor"
       test_status: "Scheduled" | "Done" | "Result received"
     }
     CompositeTypes: {
@@ -619,6 +665,7 @@ export const Constants = {
         "Custom",
       ],
       repeat_rule: ["None", "Daily", "Weekly", "Monthly", "Yearly"],
+      sharing_role: ["viewer", "contributor"],
       test_status: ["Scheduled", "Done", "Result received"],
     },
   },
