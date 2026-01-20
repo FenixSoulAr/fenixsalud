@@ -275,8 +275,12 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       });
 
     if (error) {
-      console.error("Error inviting user:", error);
-      return { error: "Failed to invite user" };
+      // Log full error for debugging in dev/preview
+      console.error("Error inviting user:", JSON.stringify(error, null, 2));
+      
+      // Return the actual error message from the backend
+      const errorMessage = error.message || error.code || "Failed to invite user";
+      return { error: errorMessage };
     }
 
     await fetchShares();
