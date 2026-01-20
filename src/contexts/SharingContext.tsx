@@ -168,7 +168,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     return sharedProfiles;
   }, [user]);
 
-  // Initial fetch and profile selection logic
+  // Link pending invites and then initialize sharing
   useEffect(() => {
     if (!user) {
       setMyShares([]);
@@ -179,12 +179,37 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    async function initializeSharing() {
+    async function linkAndInitialize() {
+      // STEP 1: Link any pending invitations for this user's email
+      if (user.email) {
+        const normalizedEmail = user.email.toLowerCase();
+        
+        // Find any shares matching this email that don't have a user_id linked yet
+        const { data: pendingShares, error: pendingError } = await supabase
+          .from("profile_shares")
+          .select("id")
+          .ilike("shared_with_email", normalizedEmail)
+          .is("shared_with_user_id", null);
+        
+        if (!pendingError && pendingShares && pendingShares.length > 0) {
+          // Link them to this user
+          const { error: updateError } = await supabase
+            .from("profile_shares")
+            .update({ shared_with_user_id: user.id })
+            .in("id", pendingShares.map(s => s.id));
+          
+          if (updateError) {
+            console.error("Error linking pending shares:", updateError);
+          }
+        }
+      }
+
+      // STEP 2: Now fetch all shares (including newly linked ones)
       const profiles = await fetchShares();
       
       if (!profiles) return;
 
-      // Check for stored preference
+      // STEP 3: Check for stored preference
       const storedProfile = getStoredActiveProfile(user.id);
       
       if (storedProfile) {
@@ -199,7 +224,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // No valid stored preference - apply auto-selection logic
+      // STEP 4: No valid stored preference - apply auto-selection logic
       if (profiles.length === 0) {
         // No shared profiles, default to own profile
         setActiveProfileOwnerIdState(null);
@@ -218,35 +243,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       setInitialized(true);
     }
 
-    initializeSharing();
-  }, [user, fetchShares]);
-
-  // When user logs in, auto-link pending invitations
-  useEffect(() => {
-    async function linkPendingInvites() {
-      if (!user?.email) return;
-      
-      // Find any shares that match this email but don't have user_id set
-      const { data: pendingShares } = await supabase
-        .from("profile_shares")
-        .select("id")
-        .eq("shared_with_email", user.email.toLowerCase())
-        .is("shared_with_user_id", null);
-
-      if (pendingShares && pendingShares.length > 0) {
-        // Link them to this user
-        await supabase
-          .from("profile_shares")
-          .update({ shared_with_user_id: user.id })
-          .eq("shared_with_email", user.email.toLowerCase())
-          .is("shared_with_user_id", null);
-
-        // Refresh shares
-        fetchShares();
-      }
-    }
-
-    linkPendingInvites();
+    linkAndInitialize();
   }, [user, fetchShares]);
 
   async function inviteUser(email: string, role: "viewer" | "contributor"): Promise<{ error?: string }> {
