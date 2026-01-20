@@ -321,6 +321,7 @@ export type Database = {
           role: Database["public"]["Enums"]["sharing_role"]
           shared_with_email: string
           shared_with_user_id: string | null
+          status: string
           updated_at: string
         }
         Insert: {
@@ -330,6 +331,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["sharing_role"]
           shared_with_email: string
           shared_with_user_id?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -339,6 +341,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["sharing_role"]
           shared_with_email?: string
           shared_with_user_id?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: []

@@ -123,48 +123,53 @@ export function SharingProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
 
-    // Fetch shares where I am the owner (includes pending and active)
+    // Fetch shares where I am the owner (exclude revoked)
     const { data: ownerShares, error: ownerError } = await supabase
       .from("profile_shares")
       .select("*")
-      .eq("owner_id", user.id);
+      .eq("owner_id", user.id)
+      .neq("status", "revoked");
 
     if (ownerError) {
-      console.error("Error fetching owner shares:", ownerError);
+      console.error("[SharingContext] Error fetching owner shares:", ownerError);
+      setLoading(false);
+      throw new Error(ownerError.message);
     }
 
-    // Fetch shares where I have been given access
-    const { data: receivedShares, error: receivedError } = await supabase
-      .from("profile_shares")
-      .select("*")
-      .eq("shared_with_user_id", user.id);
-
-    if (receivedError) {
-      console.error("Error fetching received shares:", receivedError);
-    }
-
-    // Map owner shares to include computed status
+    // Map owner shares - status comes from DB now
     const mappedOwnerShares: ProfileShare[] = (ownerShares || []).map((share: any) => ({
-      ...share,
-      status: share.shared_with_user_id ? "active" : "pending",
+      id: share.id,
+      owner_id: share.owner_id,
+      shared_with_email: share.shared_with_email,
+      shared_with_user_id: share.shared_with_user_id,
+      role: share.role,
+      created_at: share.created_at,
+      status: share.status as "pending" | "active",
     }));
 
     console.log("[SharingContext] Fetched myShares for owner", user.id, ":", mappedOwnerShares.length, "shares", mappedOwnerShares);
     setMyShares(mappedOwnerShares);
-    
+
+    // Fetch shares where I have been given access (active only)
+    const { data: receivedShares, error: receivedError } = await supabase
+      .from("profile_shares")
+      .select("*")
+      .eq("shared_with_user_id", user.id)
+      .eq("status", "active");
+
+    if (receivedError) {
+      console.error("[SharingContext] Error fetching received shares:", receivedError);
+    }
+
     // For received shares, fetch owner profile names
     const sharedProfiles: SharedProfile[] = [];
     for (const share of receivedShares || []) {
-      // Fetch owner's profile to get their name
       const { data: ownerProfile } = await supabase
         .from("profiles")
         .select("full_name, first_name, last_name")
         .eq("user_id", share.owner_id)
         .maybeSingle();
       
-      // Also try to get owner's email from the share record
-      // The shared_with_email is the recipient's email, not owner's
-      // We need to get owner info differently - use a fallback
       const ownerName = ownerProfile?.full_name || 
         (ownerProfile?.first_name && ownerProfile?.last_name 
           ? `${ownerProfile.first_name} ${ownerProfile.last_name}` 
@@ -173,11 +178,12 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       sharedProfiles.push({
         owner_id: share.owner_id,
         owner_name: ownerName,
-        owner_email: null, // We'll use owner_id as fallback display
+        owner_email: null,
         role: share.role,
       });
     }
     
+    console.log("[SharingContext] Fetched sharedWithMe:", sharedProfiles.length, "profiles", sharedProfiles);
     setSharedWithMe(sharedProfiles);
     setLoading(false);
     
@@ -200,22 +206,30 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       if (user.email) {
         const normalizedEmail = user.email.toLowerCase();
         
-        // Find any shares matching this email that don't have a user_id linked yet
+        // Find any shares matching this email that are pending and not linked
         const { data: pendingShares, error: pendingError } = await supabase
           .from("profile_shares")
           .select("id")
           .ilike("shared_with_email", normalizedEmail)
+          .eq("status", "pending")
           .is("shared_with_user_id", null);
         
         if (!pendingError && pendingShares && pendingShares.length > 0) {
-          // Link them to this user
+          console.log("[SharingContext] Found pending shares to link:", pendingShares.length);
+          
+          // Link them to this user and set status to active
           const { error: updateError } = await supabase
             .from("profile_shares")
-            .update({ shared_with_user_id: user.id })
+            .update({ 
+              shared_with_user_id: user.id,
+              status: "active"
+            })
             .in("id", pendingShares.map(s => s.id));
           
           if (updateError) {
-            console.error("Error linking pending shares:", updateError);
+            console.error("[SharingContext] Error linking pending shares:", updateError);
+          } else {
+            console.log("[SharingContext] Successfully linked pending shares");
           }
         }
       }
@@ -267,15 +281,16 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     
     const normalizedEmail = email.toLowerCase().trim();
     
-    // Check max 2 shares limit
+    // Refresh shares first to get current state
+    await fetchShares();
+    
+    // Check max 2 shares limit (re-check after refresh)
     if (myShares.length >= 2) {
       return { error: "Maximum 2 shared people allowed" };
     }
 
     // Check if already shared with this email (case-insensitive)
     if (myShares.some(s => s.shared_with_email.toLowerCase() === normalizedEmail)) {
-      // Refresh to ensure list is visible, then return error
-      await fetchShares();
       return { error: "Already shared with this email" };
     }
 
@@ -290,15 +305,19 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         owner_id: user.id,
         shared_with_email: normalizedEmail,
         role,
+        status: "pending",
       });
 
     if (error) {
-      // Log full error for debugging in dev/preview
-      console.error("Error inviting user:", JSON.stringify(error, null, 2));
+      console.error("[SharingContext] Error inviting user:", JSON.stringify(error, null, 2));
       
-      // Return the actual error message from the backend
-      const errorMessage = error.message || error.code || "Failed to invite user";
-      return { error: errorMessage };
+      // Check for duplicate constraint violation
+      if (error.code === "23505" || error.message?.includes("unique") || error.message?.includes("duplicate")) {
+        await fetchShares();
+        return { error: "Already shared with this email" };
+      }
+      
+      return { error: error.message || error.code || "Failed to invite user" };
     }
 
     await fetchShares();
@@ -308,15 +327,16 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   async function revokeAccess(shareId: string): Promise<{ error?: string }> {
     if (!user) return { error: "Not authenticated" };
 
+    // Set status to 'revoked' instead of deleting
     const { error } = await supabase
       .from("profile_shares")
-      .delete()
+      .update({ status: "revoked" })
       .eq("id", shareId)
       .eq("owner_id", user.id);
 
     if (error) {
-      console.error("Error revoking access:", error);
-      return { error: "Failed to revoke access" };
+      console.error("[SharingContext] Error revoking access:", error);
+      return { error: error.message || "Failed to revoke access" };
     }
 
     await fetchShares();
