@@ -21,7 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/i18n";
 import { SharingBanner } from "@/components/sharing/SharingBanner";
-import { ProfileSwitcher } from "@/components/sharing/ProfileSwitcher";
+import { ActiveProfileIndicator } from "@/components/sharing/ActiveProfileIndicator";
 
 interface AppShellProps {
   children: ReactNode;
@@ -84,9 +84,9 @@ export function AppShell({ children }: AppShellProps) {
             </Button>
           </div>
 
-          {/* Profile Switcher */}
+          {/* Active Profile Indicator */}
           <div className="px-4 py-3 border-b border-sidebar-border">
-            <ProfileSwitcher />
+            <ActiveProfileIndicator />
           </div>
 
           {/* Navigation */}
