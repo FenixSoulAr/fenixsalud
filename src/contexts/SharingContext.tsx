@@ -125,6 +125,15 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     fetchShares();
   }, [user]);
 
+  // Auto-switch to a shared profile if user has shared access and hasn't manually selected one
+  useEffect(() => {
+    if (!loading && user && sharedWithMe.length > 0 && !activeProfileOwnerId) {
+      // If user has profiles shared with them, auto-select the first one
+      // This ensures the banner shows when a collaborator/viewer logs in
+      setActiveProfileOwnerId(sharedWithMe[0].owner_id);
+    }
+  }, [loading, user, sharedWithMe, activeProfileOwnerId]);
+
   // When user logs in, auto-link pending invitations
   useEffect(() => {
     async function linkPendingInvites() {
