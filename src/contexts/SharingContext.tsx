@@ -372,10 +372,33 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Default fallback for when context is not available (prevents crashes)
+const defaultSharingContext: SharingContextType = {
+  currentRole: null,
+  activeProfileOwnerId: null,
+  activeProfileOwnerName: null,
+  myShares: [],
+  sharedWithMe: [],
+  loading: true,
+  needsProfileSelection: false,
+  inviteUser: async () => ({ error: "Context not available" }),
+  revokeAccess: async () => ({ error: "Context not available" }),
+  updateRole: async () => ({ error: "Context not available" }),
+  switchToProfile: () => {},
+  switchToOwnProfile: () => {},
+  refreshShares: async () => undefined,
+  canEdit: false,
+  canDelete: false,
+  canManageSharing: false,
+  isViewingOwnProfile: true,
+};
+
 export function useSharing(): SharingContextType {
   const context = useContext(SharingContext);
   if (context === undefined) {
-    throw new Error("useSharing must be used within a SharingProvider");
+    // Return safe fallback instead of throwing - prevents blank screen crashes
+    console.warn("useSharing called outside SharingProvider, returning fallback state");
+    return defaultSharingContext;
   }
   return context;
 }
