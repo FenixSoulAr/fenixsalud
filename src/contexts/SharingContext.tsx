@@ -11,6 +11,7 @@ interface ProfileShare {
   shared_with_user_id: string | null;
   role: "viewer" | "contributor";
   created_at: string;
+  status: "pending" | "active";
 }
 
 interface SharedProfile {
@@ -122,19 +123,34 @@ export function SharingProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
 
-    // Fetch shares where I am the owner
-    const { data: ownerShares } = await supabase
+    // Fetch shares where I am the owner (includes pending and active)
+    const { data: ownerShares, error: ownerError } = await supabase
       .from("profile_shares")
       .select("*")
       .eq("owner_id", user.id);
 
+    if (ownerError) {
+      console.error("Error fetching owner shares:", ownerError);
+    }
+
     // Fetch shares where I have been given access
-    const { data: receivedShares } = await supabase
+    const { data: receivedShares, error: receivedError } = await supabase
       .from("profile_shares")
       .select("*")
       .eq("shared_with_user_id", user.id);
 
-    setMyShares((ownerShares as ProfileShare[]) || []);
+    if (receivedError) {
+      console.error("Error fetching received shares:", receivedError);
+    }
+
+    // Map owner shares to include computed status
+    const mappedOwnerShares: ProfileShare[] = (ownerShares || []).map((share: any) => ({
+      ...share,
+      status: share.shared_with_user_id ? "active" : "pending",
+    }));
+
+    console.log("Fetched myShares:", mappedOwnerShares);
+    setMyShares(mappedOwnerShares);
     
     // For received shares, fetch owner profile names
     const sharedProfiles: SharedProfile[] = [];
@@ -256,8 +272,10 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       return { error: "Maximum 2 shared people allowed" };
     }
 
-    // Check if already shared with this email
-    if (myShares.some(s => s.shared_with_email === normalizedEmail)) {
+    // Check if already shared with this email (case-insensitive)
+    if (myShares.some(s => s.shared_with_email.toLowerCase() === normalizedEmail)) {
+      // Refresh to ensure list is visible, then return error
+      await fetchShares();
       return { error: "Already shared with this email" };
     }
 
