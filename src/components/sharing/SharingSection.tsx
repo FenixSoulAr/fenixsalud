@@ -15,6 +15,7 @@ export function SharingSection() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"viewer" | "contributor">("viewer");
   const [inviting, setInviting] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   if (!canManageSharing) {
     return null;
@@ -22,16 +23,21 @@ export function SharingSection() {
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
+    setInlineError(null);
     
     if (!email.trim()) {
-      toast.error(lang === "es" ? "El email es obligatorio" : "Email is required");
+      const msg = lang === "es" ? "El email es obligatorio" : "Email is required";
+      setInlineError(msg);
+      toast.error(msg);
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      toast.error(lang === "es" ? "Email inválido" : "Invalid email");
+      const msg = lang === "es" ? "Email inválido" : "Invalid email";
+      setInlineError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -40,7 +46,8 @@ export function SharingSection() {
     setInviting(false);
 
     if (error) {
-      const errorMessages: Record<string, string> = {
+      // Known error translations
+      const knownErrors: Record<string, string> = {
         "Maximum 2 shared people allowed": lang === "es" 
           ? "Máximo 2 personas compartidas permitidas" 
           : "Maximum 2 shared people allowed",
@@ -51,13 +58,41 @@ export function SharingSection() {
           ? "No podés compartir contigo mismo"
           : "Cannot share with yourself",
       };
-      toast.error(errorMessages[error] || error);
+      
+      // Check for duplicate constraint error from database
+      const isDuplicateError = error.includes("duplicate key") || error.includes("unique constraint");
+      
+      let displayError: string;
+      if (knownErrors[error]) {
+        displayError = knownErrors[error];
+      } else if (isDuplicateError) {
+        displayError = lang === "es" 
+          ? "Ya compartido con este email" 
+          : "Already shared with this email";
+      } else {
+        // Show the real backend error
+        displayError = error;
+      }
+      
+      // Log for debugging in dev/preview
+      console.error("Invite failed:", error);
+      
+      // Show inline error
+      setInlineError(displayError);
+      
+      // Show toast with full context
+      toast.error(
+        lang === "es" 
+          ? `Invitación fallida: ${displayError}` 
+          : `Invite failed: ${displayError}`
+      );
       return;
     }
 
     toast.success(lang === "es" ? "Invitación enviada" : "Invitation sent");
     setEmail("");
     setRole("viewer");
+    setInlineError(null);
   };
 
   const handleRevoke = async (shareId: string) => {
@@ -198,6 +233,11 @@ export function SharingSection() {
                     ? "Colaborador: puede ver, agregar y editar, no puede eliminar ni gestionar accesos."
                     : "Contributor: can view, add, and edit, cannot delete or manage sharing.")}
             </p>
+            {inlineError && (
+              <p className="text-xs text-destructive mt-2 font-medium">
+                {inlineError}
+              </p>
+            )}
           </div>
           <Button type="submit" disabled={inviting}>
             <UserPlus className="h-4 w-4 mr-2" />
