@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { LoadingPage } from "@/components/ui/loading-spinner";
+import { SharingSection } from "@/components/sharing/SharingSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSharing } from "@/contexts/SharingContext";
 import { toast } from "sonner";
 import { getLanguage, useTranslations } from "@/i18n";
 
@@ -90,6 +92,7 @@ interface SettingsData {
 
 export default function Settings() {
   const { user, signOut } = useAuth();
+  const { canManageSharing } = useSharing();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -459,6 +462,9 @@ export default function Settings() {
             </Button>
           </form>
         </section>
+
+        {/* Sharing Section */}
+        <SharingSection />
 
         {/* Support Section */}
         <SupportSection />
