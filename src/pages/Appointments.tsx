@@ -16,7 +16,7 @@ import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { FileAttachments } from "@/components/FileAttachments";
 import { AttachmentIndicator } from "@/components/AttachmentIndicator";
-import { SharingBanner } from "@/components/sharing/SharingBanner";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSharing } from "@/contexts/SharingContext";
@@ -229,7 +229,6 @@ export default function Appointments() {
     
     return (
       <div className="animate-fade-in">
-        <SharingBanner />
         <Button variant="ghost" onClick={handleBack} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />{fromDashboard ? t.appointments.backToDashboard : t.appointments.backToAppointments}
         </Button>
@@ -292,7 +291,6 @@ export default function Appointments() {
 
   return (
     <div className="animate-fade-in">
-      <SharingBanner />
       <PageHeader
         title={t.appointments.title}
         description={t.appointments.description}
