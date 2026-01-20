@@ -502,6 +502,7 @@ export type Database = {
         Args: { _profile_owner_id: string; _user_id: string }
         Returns: boolean
       }
+      get_current_user_email: { Args: never; Returns: string }
       get_sharing_role: {
         Args: { _profile_owner_id: string; _user_id: string }
         Returns: string
