@@ -41,8 +41,9 @@ export default function Medications() {
   }, [searchParams, medications]);
 
   async function fetchData() {
+    if (!activeProfileOwnerId) return;
     setLoading(true);
-    const { data } = await supabase.from("medications").select("*").order("name", { ascending: true });
+    const { data } = await supabase.from("medications").select("*").eq("user_id", activeProfileOwnerId).order("name", { ascending: true });
     setMedications(data || []);
     setLoading(false);
   }

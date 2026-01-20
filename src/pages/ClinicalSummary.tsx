@@ -5,12 +5,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { format, subMonths, isAfter } from "date-fns";
 import { useTranslations } from "@/i18n";
 
 export default function ClinicalSummary() {
+  const { activeProfileOwnerId, isViewingOwnProfile } = useActiveProfile();
   const { user } = useAuth();
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
@@ -30,18 +32,19 @@ export default function ClinicalSummary() {
   const twelveMonthsAgo = subMonths(new Date(), 12);
 
   useEffect(() => {
-    if (user) fetchAllData();
-  }, [user]);
+    if (activeProfileOwnerId) fetchAllData();
+  }, [activeProfileOwnerId]);
 
   async function fetchAllData() {
+    if (!activeProfileOwnerId) return;
     setLoading(true);
     
     const [profileRes, medsRes, testsRes, proceduresRes, appointmentsRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", user!.id).maybeSingle(),
-      supabase.from("medications").select("*").eq("status", "Active").order("name"),
-      supabase.from("tests").select("*, institutions(name)").order("date", { ascending: false }),
-      supabase.from("procedures").select("*, institutions(name), doctors(full_name)").order("date", { ascending: false }),
-      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").order("datetime_start", { ascending: false }),
+      supabase.from("profiles").select("*").eq("user_id", activeProfileOwnerId).maybeSingle(),
+      supabase.from("medications").select("*").eq("user_id", activeProfileOwnerId).eq("status", "Active").order("name"),
+      supabase.from("tests").select("*, institutions(name)").eq("user_id", activeProfileOwnerId).order("date", { ascending: false }),
+      supabase.from("procedures").select("*, institutions(name), doctors(full_name)").eq("user_id", activeProfileOwnerId).order("date", { ascending: false }),
+      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("user_id", activeProfileOwnerId).order("datetime_start", { ascending: false }),
     ]);
 
     setProfile(profileRes.data);
@@ -157,7 +160,7 @@ export default function ClinicalSummary() {
             {profile?.phone && (
               <div><span className="font-medium">{t.clinicalSummary.phone}:</span> {profile.phone}</div>
             )}
-            {user?.email && (
+            {isViewingOwnProfile && user?.email && (
               <div><span className="font-medium">{t.clinicalSummary.email}:</span> {user.email}</div>
             )}
             {profile?.insurance_provider && (

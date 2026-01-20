@@ -28,8 +28,9 @@ export default function Institutions() {
   useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
 
   async function fetchData() {
+    if (!activeProfileOwnerId) return;
     setLoading(true);
-    const { data } = await supabase.from("institutions").select("*").order("name");
+    const { data } = await supabase.from("institutions").select("*").eq("user_id", activeProfileOwnerId).order("name");
     setInstitutions(data || []);
     setLoading(false);
   }
