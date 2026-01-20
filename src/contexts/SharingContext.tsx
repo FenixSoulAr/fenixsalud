@@ -276,7 +276,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useSharing() {
+export function useSharing(): SharingContextType {
   const context = useContext(SharingContext);
   if (context === undefined) {
     throw new Error("useSharing must be used within a SharingProvider");
