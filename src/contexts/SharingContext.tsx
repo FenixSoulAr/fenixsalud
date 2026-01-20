@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type SharingRole = "owner" | "viewer" | "contributor" | null;
+export type SharingRole = "owner" | "viewer" | "contributor";
 
 interface ProfileShare {
   id: string;
@@ -21,8 +21,8 @@ interface SharedProfile {
 }
 
 interface SharingContextType {
-  // Current user's role when viewing data
-  currentRole: SharingRole;
+  // Current user's role when viewing data (never null when authenticated)
+  currentRole: SharingRole | null;
   // The profile owner ID whose data is being viewed
   activeProfileOwnerId: string | null;
   // The name of the profile owner being viewed (for display)
@@ -33,13 +33,15 @@ interface SharingContextType {
   sharedWithMe: SharedProfile[];
   // Loading state
   loading: boolean;
+  // Whether initial profile selection is needed
+  needsProfileSelection: boolean;
   // Actions
   inviteUser: (email: string, role: "viewer" | "contributor") => Promise<{ error?: string }>;
   revokeAccess: (shareId: string) => Promise<{ error?: string }>;
   updateRole: (shareId: string, role: "viewer" | "contributor") => Promise<{ error?: string }>;
   switchToProfile: (ownerId: string) => void;
   switchToOwnProfile: () => void;
-  refreshShares: () => Promise<void>;
+  refreshShares: () => Promise<SharedProfile[] | undefined>;
   // Helpers
   canEdit: boolean;
   canDelete: boolean;
@@ -49,17 +51,57 @@ interface SharingContextType {
 
 const SharingContext = createContext<SharingContextType | undefined>(undefined);
 
+const ACTIVE_PROFILE_KEY = "fenix_active_profile";
+
+function getStoredActiveProfile(userId: string): string | null {
+  try {
+    const stored = localStorage.getItem(ACTIVE_PROFILE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Validate the stored data belongs to current user
+      if (parsed.userId === userId) {
+        return parsed.activeProfileOwnerId;
+      }
+    }
+  } catch {
+    // Invalid stored data
+  }
+  return null;
+}
+
+function storeActiveProfile(userId: string, activeProfileOwnerId: string | null) {
+  try {
+    localStorage.setItem(
+      ACTIVE_PROFILE_KEY,
+      JSON.stringify({ userId, activeProfileOwnerId })
+    );
+  } catch {
+    // Storage unavailable
+  }
+}
+
 export function SharingProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [myShares, setMyShares] = useState<ProfileShare[]>([]);
   const [sharedWithMe, setSharedWithMe] = useState<SharedProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeProfileOwnerId, setActiveProfileOwnerId] = useState<string | null>(null);
+  const [activeProfileOwnerId, setActiveProfileOwnerIdState] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
+  const [needsProfileSelection, setNeedsProfileSelection] = useState(false);
+
+  // Wrapper to also persist to localStorage
+  const setActiveProfileOwnerId = useCallback((ownerId: string | null) => {
+    setActiveProfileOwnerIdState(ownerId);
+    if (user?.id) {
+      storeActiveProfile(user.id, ownerId);
+    }
+    setNeedsProfileSelection(false);
+  }, [user?.id]);
 
   // Determine current role based on active profile
   const isViewingOwnProfile = !activeProfileOwnerId || activeProfileOwnerId === user?.id;
   
-  const currentRole: SharingRole = (() => {
+  const currentRole: SharingRole | null = (() => {
     if (!user) return null;
     if (isViewingOwnProfile) return "owner";
     const share = sharedWithMe.find(s => s.owner_id === activeProfileOwnerId);
@@ -70,12 +112,12 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   const canDelete = currentRole === "owner";
   const canManageSharing = currentRole === "owner";
 
-  async function fetchShares() {
+  const fetchShares = useCallback(async (): Promise<SharedProfile[] | undefined> => {
     if (!user) {
       setMyShares([]);
       setSharedWithMe([]);
       setLoading(false);
-      return;
+      return undefined;
     }
 
     setLoading(true);
@@ -104,6 +146,9 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         .eq("user_id", share.owner_id)
         .maybeSingle();
       
+      // Also try to get owner's email from the share record
+      // The shared_with_email is the recipient's email, not owner's
+      // We need to get owner info differently - use a fallback
       const ownerName = ownerProfile?.full_name || 
         (ownerProfile?.first_name && ownerProfile?.last_name 
           ? `${ownerProfile.first_name} ${ownerProfile.last_name}` 
@@ -112,27 +157,69 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       sharedProfiles.push({
         owner_id: share.owner_id,
         owner_name: ownerName,
-        owner_email: share.shared_with_email,
+        owner_email: null, // We'll use owner_id as fallback display
         role: share.role,
       });
     }
     
     setSharedWithMe(sharedProfiles);
     setLoading(false);
-  }
-
-  useEffect(() => {
-    fetchShares();
+    
+    return sharedProfiles;
   }, [user]);
 
-  // Auto-switch to a shared profile if user has shared access and hasn't manually selected one
+  // Initial fetch and profile selection logic
   useEffect(() => {
-    if (!loading && user && sharedWithMe.length > 0 && !activeProfileOwnerId) {
-      // If user has profiles shared with them, auto-select the first one
-      // This ensures the banner shows when a collaborator/viewer logs in
-      setActiveProfileOwnerId(sharedWithMe[0].owner_id);
+    if (!user) {
+      setMyShares([]);
+      setSharedWithMe([]);
+      setLoading(false);
+      setInitialized(false);
+      setActiveProfileOwnerIdState(null);
+      return;
     }
-  }, [loading, user, sharedWithMe, activeProfileOwnerId]);
+
+    async function initializeSharing() {
+      const profiles = await fetchShares();
+      
+      if (!profiles) return;
+
+      // Check for stored preference
+      const storedProfile = getStoredActiveProfile(user.id);
+      
+      if (storedProfile) {
+        // Validate stored profile is still accessible
+        const isOwnProfile = storedProfile === user.id;
+        const hasAccess = profiles.some(p => p.owner_id === storedProfile);
+        
+        if (isOwnProfile || hasAccess) {
+          setActiveProfileOwnerIdState(isOwnProfile ? null : storedProfile);
+          setInitialized(true);
+          return;
+        }
+      }
+
+      // No valid stored preference - apply auto-selection logic
+      if (profiles.length === 0) {
+        // No shared profiles, default to own profile
+        setActiveProfileOwnerIdState(null);
+        storeActiveProfile(user.id, null);
+      } else if (profiles.length === 1) {
+        // Exactly 1 shared profile - auto-select it
+        setActiveProfileOwnerIdState(profiles[0].owner_id);
+        storeActiveProfile(user.id, profiles[0].owner_id);
+      } else {
+        // Multiple shared profiles - require selection
+        // Default to own profile but flag that selection is needed
+        setActiveProfileOwnerIdState(null);
+        setNeedsProfileSelection(true);
+      }
+      
+      setInitialized(true);
+    }
+
+    initializeSharing();
+  }, [user, fetchShares]);
 
   // When user logs in, auto-link pending invitations
   useEffect(() => {
@@ -160,7 +247,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     }
 
     linkPendingInvites();
-  }, [user]);
+  }, [user, fetchShares]);
 
   async function inviteUser(email: string, role: "viewer" | "contributor"): Promise<{ error?: string }> {
     if (!user) return { error: "Not authenticated" };
@@ -217,7 +304,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     return {};
   }
 
-  async function updateRole(shareId: string, role: "viewer" | "contributor"): Promise<{ error?: string }> {
+  async function updateRoleFn(shareId: string, role: "viewer" | "contributor"): Promise<{ error?: string }> {
     if (!user) return { error: "Not authenticated" };
 
     const { error } = await supabase
@@ -244,24 +331,32 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   }
 
   // Get the active profile owner's name for display
-  const activeProfileOwnerName = (() => {
+  const activeProfileOwnerName: string | null = (() => {
     if (isViewingOwnProfile) return null;
     const share = sharedWithMe.find(s => s.owner_id === activeProfileOwnerId);
-    return share?.owner_name || share?.owner_email || null;
+    if (share?.owner_name) return share.owner_name;
+    if (share?.owner_email) return share.owner_email;
+    // Fallback: show truncated owner_id
+    if (activeProfileOwnerId) return `User ${activeProfileOwnerId.slice(0, 8)}...`;
+    return null;
   })();
+
+  // Compute the effective active profile owner ID
+  const effectiveActiveProfileOwnerId = isViewingOwnProfile ? user?.id ?? null : activeProfileOwnerId;
 
   return (
     <SharingContext.Provider
       value={{
         currentRole,
-        activeProfileOwnerId: isViewingOwnProfile ? user?.id ?? null : activeProfileOwnerId,
+        activeProfileOwnerId: effectiveActiveProfileOwnerId,
         activeProfileOwnerName,
         myShares,
         sharedWithMe,
         loading,
+        needsProfileSelection,
         inviteUser,
         revokeAccess,
-        updateRole,
+        updateRole: updateRoleFn,
         switchToProfile,
         switchToOwnProfile,
         refreshShares: fetchShares,
