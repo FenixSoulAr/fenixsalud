@@ -67,11 +67,12 @@ export default function Procedures() {
   }
 
   async function fetchData() {
+    if (!activeProfileOwnerId) return;
     setLoading(true);
     const [procRes, instRes, docRes] = await Promise.all([
-      supabase.from("procedures").select("*, institutions(name), doctors(full_name)").order("date", { ascending: false }),
-      supabase.from("institutions").select("id, name"),
-      supabase.from("doctors").select("id, full_name"),
+      supabase.from("procedures").select("*, institutions(name), doctors(full_name)").eq("user_id", activeProfileOwnerId).order("date", { ascending: false }),
+      supabase.from("institutions").select("id, name").eq("user_id", activeProfileOwnerId),
+      supabase.from("doctors").select("id, full_name").eq("user_id", activeProfileOwnerId),
     ]);
     const proceduresData = procRes.data || [];
     setProcedures(proceduresData);

@@ -28,8 +28,9 @@ export default function Doctors() {
   useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
 
   async function fetchData() {
+    if (!activeProfileOwnerId) return;
     setLoading(true);
-    const { data } = await supabase.from("doctors").select("*").order("full_name");
+    const { data } = await supabase.from("doctors").select("*").eq("user_id", activeProfileOwnerId).order("full_name");
     setDoctors(data || []);
     setLoading(false);
   }

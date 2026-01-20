@@ -41,8 +41,9 @@ export default function Reminders() {
   }, [searchParams, reminders]);
 
   async function fetchData() {
+    if (!activeProfileOwnerId) return;
     setLoading(true);
-    const { data } = await supabase.from("reminders").select("*").order("due_date_time");
+    const { data } = await supabase.from("reminders").select("*").eq("user_id", activeProfileOwnerId).order("due_date_time");
     setReminders(data || []);
     setLoading(false);
   }

@@ -36,10 +36,11 @@ export default function Tests() {
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
   async function fetchData() {
+    if (!activeProfileOwnerId) return;
     setLoading(true);
     const [testRes, instRes] = await Promise.all([
-      supabase.from("tests").select("*, institutions(name)").order("date", { ascending: false }),
-      supabase.from("institutions").select("id, name"),
+      supabase.from("tests").select("*, institutions(name)").eq("user_id", activeProfileOwnerId).order("date", { ascending: false }),
+      supabase.from("institutions").select("id, name").eq("user_id", activeProfileOwnerId),
     ]);
     const testsData = testRes.data || [];
     setTests(testsData);

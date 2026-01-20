@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -19,13 +19,13 @@ const MAX_SIZE_MB = 20;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 export function useFileAttachments(entityType: EntityType, entityId: string | null) {
-  const { user } = useAuth();
+  const { dataOwnerId, activeProfileOwnerId } = useActiveProfile();
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const fetchAttachments = useCallback(async () => {
-    if (!entityId || !user) return;
+    if (!entityId || !activeProfileOwnerId) return;
     
     setLoading(true);
     const { data, error } = await supabase
@@ -41,14 +41,14 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       setAttachments(data || []);
     }
     setLoading(false);
-  }, [entityId, entityType, user]);
+  }, [entityId, entityType, activeProfileOwnerId]);
 
   useEffect(() => {
     fetchAttachments();
   }, [fetchAttachments]);
 
   const uploadFile = async (file: File): Promise<{ success: boolean; error?: string }> => {
-    if (!user || !entityId) {
+    if (!dataOwnerId || !entityId) {
       return { success: false, error: "Not authenticated or missing entity ID." };
     }
 
@@ -88,10 +88,10 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
     setUploading(true);
     
     try {
-      // Create unique file path: user_id/entity_type/entity_id/timestamp_filename
+      // Create unique file path: profile_owner_id/entity_type/entity_id/timestamp_filename
       const timestamp = Date.now();
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const filePath = `${user.id}/${entityType}/${entityId}/${timestamp}_${safeName}`;
+      const filePath = `${dataOwnerId}/${entityType}/${entityId}/${timestamp}_${safeName}`;
 
       // Upload to storage with explicit content type for mobile compatibility
       const { error: uploadError } = await supabase.storage
@@ -109,11 +109,11 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
         return { success: false, error: errorMsg };
       }
 
-      // Create file_attachments record
+      // Create file_attachments record with profile owner's ID
       const { error: dbError } = await supabase
         .from("file_attachments")
         .insert({
-          user_id: user.id,
+          user_id: dataOwnerId,
           entity_type: entityType,
           entity_id: entityId,
           file_name: file.name,

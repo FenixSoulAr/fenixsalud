@@ -34,14 +34,15 @@ export default function Dashboard() {
   }, [activeProfileOwnerId]);
 
   async function fetchData() {
+    if (!activeProfileOwnerId) return;
     setLoading(true);
     const today = new Date().toISOString();
 
     const [apptRes, remRes, medRes, testRes] = await Promise.all([
-      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").gte("datetime_start", today).eq("status", "Upcoming").order("datetime_start").limit(5),
-      supabase.from("reminders").select("*").gte("due_date_time", today).eq("is_completed", false).order("due_date_time").limit(5),
-      supabase.from("medications").select("*").eq("status", "Active").limit(5),
-      supabase.from("tests").select("*, institutions(name)").gte("date", today.split("T")[0]).order("date").limit(5),
+      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("user_id", activeProfileOwnerId).gte("datetime_start", today).eq("status", "Upcoming").order("datetime_start").limit(5),
+      supabase.from("reminders").select("*").eq("user_id", activeProfileOwnerId).gte("due_date_time", today).eq("is_completed", false).order("due_date_time").limit(5),
+      supabase.from("medications").select("*").eq("user_id", activeProfileOwnerId).eq("status", "Active").limit(5),
+      supabase.from("tests").select("*, institutions(name)").eq("user_id", activeProfileOwnerId).gte("date", today.split("T")[0]).order("date").limit(5),
     ]);
 
     setAppointments(apptRes.data || []);
