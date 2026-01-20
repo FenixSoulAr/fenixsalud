@@ -54,6 +54,7 @@ export default function Doctors() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canEdit) { toast.error("You have view-only access to this profile."); return; }
     if (!form.full_name) { toast.error("Doctor name is required."); return; }
     
     const payload = {
@@ -96,22 +97,24 @@ export default function Doctors() {
     <div className="animate-fade-in">
       <PageHeader title="Doctors" description="Your healthcare providers"
         actions={
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add doctor</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>{editingId ? "Edit Doctor" : "Add Doctor"}</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-field"><Label>Full Name *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required /></div>
-                <div className="form-field"><Label>Specialty</Label><Input value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} placeholder="e.g., Cardiology" /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="form-field"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-                  <div className="form-field"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                </div>
-                <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <Button type="submit" className="w-full">{editingId ? "Save Changes" : "Add Doctor"}</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          canEdit ? (
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add doctor</Button></DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>{editingId ? "Edit Doctor" : "Add Doctor"}</DialogTitle></DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="form-field"><Label>Full Name *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required /></div>
+                  <div className="form-field"><Label>Specialty</Label><Input value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} placeholder="e.g., Cardiology" /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="form-field"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                    <div className="form-field"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                  </div>
+                  <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                  <Button type="submit" className="w-full">{editingId ? "Save Changes" : "Add Doctor"}</Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          ) : undefined
         }
       />
 
@@ -152,19 +155,25 @@ export default function Doctors() {
             
             {viewDialog?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{viewDialog.notes}</p></div>}
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); setShowContactInfo(false); }}>
-              <Pencil className="h-4 w-4 mr-2" />Edit
-            </Button>
-            <Button variant="destructive" onClick={() => setDeleteId(viewDialog?.id)}>
-              <Trash2 className="h-4 w-4 mr-2" />Delete
-            </Button>
-          </div>
+          {(canEdit || canDelete) && (
+            <div className="flex gap-2 mt-4">
+              {canEdit && (
+                <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); setShowContactInfo(false); }}>
+                  <Pencil className="h-4 w-4 mr-2" />Edit
+                </Button>
+              )}
+              {canDelete && (
+                <Button variant="destructive" onClick={() => setDeleteId(viewDialog?.id)}>
+                  <Trash2 className="h-4 w-4 mr-2" />Delete
+                </Button>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
       {doctors.length === 0 ? (
-        <EmptyState icon={Stethoscope} title="No doctors yet" description="Add your healthcare providers to link them to appointments." action={{ label: "Add doctor", onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={Stethoscope} title="No doctors yet" description="Add your healthcare providers to link them to appointments." action={canEdit ? { label: "Add doctor", onClick: () => setDialogOpen(true) } : undefined} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {doctors.map((d) => (
@@ -180,12 +189,16 @@ export default function Doctors() {
                     <DropdownMenuItem onClick={() => setViewDialog(d)}>
                       <Eye className="h-4 w-4 mr-2" />View
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => openEdit(d)}>
-                      <Pencil className="h-4 w-4 mr-2" />Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(d.id)}>
-                      <Trash2 className="h-4 w-4 mr-2" />Delete
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => openEdit(d)}>
+                        <Pencil className="h-4 w-4 mr-2" />Edit
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(d.id)}>
+                        <Trash2 className="h-4 w-4 mr-2" />Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

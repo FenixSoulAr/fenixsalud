@@ -75,6 +75,7 @@ export default function Reminders() {
 
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
+    if (!canEdit) { toast.error("You have view-only access to this profile."); return; }
     if (!form.title) { toast.error("Title is required."); return; }
     if (!form.due_date) { toast.error("Date is required."); return; }
     
@@ -126,8 +127,9 @@ export default function Reminders() {
     <div className="animate-fade-in">
       <PageHeader title="Reminders" description="Never miss an important health task"
         actions={
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { resetForm(); setPastWarning(false); } }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add reminder</Button></DialogTrigger>
+          canEdit ? (
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { resetForm(); setPastWarning(false); } }}>
+              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add reminder</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editingId ? "Edit Reminder" : "New Reminder"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -163,6 +165,7 @@ export default function Reminders() {
               </form>
             </DialogContent>
           </Dialog>
+          ) : undefined
         }
       />
 
@@ -204,19 +207,25 @@ export default function Reminders() {
             {viewDialog?.repeat_rule && <div><Label className="text-muted-foreground text-xs">Repeat</Label><p>{viewDialog.repeat_rule === "None" ? "One-time" : viewDialog.repeat_rule}</p></div>}
             {viewDialog?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{viewDialog.notes}</p></div>}
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); }}>
-              <Pencil className="h-4 w-4 mr-2" />Edit
-            </Button>
-            <Button variant="destructive" onClick={() => setDeleteId(viewDialog?.id)}>
-              <Trash2 className="h-4 w-4 mr-2" />Delete
-            </Button>
-          </div>
+          {(canEdit || canDelete) && (
+            <div className="flex gap-2 mt-4">
+              {canEdit && (
+                <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); }}>
+                  <Pencil className="h-4 w-4 mr-2" />Edit
+                </Button>
+              )}
+              {canDelete && (
+                <Button variant="destructive" onClick={() => setDeleteId(viewDialog?.id)}>
+                  <Trash2 className="h-4 w-4 mr-2" />Delete
+                </Button>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
       {reminders.length === 0 ? (
-        <EmptyState icon={Bell} title="No reminders yet" description="Create reminders to stay on top of your health tasks." action={{ label: "Add reminder", onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={Bell} title="No reminders yet" description="Create reminders to stay on top of your health tasks." action={canEdit ? { label: "Add reminder", onClick: () => setDialogOpen(true) } : undefined} />
       ) : (
         <div className="space-y-3">
           {reminders.map((r) => (
@@ -240,12 +249,16 @@ export default function Reminders() {
                     <DropdownMenuItem onClick={() => setViewDialog(r)}>
                       <Eye className="h-4 w-4 mr-2" />View
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => openEdit(r)}>
-                      <Pencil className="h-4 w-4 mr-2" />Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(r.id)}>
-                      <Trash2 className="h-4 w-4 mr-2" />Delete
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => openEdit(r)}>
+                        <Pencil className="h-4 w-4 mr-2" />Edit
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(r.id)}>
+                        <Trash2 className="h-4 w-4 mr-2" />Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

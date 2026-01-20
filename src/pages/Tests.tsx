@@ -84,6 +84,7 @@ export default function Tests() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canEdit) { toast.error("You have view-only access to this profile."); return; }
     if (!form.type || !form.date) { toast.error(t.tests.typeRequired + " " + t.tests.dateRequired); return; }
     
     const payload = {
@@ -145,14 +146,20 @@ export default function Tests() {
               {viewingTest.notes && <div><span className="font-medium">{t.tests.notes}:</span> {viewingTest.notes}</div>}
             </div>
             
-            <div className="flex gap-2 mt-6 pt-4 border-t">
-              <Button onClick={() => openEdit(viewingTest)}>
-                <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
-              </Button>
-              <Button variant="destructive" onClick={() => setDeleteId(viewingTest.id)}>
-                <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
-              </Button>
-            </div>
+            {(canEdit || canDelete) && (
+              <div className="flex gap-2 mt-6 pt-4 border-t">
+                {canEdit && (
+                  <Button onClick={() => openEdit(viewingTest)}>
+                    <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button variant="destructive" onClick={() => setDeleteId(viewingTest.id)}>
+                    <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="health-card">
@@ -180,8 +187,9 @@ export default function Tests() {
     <div className="animate-fade-in">
       <PageHeader title={t.tests.title} description={t.tests.description}
         actions={
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.tests.addTest}</Button></DialogTrigger>
+          canEdit ? (
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.tests.addTest}</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editingId ? t.tests.editTest : t.tests.newTest}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -210,6 +218,7 @@ export default function Tests() {
               </form>
             </DialogContent>
           </Dialog>
+          ) : undefined
         }
       />
 
@@ -227,7 +236,7 @@ export default function Tests() {
       </AlertDialog>
 
       {tests.length === 0 ? (
-        <EmptyState icon={FlaskConical} title={t.tests.noTests} description={t.tests.noTestsDescription} action={{ label: t.tests.addTest, onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={FlaskConical} title={t.tests.noTests} description={t.tests.noTestsDescription} action={canEdit ? { label: t.tests.addTest, onClick: () => setDialogOpen(true) } : undefined} />
       ) : (
         <>
           {/* Mobile Card Layout */}
@@ -255,12 +264,16 @@ export default function Tests() {
                     <Button variant="ghost" size="sm" onClick={() => setViewingTest(test)}>
                       <Eye className="h-4 w-4 mr-1" />{t.actions.view}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(test)}>
-                      <Pencil className="h-4 w-4 mr-1" />{t.actions.edit}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(test.id)}>
-                      <Trash2 className="h-4 w-4 mr-1 text-destructive" />{t.actions.delete}
-                    </Button>
+                    {canEdit && (
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(test)}>
+                        <Pencil className="h-4 w-4 mr-1" />{t.actions.edit}
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteId(test.id)}>
+                        <Trash2 className="h-4 w-4 mr-1 text-destructive" />{t.actions.delete}
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
@@ -292,12 +305,16 @@ export default function Tests() {
                           <Button variant="ghost" size="icon" onClick={() => setViewingTest(test)} aria-label={t.actions.view}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(test)} aria-label={t.actions.edit}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(test.id)} aria-label={t.actions.delete}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {canEdit && (
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(test)} aria-label={t.actions.edit}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(test.id)} aria-label={t.actions.delete}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
