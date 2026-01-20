@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { SharingProvider } from "@/contexts/SharingContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 
@@ -77,7 +78,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
+          <SharingProvider>
+            <AppRoutes />
+          </SharingProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

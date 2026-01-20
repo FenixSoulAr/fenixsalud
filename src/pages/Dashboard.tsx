@@ -9,13 +9,16 @@ import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { SharingBanner } from "@/components/sharing/SharingBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSharing } from "@/contexts/SharingContext";
 import { format } from "date-fns";
 import { useTranslations } from "@/i18n";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { canEdit } = useSharing();
   const navigate = useNavigate();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
@@ -55,16 +58,21 @@ export default function Dashboard() {
 
   return (
     <div className="animate-fade-in">
+      <SharingBanner />
       <PageHeader
         title={t.dashboard.title}
         description={t.dashboard.description}
         actions={
-          <div className="flex gap-2 flex-wrap">
-            <Button asChild><Link to="/appointments?new=true"><Plus className="h-4 w-4 mr-2" />{t.dashboard.addAppointment}</Link></Button>
-            <Button variant="outline" asChild><Link to="/tests?new=true">{t.dashboard.addTest}</Link></Button>
-            <Button variant="outline" asChild><Link to="/medications?new=true">{t.dashboard.addMedication}</Link></Button>
+          canEdit ? (
+            <div className="flex gap-2 flex-wrap">
+              <Button asChild><Link to="/appointments?new=true"><Plus className="h-4 w-4 mr-2" />{t.dashboard.addAppointment}</Link></Button>
+              <Button variant="outline" asChild><Link to="/tests?new=true">{t.dashboard.addTest}</Link></Button>
+              <Button variant="outline" asChild><Link to="/medications?new=true">{t.dashboard.addMedication}</Link></Button>
+              <Button variant="outline" asChild><Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />{t.nav.clinicalSummary}</Link></Button>
+            </div>
+          ) : (
             <Button variant="outline" asChild><Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />{t.nav.clinicalSummary}</Link></Button>
-          </div>
+          )
         }
       />
 

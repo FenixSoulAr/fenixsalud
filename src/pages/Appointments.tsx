@@ -16,8 +16,10 @@ import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { FileAttachments } from "@/components/FileAttachments";
 import { AttachmentIndicator } from "@/components/AttachmentIndicator";
+import { SharingBanner } from "@/components/sharing/SharingBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSharing } from "@/contexts/SharingContext";
 import { toast } from "sonner";
 import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,7 @@ function getDisplayStatus(apt: any): "Upcoming" | "Past" | "Completed" | "Cancel
 
 export default function Appointments() {
   const { user } = useAuth();
+  const { canEdit, canDelete } = useSharing();
   const t = useTranslations();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -226,6 +229,7 @@ export default function Appointments() {
     
     return (
       <div className="animate-fade-in">
+        <SharingBanner />
         <Button variant="ghost" onClick={handleBack} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />{fromDashboard ? t.appointments.backToDashboard : t.appointments.backToAppointments}
         </Button>
@@ -249,14 +253,20 @@ export default function Appointments() {
               {viewingAppointment.notes && <div><span className="font-medium">{t.appointments.notes}:</span> {viewingAppointment.notes}</div>}
             </div>
             
-            <div className="flex gap-2 mt-6 pt-4 border-t">
-              <Button onClick={() => openEdit(viewingAppointment)}>
-                <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
-              </Button>
-              <Button variant="destructive" onClick={() => setDeleteId(viewingAppointment.id)}>
-                <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
-              </Button>
-            </div>
+            {(canEdit || canDelete) && (
+              <div className="flex gap-2 mt-6 pt-4 border-t">
+                {canEdit && (
+                  <Button onClick={() => openEdit(viewingAppointment)}>
+                    <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button variant="destructive" onClick={() => setDeleteId(viewingAppointment.id)}>
+                    <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="health-card">
@@ -282,12 +292,14 @@ export default function Appointments() {
 
   return (
     <div className="animate-fade-in">
+      <SharingBanner />
       <PageHeader
         title={t.appointments.title}
         description={t.appointments.description}
         actions={
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.appointments.addAppointment}</Button></DialogTrigger>
+          canEdit ? (
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.appointments.addAppointment}</Button></DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>{editingId ? t.appointments.editAppointment : t.appointments.newAppointment}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -402,6 +414,7 @@ export default function Appointments() {
               </form>
             </DialogContent>
           </Dialog>
+          ) : null
         }
       />
 
