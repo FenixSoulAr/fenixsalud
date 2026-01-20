@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTranslations } from "@/i18n";
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -13,6 +14,7 @@ export default function SignUp() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const t = useTranslations();
 
   const validatePassword = (pwd: string): boolean => {
     if (pwd.length < 10) return false;
@@ -25,7 +27,7 @@ export default function SignUp() {
     e.preventDefault();
     
     if (!validatePassword(password)) {
-      toast.error("Password must be at least 10 characters and include a number or symbol.");
+      toast.error(t.auth.passwordRequirement);
       return;
     }
 
@@ -64,21 +66,21 @@ export default function SignUp() {
               <Heart className="h-6 w-6" />
             </div>
           </Link>
-          <h1 className="text-2xl font-semibold">Create your account</h1>
-          <p className="text-muted-foreground mt-1">Start tracking your health journey</p>
+          <h1 className="text-2xl font-semibold">{t.auth.createAccount}</h1>
+          <p className="text-muted-foreground mt-1">{t.auth.signUpSubtitle}</p>
         </div>
 
         {/* Form */}
         <div className="health-card">
           <form onSubmit={handleSignUp} className="space-y-4">
             <div className="form-field">
-              <Label htmlFor="fullName">Full name</Label>
+              <Label htmlFor="fullName">{t.auth.fullName}</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="fullName"
                   type="text"
-                  placeholder="John Doe"
+                  placeholder={t.auth.fullNamePlaceholder}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="pl-10"
@@ -87,13 +89,13 @@ export default function SignUp() {
             </div>
 
             <div className="form-field">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.auth.email}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t.auth.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -103,13 +105,13 @@ export default function SignUp() {
             </div>
 
             <div className="form-field">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t.auth.password}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder={t.auth.passwordPlaceholder}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -118,21 +120,21 @@ export default function SignUp() {
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Password must be at least 10 characters and include a number or symbol.
+                {t.auth.passwordRequirement}
               </p>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? t.auth.signingUp : t.auth.signUpButton}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Already have an account?{" "}
+          {t.auth.hasAccount}{" "}
           <Link to="/auth/sign-in" className="text-primary hover:underline font-medium">
-            Sign in
+            {t.auth.signIn}
           </Link>
         </p>
       </div>

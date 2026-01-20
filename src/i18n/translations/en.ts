@@ -2,6 +2,7 @@
 type TranslationValue = string | Record<string, string>;
 
 export interface Translations {
+  appName: string;
   nav: {
     dashboard: string;
     appointments: string;
@@ -312,8 +313,14 @@ export interface Translations {
   auth: {
     signIn: string;
     signUp: string;
+    welcomeBack: string;
+    signInSubtitle: string;
+    createAccount: string;
+    signUpSubtitle: string;
     email: string;
+    emailPlaceholder: string;
     password: string;
+    passwordPlaceholder: string;
     confirmPassword: string;
     forgotPassword: string;
     noAccount: string;
@@ -322,6 +329,13 @@ export interface Translations {
     signUpButton: string;
     signingIn: string;
     signingUp: string;
+    magicLink: string;
+    checkEmail: string;
+    magicLinkSent: string;
+    backToSignIn: string;
+    fullName: string;
+    fullNamePlaceholder: string;
+    passwordRequirement: string;
   };
   dialogs: {
     deleteItem: string;
@@ -370,6 +384,7 @@ export interface Translations {
 }
 
 export const en: Translations = {
+  appName: "My Health",
   // Navigation
   nav: {
     dashboard: "Dashboard",
@@ -705,16 +720,29 @@ export const en: Translations = {
   auth: {
     signIn: "Sign In",
     signUp: "Sign Up",
+    welcomeBack: "Welcome back",
+    signInSubtitle: "Sign in to your My Health account",
+    createAccount: "Create your account",
+    signUpSubtitle: "Start tracking your health journey",
     email: "Email",
+    emailPlaceholder: "you@example.com",
     password: "Password",
+    passwordPlaceholder: "••••••••",
     confirmPassword: "Confirm Password",
     forgotPassword: "Forgot password?",
     noAccount: "Don't have an account?",
     hasAccount: "Already have an account?",
     signInButton: "Sign in",
-    signUpButton: "Sign up",
+    signUpButton: "Create account",
     signingIn: "Signing in...",
-    signingUp: "Signing up...",
+    signingUp: "Creating account...",
+    magicLink: "Sign in with magic link",
+    checkEmail: "Check your email",
+    magicLinkSent: "We've sent a magic link to",
+    backToSignIn: "Back to sign in",
+    fullName: "Full name",
+    fullNamePlaceholder: "John Doe",
+    passwordRequirement: "Password must be at least 10 characters and include a number or symbol.",
   },
   
   // Dialogs
