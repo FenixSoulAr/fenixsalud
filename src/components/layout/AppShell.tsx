@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/i18n";
+import { SharingBanner } from "@/components/sharing/SharingBanner";
 
 interface AppShellProps {
   children: ReactNode;
@@ -151,6 +152,7 @@ export function AppShell({ children }: AppShellProps) {
         {/* Page content */}
         <main className="min-h-[calc(100vh-4rem)] lg:min-h-screen">
           <div className="container py-6 lg:py-8 max-w-7xl px-4 lg:px-8">
+            <SharingBanner />
             {children}
           </div>
         </main>

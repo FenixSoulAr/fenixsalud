@@ -15,7 +15,8 @@ interface ProfileShare {
 
 interface SharedProfile {
   owner_id: string;
-  owner_email?: string;
+  owner_name: string | null;
+  owner_email: string | null;
   role: "viewer" | "contributor";
 }
 
@@ -24,6 +25,8 @@ interface SharingContextType {
   currentRole: SharingRole;
   // The profile owner ID whose data is being viewed
   activeProfileOwnerId: string | null;
+  // The name of the profile owner being viewed (for display)
+  activeProfileOwnerName: string | null;
   // Shares where current user is the owner
   myShares: ProfileShare[];
   // Shares where current user has been given access
@@ -90,12 +93,31 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       .eq("shared_with_user_id", user.id);
 
     setMyShares((ownerShares as ProfileShare[]) || []);
-    setSharedWithMe(
-      (receivedShares || []).map((s: any) => ({
-        owner_id: s.owner_id,
-        role: s.role,
-      }))
-    );
+    
+    // For received shares, fetch owner profile names
+    const sharedProfiles: SharedProfile[] = [];
+    for (const share of receivedShares || []) {
+      // Fetch owner's profile to get their name
+      const { data: ownerProfile } = await supabase
+        .from("profiles")
+        .select("full_name, first_name, last_name")
+        .eq("user_id", share.owner_id)
+        .maybeSingle();
+      
+      const ownerName = ownerProfile?.full_name || 
+        (ownerProfile?.first_name && ownerProfile?.last_name 
+          ? `${ownerProfile.first_name} ${ownerProfile.last_name}` 
+          : ownerProfile?.first_name || null);
+      
+      sharedProfiles.push({
+        owner_id: share.owner_id,
+        owner_name: ownerName,
+        owner_email: share.shared_with_email,
+        role: share.role,
+      });
+    }
+    
+    setSharedWithMe(sharedProfiles);
     setLoading(false);
   }
 
@@ -212,11 +234,19 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     setActiveProfileOwnerId(null);
   }
 
+  // Get the active profile owner's name for display
+  const activeProfileOwnerName = (() => {
+    if (isViewingOwnProfile) return null;
+    const share = sharedWithMe.find(s => s.owner_id === activeProfileOwnerId);
+    return share?.owner_name || share?.owner_email || null;
+  })();
+
   return (
     <SharingContext.Provider
       value={{
         currentRole,
         activeProfileOwnerId: isViewingOwnProfile ? user?.id ?? null : activeProfileOwnerId,
+        activeProfileOwnerName,
         myShares,
         sharedWithMe,
         loading,

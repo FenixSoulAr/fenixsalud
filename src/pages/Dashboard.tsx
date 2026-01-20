@@ -9,7 +9,7 @@ import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { SharingBanner } from "@/components/sharing/SharingBanner";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSharing } from "@/contexts/SharingContext";
@@ -58,7 +58,6 @@ export default function Dashboard() {
 
   return (
     <div className="animate-fade-in">
-      <SharingBanner />
       <PageHeader
         title={t.dashboard.title}
         description={t.dashboard.description}
