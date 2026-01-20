@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useTranslations } from "@/i18n";
 
 type ProcedureType = "Surgery" | "Hospitalization" | "Vaccine";
 
@@ -33,6 +34,7 @@ function getProcedureStatusStyle(type: ProcedureType) {
 
 export default function Procedures() {
   const { user } = useAuth();
+  const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [procedures, setProcedures] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<any[]>([]);
@@ -53,6 +55,16 @@ export default function Procedures() {
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => { if (user) fetchData(); }, [user]);
+
+  // Helper to get translated procedure type
+  function getTranslatedType(type: ProcedureType) {
+    switch (type) {
+      case "Surgery": return t.procedures.surgery;
+      case "Hospitalization": return t.procedures.hospitalization;
+      case "Vaccine": return t.procedures.vaccine;
+      default: return type;
+    }
+  }
 
   async function fetchData() {
     setLoading(true);
@@ -105,8 +117,8 @@ export default function Procedures() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.title) { toast.error("Title is required."); return; }
-    if (!form.date) { toast.error("Date is required."); return; }
+    if (!form.title) { toast.error(t.procedures.titleRequired); return; }
+    if (!form.date) { toast.error(t.procedures.dateRequired); return; }
     
     const payload = {
       type: form.type,
@@ -119,12 +131,12 @@ export default function Procedures() {
 
     if (editingId) {
       const { error } = await supabase.from("procedures").update(payload).eq("id", editingId);
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
-      toast.success("Changes updated.");
+      if (error) { toast.error(t.toast.error); return; }
+      toast.success(t.toast.changesUpdated);
     } else {
       const { error } = await supabase.from("procedures").insert({ ...payload, user_id: user!.id });
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
-      toast.success("Saved successfully.");
+      if (error) { toast.error(t.toast.error); return; }
+      toast.success(t.toast.savedSuccess);
     }
     
     setDialogOpen(false);
@@ -135,8 +147,8 @@ export default function Procedures() {
   async function handleDelete() {
     if (!deleteId) return;
     const { error } = await supabase.from("procedures").delete().eq("id", deleteId);
-    if (error) { toast.error("Something went wrong. Please try again."); return; }
-    toast.success("Deleted successfully.");
+    if (error) { toast.error(t.toast.error); return; }
+    toast.success(t.toast.deletedSuccess);
     setDeleteId(null);
     setViewingProcedure(null);
     fetchData();
@@ -153,7 +165,7 @@ export default function Procedures() {
     return (
       <div className="animate-fade-in">
         <Button variant="ghost" onClick={() => setViewingProcedure(null)} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />Back to Procedures
+          <ArrowLeft className="h-4 w-4 mr-2" />{t.procedures.backToProcedures}
         </Button>
         
         <div className="max-w-2xl space-y-6">
@@ -164,26 +176,26 @@ export default function Procedures() {
                 <p className="text-muted-foreground">{format(new Date(viewingProcedure.date), "MMMM d, yyyy")}</p>
               </div>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getProcedureStatusStyle(viewingProcedure.type)}`}>
-                {viewingProcedure.type}
+                {getTranslatedType(viewingProcedure.type)}
               </span>
             </div>
             
             <div className="space-y-3 text-sm">
               {viewingProcedure.institutions?.name && (
-                <div><span className="font-medium">Institution:</span> {viewingProcedure.institutions.name}</div>
+                <div><span className="font-medium">{t.procedures.institution}:</span> {viewingProcedure.institutions.name}</div>
               )}
               {viewingProcedure.doctors?.full_name && (
-                <div><span className="font-medium">Doctor:</span> {viewingProcedure.doctors.full_name}</div>
+                <div><span className="font-medium">{t.procedures.doctor}:</span> {viewingProcedure.doctors.full_name}</div>
               )}
-              {viewingProcedure.notes && <div><span className="font-medium">Notes:</span> {viewingProcedure.notes}</div>}
+              {viewingProcedure.notes && <div><span className="font-medium">{t.procedures.notes}:</span> {viewingProcedure.notes}</div>}
             </div>
             
             <div className="flex gap-2 mt-6 pt-4 border-t">
               <Button onClick={() => openEdit(viewingProcedure)}>
-                <Pencil className="h-4 w-4 mr-2" />Edit
+                <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
               </Button>
               <Button variant="destructive" onClick={() => setDeleteId(viewingProcedure.id)}>
-                <Trash2 className="h-4 w-4 mr-2" />Delete
+                <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
               </Button>
             </div>
           </div>
@@ -196,12 +208,12 @@ export default function Procedures() {
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete item?</AlertDialogTitle>
-              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+              <AlertDialogTitle>{t.dialogs.deleteItem}</AlertDialogTitle>
+              <AlertDialogDescription>{t.dialogs.deleteItemDescription}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+              <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -211,40 +223,40 @@ export default function Procedures() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Procedures" description="Track surgeries, hospitalizations, and vaccines"
+      <PageHeader title={t.procedures.title} description={t.procedures.description}
         actions={
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add procedure</Button></DialogTrigger>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.procedures.addProcedure}</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>{editingId ? "Edit Procedure" : "New Procedure"}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingId ? t.procedures.editProcedure : t.procedures.newProcedure}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="form-field">
-                  <Label>Type *</Label>
+                  <Label>{t.procedures.type} *</Label>
                   <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as ProcedureType })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {PROCEDURE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {PROCEDURE_TYPES.map(type => <SelectItem key={type} value={type}>{getTranslatedType(type)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="form-field"><Label>Title *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g., Appendectomy" required /></div>
-                <div className="form-field"><Label>Date *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></div>
+                <div className="form-field"><Label>{t.procedures.title_field} *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={t.procedures.titlePlaceholder} required /></div>
+                <div className="form-field"><Label>{t.procedures.date} *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></div>
                 <div className="form-field">
-                  <Label>Institution</Label>
+                  <Label>{t.procedures.institution}</Label>
                   <Select value={form.institution_id} onValueChange={(v) => setForm({ ...form, institution_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select institution" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t.procedures.selectInstitution} /></SelectTrigger>
                     <SelectContent>{institutions.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="form-field">
-                  <Label>Doctor</Label>
+                  <Label>{t.procedures.doctor}</Label>
                   <Select value={form.doctor_id} onValueChange={(v) => setForm({ ...form, doctor_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select doctor" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t.procedures.selectDoctor} /></SelectTrigger>
                     <SelectContent>{doctors.map((d) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <Button type="submit" className="w-full">{editingId ? "Save Changes" : "Create Procedure"}</Button>
+                <div className="form-field"><Label>{t.procedures.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.procedures.createProcedure}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -257,8 +269,8 @@ export default function Procedures() {
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            {PROCEDURE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            <SelectItem value="all">{t.procedures.allTypes}</SelectItem>
+            {PROCEDURE_TYPES.map(type => <SelectItem key={type} value={type}>{getTranslatedType(type)}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -266,18 +278,18 @@ export default function Procedures() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete item?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>{t.dialogs.deleteItem}</AlertDialogTitle>
+            <AlertDialogDescription>{t.dialogs.deleteItemDescription}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {filteredProcedures.length === 0 ? (
-        <EmptyState icon={Syringe} title="No procedures yet" description="Add your first procedure to track your medical history." action={{ label: "Add procedure", onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={Syringe} title={t.procedures.noProcedures} description={t.procedures.noProceduresDescription} action={{ label: t.procedures.addProcedure, onClick: () => setDialogOpen(true) }} />
       ) : (
         <>
           {/* Mobile Card Layout */}
@@ -296,7 +308,7 @@ export default function Procedures() {
                         <AttachmentIndicator entityType="Procedure" entityId={p.id} count={attachCount} />
                       )}
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getProcedureStatusStyle(p.type)}`}>
-                        {p.type}
+                        {getTranslatedType(p.type)}
                       </span>
                     </div>
                   </div>
@@ -307,13 +319,13 @@ export default function Procedures() {
                   )}
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t">
                     <Button variant="ghost" size="sm" onClick={() => setViewingProcedure(p)}>
-                      <Eye className="h-4 w-4 mr-1" />View
+                      <Eye className="h-4 w-4 mr-1" />{t.actions.view}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
-                      <Pencil className="h-4 w-4 mr-1" />Edit
+                      <Pencil className="h-4 w-4 mr-1" />{t.actions.edit}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => setDeleteId(p.id)}>
-                      <Trash2 className="h-4 w-4 mr-1 text-destructive" />Delete
+                      <Trash2 className="h-4 w-4 mr-1 text-destructive" />{t.actions.delete}
                     </Button>
                   </div>
                 </div>
@@ -324,7 +336,7 @@ export default function Procedures() {
           {/* Desktop Table Layout */}
           <div className="hidden md:block data-grid overflow-x-auto">
             <table className="w-full">
-              <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Title</th><th className="text-left p-4 font-medium">Type</th><th className="text-left p-4 font-medium">Date</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Doctor</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
+              <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">{t.procedures.title_field}</th><th className="text-left p-4 font-medium">{t.procedures.type}</th><th className="text-left p-4 font-medium">{t.procedures.date}</th><th className="text-left p-4 font-medium">{t.procedures.institution}</th><th className="text-left p-4 font-medium">{t.procedures.doctor}</th><th className="text-right p-4 font-medium">{t.actions.view}</th></tr></thead>
               <tbody>
                 {filteredProcedures.map((p) => {
                   const attachCount = attachmentCounts[p.id] || 0;
@@ -340,7 +352,7 @@ export default function Procedures() {
                       </td>
                       <td className="p-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getProcedureStatusStyle(p.type)}`}>
-                          {p.type}
+                          {getTranslatedType(p.type)}
                         </span>
                       </td>
                       <td className="p-4">{format(new Date(p.date), "MMM d, yyyy")}</td>
@@ -348,13 +360,13 @@ export default function Procedures() {
                       <td className="p-4">{p.doctors?.full_name || "—"}</td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => setViewingProcedure(p)} aria-label="View procedure">
+                          <Button variant="ghost" size="icon" onClick={() => setViewingProcedure(p)} aria-label={t.actions.view}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(p)} aria-label="Edit procedure">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(p)} aria-label={t.actions.edit}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)} aria-label="Delete procedure">
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)} aria-label={t.actions.delete}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>

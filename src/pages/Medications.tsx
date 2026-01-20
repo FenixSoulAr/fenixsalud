@@ -16,9 +16,11 @@ import { LoadingPage } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useTranslations } from "@/i18n";
 
 export default function Medications() {
   const { user } = useAuth();
+  const t = useTranslations();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [medications, setMedications] = useState<any[]>([]);
@@ -65,9 +67,9 @@ export default function Medications() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name) { toast.error("Medication name is required."); return; }
-    if (!form.dose_text) { toast.error("Dose is required."); return; }
-    if (form.schedule_type === "Daily" && !form.times) { toast.error("Add at least one time."); return; }
+    if (!form.name) { toast.error(t.medications.nameRequired); return; }
+    if (!form.dose_text) { toast.error(t.medications.doseRequired); return; }
+    if (form.schedule_type === "Daily" && !form.times) { toast.error(t.medications.timesRequired); return; }
     
     const payload = {
       name: form.name,
@@ -80,12 +82,12 @@ export default function Medications() {
 
     if (editingId) {
       const { error } = await supabase.from("medications").update(payload).eq("id", editingId);
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
-      toast.success("Changes updated.");
+      if (error) { toast.error(t.toast.error); return; }
+      toast.success(t.toast.changesUpdated);
     } else {
       const { error } = await supabase.from("medications").insert({ ...payload, user_id: user!.id });
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
-      toast.success("Saved successfully.");
+      if (error) { toast.error(t.toast.error); return; }
+      toast.success(t.toast.savedSuccess);
     }
     
     setDialogOpen(false);
@@ -96,8 +98,8 @@ export default function Medications() {
   async function handleDelete() {
     if (!deleteId) return;
     const { error } = await supabase.from("medications").delete().eq("id", deleteId);
-    if (error) { toast.error("Something went wrong. Please try again."); return; }
-    toast.success("Medication deleted.");
+    if (error) { toast.error(t.toast.error); return; }
+    toast.success(t.toast.deletedSuccess);
     setDeleteId(null);
     fetchData();
   }
@@ -108,23 +110,23 @@ export default function Medications() {
 
   if (loading) return <LoadingPage />;
 
-  const MedList = ({ meds }: { meds: any[] }) => meds.length === 0 ? <p className="text-muted-foreground text-center py-8">No medications</p> : (
+  const MedList = ({ meds }: { meds: any[] }) => meds.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.medications.noMedicationsTab}</p> : (
     <div className="space-y-3">{meds.map((m) => (
       <div key={m.id} className="health-card flex items-center justify-between">
         <div>
           <p className="font-medium">{m.name}</p>
-          <p className="text-sm text-muted-foreground">{m.dose_text} • {m.schedule_type}</p>
+          <p className="text-sm text-muted-foreground">{m.dose_text} • {m.schedule_type === "Daily" ? t.medications.daily : m.schedule_type === "Weekly" ? t.medications.weekly : t.medications.asNeeded}</p>
           {m.times && m.times.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">Times: {m.times.join(", ")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t.medications.times}: {m.times.join(", ")}</p>
           )}
         </div>
         <div className="flex items-center gap-3">
           <StatusBadge status={normalizeStatus(m.status)} />
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => openEdit(m)} aria-label="Edit medication">
+            <Button variant="ghost" size="icon" onClick={() => openEdit(m)} aria-label={t.actions.edit}>
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDeleteId(m.id)} aria-label="Delete medication">
+            <Button variant="ghost" size="icon" onClick={() => setDeleteId(m.id)} aria-label={t.actions.delete}>
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
@@ -135,38 +137,42 @@ export default function Medications() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Medications" description="Track your medications and schedules"
+      <PageHeader title={t.medications.title} description={t.medications.description}
         actions={
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add medication</Button></DialogTrigger>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.medications.addMedication}</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>{editingId ? "Edit Medication" : "New Medication"}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingId ? t.medications.editMedication : t.medications.newMedication}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-field"><Label>Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g., Aspirin" required /></div>
-                <div className="form-field"><Label>Dose *</Label><Input value={form.dose_text} onChange={(e) => setForm({ ...form, dose_text: e.target.value })} placeholder="e.g., 100mg" required /></div>
+                <div className="form-field"><Label>{t.medications.name} *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.medications.namePlaceholder} required /></div>
+                <div className="form-field"><Label>{t.medications.dose} *</Label><Input value={form.dose_text} onChange={(e) => setForm({ ...form, dose_text: e.target.value })} placeholder={t.medications.dosePlaceholder} required /></div>
                 <div className="form-field">
-                  <Label>Schedule</Label>
+                  <Label>{t.medications.schedule}</Label>
                   <Select value={form.schedule_type} onValueChange={(v) => setForm({ ...form, schedule_type: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Daily">Daily</SelectItem><SelectItem value="Weekly">Weekly</SelectItem><SelectItem value="As needed">As needed</SelectItem></SelectContent>
+                    <SelectContent>
+                      <SelectItem value="Daily">{t.medications.daily}</SelectItem>
+                      <SelectItem value="Weekly">{t.medications.weekly}</SelectItem>
+                      <SelectItem value="As needed">{t.medications.asNeeded}</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
-                {form.schedule_type === "Daily" && <div className="form-field"><Label>Times (comma-separated)</Label><Input value={form.times} onChange={(e) => setForm({ ...form, times: e.target.value })} placeholder="e.g., 8:00, 20:00" /></div>}
+                {form.schedule_type === "Daily" && <div className="form-field"><Label>{t.medications.times}</Label><Input value={form.times} onChange={(e) => setForm({ ...form, times: e.target.value })} placeholder={t.medications.timesPlaceholder} /></div>}
                 {editingId && (
                   <div className="form-field">
-                    <Label>Status</Label>
+                    <Label>{t.medications.status}</Label>
                     <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Paused">Paused</SelectItem>
-                        <SelectItem value="Completed">Completed</SelectItem>
+                        <SelectItem value="Active">{t.medications.active}</SelectItem>
+                        <SelectItem value="Paused">{t.medications.paused}</SelectItem>
+                        <SelectItem value="Completed">{t.medications.completed}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 )}
-                <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <Button type="submit" className="w-full">{editingId ? "Save Changes" : "Add Medication"}</Button>
+                <div className="form-field"><Label>{t.medications.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.medications.addMedication}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -176,21 +182,25 @@ export default function Medications() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete medication?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone. The medication record will be permanently removed.</AlertDialogDescription>
+            <AlertDialogTitle>{t.medications.deleteMedication}</AlertDialogTitle>
+            <AlertDialogDescription>{t.medications.deleteMedicationDesc}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {medications.length === 0 ? (
-        <EmptyState icon={Pill} title="No medications yet" description="Add your first medication to track your schedule." action={{ label: "Add medication", onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={Pill} title={t.medications.noMedications} description={t.medications.noMedicationsDescription} action={{ label: t.medications.addMedication, onClick: () => setDialogOpen(true) }} />
       ) : (
         <Tabs defaultValue="active" className="space-y-6">
-          <TabsList><TabsTrigger value="active">Active ({active.length})</TabsTrigger><TabsTrigger value="paused">Paused ({paused.length})</TabsTrigger><TabsTrigger value="completed">Completed ({completed.length})</TabsTrigger></TabsList>
+          <TabsList>
+            <TabsTrigger value="active">{t.medications.active} ({active.length})</TabsTrigger>
+            <TabsTrigger value="paused">{t.medications.paused} ({paused.length})</TabsTrigger>
+            <TabsTrigger value="completed">{t.medications.completed} ({completed.length})</TabsTrigger>
+          </TabsList>
           <TabsContent value="active"><MedList meds={active} /></TabsContent>
           <TabsContent value="paused"><MedList meds={paused} /></TabsContent>
           <TabsContent value="completed"><MedList meds={completed} /></TabsContent>

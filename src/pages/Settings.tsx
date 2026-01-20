@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { getLanguage, useTranslations } from "@/i18n";
+
 const timezones = ["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "Europe/Paris", "Asia/Tokyo", "Asia/Singapore", "Australia/Sydney"];
 
 // Support section component
@@ -89,6 +90,7 @@ interface SettingsData {
 
 export default function Settings() {
   const { user, signOut } = useAuth();
+  const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -143,21 +145,21 @@ export default function Settings() {
     setSavingSettings(true);
     const { error } = await supabase.from("profiles").update(settings).eq("user_id", user!.id);
     setSavingSettings(false);
-    if (error) { toast.error("We couldn't save your settings. Please try again."); return; }
-    toast.success("Settings saved.");
+    if (error) { toast.error(t.toast.couldNotSaveSettings); return; }
+    toast.success(t.toast.settingsSaved);
   }
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     
-    if (!profile.first_name.trim()) { toast.error("First name is required."); return; }
-    if (!profile.last_name.trim()) { toast.error("Last name is required."); return; }
+    if (!profile.first_name.trim()) { toast.error(t.toast.firstNameRequired); return; }
+    if (!profile.last_name.trim()) { toast.error(t.toast.lastNameRequired); return; }
     
     setSavingProfile(true);
     const { error } = await supabase.from("profiles").update(profile).eq("user_id", user!.id);
     setSavingProfile(false);
-    if (error) { toast.error("We couldn't save your profile. Please try again."); return; }
-    toast.success("Profile saved.");
+    if (error) { toast.error(t.toast.couldNotSaveProfile); return; }
+    toast.success(t.toast.profileSaved);
   }
 
   async function handleDeleteProfileData() {
@@ -175,7 +177,7 @@ export default function Settings() {
     }).eq("user_id", user!.id);
     
     setDeletingProfile(false);
-    if (error) { toast.error("We couldn't delete your profile data. Please try again."); return; }
+    if (error) { toast.error(t.toast.couldNotDeleteProfile); return; }
     
     // Reset local state
     setProfile({
@@ -189,13 +191,13 @@ export default function Settings() {
       allergies: "",
       notes: "",
     });
-    toast.success("Profile data deleted.");
+    toast.success(t.toast.profileDeleted);
   }
 
   async function handleDeleteAccount() {
     // In production, this would call an edge function to delete user data
     await signOut();
-    toast.success("Account deleted");
+    toast.success(t.toast.accountDeleted);
   }
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -203,18 +205,18 @@ export default function Settings() {
     
     // Validation
     if (!passwordForm.current.trim()) {
-      toast.error("Current password is required.");
+      toast.error(t.settings.currentPassword + " " + t.form.required);
       return;
     }
     
     const hasNumberOrSymbol = /[0-9!@#$%^&*(),.?":{}|<>]/.test(passwordForm.newPassword);
     if (passwordForm.newPassword.length < 10 || !hasNumberOrSymbol) {
-      toast.error("New password must be at least 10 characters and include a number or symbol.");
+      toast.error(t.toast.passwordRequirements);
       return;
     }
     
     if (passwordForm.newPassword !== passwordForm.confirm) {
-      toast.error("Passwords do not match.");
+      toast.error(t.toast.passwordsNoMatch);
       return;
     }
     
@@ -228,7 +230,7 @@ export default function Settings() {
     
     if (signInError) {
       setSavingPassword(false);
-      toast.error("For security reasons, please sign in again and retry.");
+      toast.error(t.toast.signInAgain);
       return;
     }
     
@@ -240,12 +242,12 @@ export default function Settings() {
     setSavingPassword(false);
     
     if (error) {
-      toast.error("We couldn't update your password. Please try again.");
+      toast.error(t.toast.couldNotUpdatePassword);
       return;
     }
     
     setPasswordForm({ current: "", newPassword: "", confirm: "" });
-    toast.success("Password updated.");
+    toast.success(t.toast.passwordUpdated);
   }
 
   if (loading) return <LoadingPage />;
@@ -253,11 +255,11 @@ export default function Settings() {
   return (
     <div className="animate-fade-in">
       <PageHeader 
-        title="Settings" 
-        description="Manage your account and preferences"
+        title={t.settings.title}
+        description={t.settings.description}
         actions={
           <Button variant="outline" asChild>
-            <Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />Clinical Summary</Link>
+            <Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />{t.nav.clinicalSummary}</Link>
           </Button>
         }
       />
@@ -267,125 +269,125 @@ export default function Settings() {
         <section className="health-card">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <User className="h-5 w-5" />
-            Patient Profile
+            {t.settings.patientProfile}
           </h2>
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="form-field">
-                <Label>First Name *</Label>
+                <Label>{t.settings.firstName} *</Label>
                 <Input 
                   value={profile.first_name} 
                   onChange={(e) => setProfile({ ...profile, first_name: e.target.value })} 
-                  placeholder="First name"
+                  placeholder={t.settings.firstName}
                 />
               </div>
               <div className="form-field">
-                <Label>Last Name *</Label>
+                <Label>{t.settings.lastName} *</Label>
                 <Input 
                   value={profile.last_name} 
                   onChange={(e) => setProfile({ ...profile, last_name: e.target.value })} 
-                  placeholder="Last name"
+                  placeholder={t.settings.lastName}
                 />
               </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="form-field">
-                <Label>National ID</Label>
+                <Label>{t.settings.nationalId}</Label>
                 <Input 
                   value={profile.national_id} 
                   onChange={(e) => setProfile({ ...profile, national_id: e.target.value })} 
-                  placeholder="Optional"
+                  placeholder={t.settings.optional}
                 />
               </div>
               <div className="form-field">
-                <Label>Phone</Label>
+                <Label>{t.settings.phone}</Label>
                 <Input 
                   value={profile.phone} 
                   onChange={(e) => setProfile({ ...profile, phone: e.target.value })} 
-                  placeholder="Optional"
+                  placeholder={t.settings.optional}
                 />
               </div>
             </div>
             
             <div className="form-field">
-              <Label>Email</Label>
+              <Label>{t.settings.email}</Label>
               <Input 
                 value={user?.email || ""} 
                 disabled 
                 className="bg-muted"
               />
-              <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
+              <p className="text-xs text-muted-foreground mt-1">{t.settings.emailCannotChange}</p>
             </div>
             
             <div className="border-t pt-4 mt-4">
-              <h3 className="text-sm font-medium mb-3">Insurance Information</h3>
+              <h3 className="text-sm font-medium mb-3">{t.settings.insuranceInfo}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="form-field">
-                  <Label>Provider</Label>
+                  <Label>{t.settings.provider}</Label>
                   <Input 
                     value={profile.insurance_provider} 
                     onChange={(e) => setProfile({ ...profile, insurance_provider: e.target.value })} 
-                    placeholder="Optional"
+                    placeholder={t.settings.optional}
                   />
                 </div>
                 <div className="form-field">
-                  <Label>Plan</Label>
+                  <Label>{t.settings.plan}</Label>
                   <Input 
                     value={profile.insurance_plan} 
                     onChange={(e) => setProfile({ ...profile, insurance_plan: e.target.value })} 
-                    placeholder="Optional"
+                    placeholder={t.settings.optional}
                   />
                 </div>
                 <div className="form-field">
-                  <Label>Member ID</Label>
+                  <Label>{t.settings.memberId}</Label>
                   <Input 
                     value={profile.insurance_member_id} 
                     onChange={(e) => setProfile({ ...profile, insurance_member_id: e.target.value })} 
-                    placeholder="Optional"
+                    placeholder={t.settings.optional}
                   />
                 </div>
               </div>
             </div>
             
             <div className="form-field">
-              <Label>Allergies</Label>
+              <Label>{t.settings.allergies}</Label>
               <Textarea 
                 value={profile.allergies} 
                 onChange={(e) => setProfile({ ...profile, allergies: e.target.value })} 
-                placeholder="List any known allergies..."
+                placeholder={t.settings.allergiesPlaceholder}
                 rows={2}
               />
             </div>
             
             <div className="form-field">
-              <Label>Notes</Label>
+              <Label>{t.settings.notes}</Label>
               <Textarea 
                 value={profile.notes} 
                 onChange={(e) => setProfile({ ...profile, notes: e.target.value })} 
-                placeholder="Any additional health information..."
+                placeholder={t.settings.notesPlaceholder}
                 rows={2}
               />
             </div>
             
             <Button type="submit" disabled={savingProfile}>
-              {savingProfile ? "Saving..." : "Save Profile"}
+              {savingProfile ? t.settings.saving : t.settings.saveProfile}
             </Button>
             
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" type="button" disabled={deletingProfile}>
-                  <Trash2 className="h-4 w-4 mr-2" />{deletingProfile ? "Deleting..." : "Delete profile data"}
+                  <Trash2 className="h-4 w-4 mr-2" />{deletingProfile ? t.settings.deleting : t.settings.deleteProfileData}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete profile data?</AlertDialogTitle>
-                  <AlertDialogDescription>This will remove your personal profile details from this app.</AlertDialogDescription>
+                  <AlertDialogTitle>{t.settings.deleteProfileTitle}</AlertDialogTitle>
+                  <AlertDialogDescription>{t.settings.deleteProfileDescription}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteProfileData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                  <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteProfileData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -394,14 +396,14 @@ export default function Settings() {
 
         {/* Notifications */}
         <section className="health-card">
-          <h2 className="text-lg font-semibold mb-4">Notifications</h2>
+          <h2 className="text-lg font-semibold mb-4">{t.settings.notifications}</h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div><Label>In-app reminders</Label><p className="text-sm text-muted-foreground">Show reminders within the app</p></div>
+              <div><Label>{t.settings.inAppReminders}</Label><p className="text-sm text-muted-foreground">{t.settings.inAppRemindersDesc}</p></div>
               <Switch checked={settings.notification_in_app} onCheckedChange={(v) => setSettings({ ...settings, notification_in_app: v })} />
             </div>
             <div className="flex items-center justify-between">
-              <div><Label>Email reminders</Label><p className="text-sm text-muted-foreground">Receive reminders via email</p></div>
+              <div><Label>{t.settings.emailReminders}</Label><p className="text-sm text-muted-foreground">{t.settings.emailRemindersDesc}</p></div>
               <Switch checked={settings.notification_email} onCheckedChange={(v) => setSettings({ ...settings, notification_email: v })} />
             </div>
           </div>
@@ -409,51 +411,51 @@ export default function Settings() {
 
         {/* Timezone */}
         <section className="health-card">
-          <h2 className="text-lg font-semibold mb-4">Timezone</h2>
+          <h2 className="text-lg font-semibold mb-4">{t.settings.timezone}</h2>
           <Select value={settings.timezone} onValueChange={(v) => setSettings({ ...settings, timezone: v })}>
             <SelectTrigger className="w-full max-w-xs"><SelectValue /></SelectTrigger>
             <SelectContent>{timezones.map((tz) => <SelectItem key={tz} value={tz}>{tz}</SelectItem>)}</SelectContent>
           </Select>
         </section>
 
-        <Button onClick={handleSaveSettings} disabled={savingSettings}>{savingSettings ? "Saving..." : "Save settings"}</Button>
+        <Button onClick={handleSaveSettings} disabled={savingSettings}>{savingSettings ? t.settings.saving : t.settings.saveSettings}</Button>
 
         {/* Security Section */}
         <section className="health-card">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Security
+            {t.settings.security}
           </h2>
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div className="form-field">
-              <Label>Current password</Label>
+              <Label>{t.settings.currentPassword}</Label>
               <Input 
                 type="password" 
                 value={passwordForm.current} 
                 onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })} 
-                placeholder="Enter current password"
+                placeholder={t.settings.currentPassword}
               />
             </div>
             <div className="form-field">
-              <Label>New password</Label>
+              <Label>{t.settings.newPassword}</Label>
               <Input 
                 type="password" 
                 value={passwordForm.newPassword} 
                 onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} 
-                placeholder="Enter new password"
+                placeholder={t.settings.newPassword}
               />
             </div>
             <div className="form-field">
-              <Label>Confirm new password</Label>
+              <Label>{t.settings.confirmPassword}</Label>
               <Input 
                 type="password" 
                 value={passwordForm.confirm} 
                 onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} 
-                placeholder="Confirm new password"
+                placeholder={t.settings.confirmPassword}
               />
             </div>
             <Button type="submit" disabled={savingPassword}>
-              {savingPassword ? "Updating..." : "Update password"}
+              {savingPassword ? t.settings.updating : t.settings.updatePassword}
             </Button>
           </form>
         </section>
@@ -463,18 +465,18 @@ export default function Settings() {
 
         {/* Danger Zone */}
         <section className="health-card border-destructive/50">
-          <h2 className="text-lg font-semibold text-destructive mb-4">Danger Zone</h2>
-          <p className="text-sm text-muted-foreground mb-4">Permanently delete your account and all data.</p>
+          <h2 className="text-lg font-semibold text-destructive mb-4">{t.settings.dangerZone}</h2>
+          <p className="text-sm text-muted-foreground mb-4">{t.settings.dangerZoneDesc}</p>
           <AlertDialog>
-            <AlertDialogTrigger asChild><Button variant="destructive"><Trash2 className="h-4 w-4 mr-2" />Delete account</Button></AlertDialogTrigger>
+            <AlertDialogTrigger asChild><Button variant="destructive"><Trash2 className="h-4 w-4 mr-2" />{t.settings.deleteAccount}</Button></AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete account?</AlertDialogTitle>
-                <AlertDialogDescription>This will permanently remove your data.</AlertDialogDescription>
+                <AlertDialogTitle>{t.settings.deleteAccountTitle}</AlertDialogTitle>
+                <AlertDialogDescription>{t.settings.deleteAccountDescription}</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

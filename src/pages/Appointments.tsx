@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/i18n";
 
 // Helper to compute display status based on date
 function getDisplayStatus(apt: any): "Upcoming" | "Past" | "Completed" | "Cancelled" {
@@ -32,6 +33,7 @@ function getDisplayStatus(apt: any): "Upcoming" | "Past" | "Completed" | "Cancel
 
 export default function Appointments() {
   const { user } = useAuth();
+  const t = useTranslations();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -126,7 +128,7 @@ export default function Appointments() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.date) { toast.error("Date is required."); return; }
+    if (!form.date) { toast.error(t.appointments.dateRequired); return; }
     
     const payload = {
       datetime_start: buildDateTime(),
@@ -139,12 +141,12 @@ export default function Appointments() {
 
     if (editingId) {
       const { error } = await supabase.from("appointments").update(payload).eq("id", editingId);
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
-      toast.success("Changes updated.");
+      if (error) { toast.error(t.toast.error); return; }
+      toast.success(t.toast.changesUpdated);
     } else {
       const { error } = await supabase.from("appointments").insert({ ...payload, user_id: user!.id });
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
-      toast.success("Saved successfully.");
+      if (error) { toast.error(t.toast.error); return; }
+      toast.success(t.toast.savedSuccess);
     }
     
     setDialogOpen(false);
@@ -155,8 +157,8 @@ export default function Appointments() {
   async function handleDelete() {
     if (!deleteId) return;
     const { error } = await supabase.from("appointments").delete().eq("id", deleteId);
-    if (error) { toast.error("Something went wrong. Please try again."); return; }
-    toast.success("Deleted successfully.");
+    if (error) { toast.error(t.toast.error); return; }
+    toast.success(t.toast.deletedSuccess);
     setDeleteId(null);
     setViewingAppointment(null);
     fetchData();
@@ -164,7 +166,7 @@ export default function Appointments() {
 
   async function handleAddDoctor(e: React.FormEvent) {
     e.preventDefault();
-    if (!newDoctor.full_name) { toast.error("Doctor name is required."); return; }
+    if (!newDoctor.full_name) { toast.error(t.doctors.nameRequired); return; }
     
     const { data, error } = await supabase.from("doctors").insert({ 
       user_id: user!.id, 
@@ -172,9 +174,9 @@ export default function Appointments() {
       specialty: newDoctor.specialty || null 
     }).select().single();
     
-    if (error) { toast.error("Failed to add doctor"); return; }
+    if (error) { toast.error(t.toast.failedAddDoctor); return; }
     
-    toast.success("Doctor added!");
+    toast.success(t.toast.doctorAdded);
     setAddDoctorOpen(false);
     setNewDoctor({ full_name: "", specialty: "" });
     
@@ -186,7 +188,7 @@ export default function Appointments() {
 
   async function handleAddInstitution(e: React.FormEvent) {
     e.preventDefault();
-    if (!newInstitution.name) { toast.error("Institution name is required."); return; }
+    if (!newInstitution.name) { toast.error(t.institutions.nameRequired); return; }
     
     const { data, error } = await supabase.from("institutions").insert({ 
       user_id: user!.id, 
@@ -194,9 +196,9 @@ export default function Appointments() {
       type: newInstitution.type as any
     }).select().single();
     
-    if (error) { toast.error("Failed to add institution"); return; }
+    if (error) { toast.error(t.toast.failedAddInstitution); return; }
     
-    toast.success("Institution added!");
+    toast.success(t.toast.institutionAdded);
     setAddInstitutionOpen(false);
     setNewInstitution({ name: "", type: "Clinic" });
     
@@ -225,14 +227,14 @@ export default function Appointments() {
     return (
       <div className="animate-fade-in">
         <Button variant="ghost" onClick={handleBack} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />{fromDashboard ? "Back to dashboard" : "Back to appointments"}
+          <ArrowLeft className="h-4 w-4 mr-2" />{fromDashboard ? t.appointments.backToDashboard : t.appointments.backToAppointments}
         </Button>
         
         <div className="max-w-2xl space-y-6">
           <div className="health-card">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h1 className="text-2xl font-bold">{viewingAppointment.reason || "Appointment"}</h1>
+                <h1 className="text-2xl font-bold">{viewingAppointment.reason || t.misc.appointment}</h1>
                 <p className="text-muted-foreground">
                   {format(dt, "MMMM d, yyyy")}
                   {hasTime && ` at ${format(dt, "h:mm a")}`}
@@ -242,17 +244,17 @@ export default function Appointments() {
             </div>
             
             <div className="space-y-3 text-sm">
-              <div><span className="font-medium">Doctor:</span> {viewingAppointment.doctors?.full_name || "—"}</div>
-              <div><span className="font-medium">Institution:</span> {viewingAppointment.institutions?.name || "—"}</div>
-              {viewingAppointment.notes && <div><span className="font-medium">Notes:</span> {viewingAppointment.notes}</div>}
+              <div><span className="font-medium">{t.appointments.doctor}:</span> {viewingAppointment.doctors?.full_name || "—"}</div>
+              <div><span className="font-medium">{t.appointments.institution}:</span> {viewingAppointment.institutions?.name || "—"}</div>
+              {viewingAppointment.notes && <div><span className="font-medium">{t.appointments.notes}:</span> {viewingAppointment.notes}</div>}
             </div>
             
             <div className="flex gap-2 mt-6 pt-4 border-t">
               <Button onClick={() => openEdit(viewingAppointment)}>
-                <Pencil className="h-4 w-4 mr-2" />Edit
+                <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
               </Button>
               <Button variant="destructive" onClick={() => setDeleteId(viewingAppointment.id)}>
-                <Trash2 className="h-4 w-4 mr-2" />Delete
+                <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
               </Button>
             </div>
           </div>
@@ -265,12 +267,12 @@ export default function Appointments() {
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete item?</AlertDialogTitle>
-              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+              <AlertDialogTitle>{t.dialogs.deleteItem}</AlertDialogTitle>
+              <AlertDialogDescription>{t.dialogs.deleteItemDescription}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+              <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -281,44 +283,44 @@ export default function Appointments() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Appointments"
-        description="Manage your medical appointments"
+        title={t.appointments.title}
+        description={t.appointments.description}
         actions={
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add appointment</Button></DialogTrigger>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.appointments.addAppointment}</Button></DialogTrigger>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>{editingId ? "Edit Appointment" : "New Appointment"}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingId ? t.appointments.editAppointment : t.appointments.newAppointment}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="form-field">
-                    <Label>Date *</Label>
+                    <Label>{t.appointments.date} *</Label>
                     <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
                   </div>
                   <div className="form-field">
-                    <Label>Time</Label>
+                    <Label>{t.appointments.time}</Label>
                     <Input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
                   </div>
                 </div>
                 <div className="form-field">
-                  <Label>Reason</Label>
-                  <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="e.g., Annual checkup" />
+                  <Label>{t.appointments.reason}</Label>
+                  <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t.appointments.reasonPlaceholder} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   {/* Doctor Combobox */}
                   <div className="form-field">
-                    <Label>Doctor</Label>
+                    <Label>{t.appointments.doctor}</Label>
                     <Popover open={doctorOpen} onOpenChange={setDoctorOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" role="combobox" aria-expanded={doctorOpen} className="w-full justify-between font-normal">
-                          {form.doctor_id ? doctors.find(d => d.id === form.doctor_id)?.full_name : "Select doctor..."}
+                          {form.doctor_id ? doctors.find(d => d.id === form.doctor_id)?.full_name : t.appointments.selectDoctor}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-[200px] p-0">
                         <Command>
-                          <CommandInput placeholder="Search doctor..." />
+                          <CommandInput placeholder={t.appointments.searchDoctor} />
                           <CommandList>
-                            <CommandEmpty>No doctor found.</CommandEmpty>
+                            <CommandEmpty>{t.appointments.noDoctor}</CommandEmpty>
                             <CommandGroup>
                               {doctors.map((d) => (
                                 <CommandItem
@@ -335,7 +337,7 @@ export default function Appointments() {
                         </Command>
                         <div className="border-t p-2">
                           <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setDoctorOpen(false); setAddDoctorOpen(true); }}>
-                            <Plus className="h-4 w-4 mr-2" />Add new doctor
+                            <Plus className="h-4 w-4 mr-2" />{t.appointments.addNewDoctor}
                           </Button>
                         </div>
                       </PopoverContent>
@@ -343,19 +345,19 @@ export default function Appointments() {
                   </div>
                   {/* Institution Combobox */}
                   <div className="form-field">
-                    <Label>Institution</Label>
+                    <Label>{t.appointments.institution}</Label>
                     <Popover open={institutionOpen} onOpenChange={setInstitutionOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" role="combobox" aria-expanded={institutionOpen} className="w-full justify-between font-normal">
-                          {form.institution_id ? institutions.find(i => i.id === form.institution_id)?.name : "Select institution..."}
+                          {form.institution_id ? institutions.find(i => i.id === form.institution_id)?.name : t.appointments.selectInstitution}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-[200px] p-0">
                         <Command>
-                          <CommandInput placeholder="Search institution..." />
+                          <CommandInput placeholder={t.appointments.searchInstitution} />
                           <CommandList>
-                            <CommandEmpty>No institution found.</CommandEmpty>
+                            <CommandEmpty>{t.appointments.noInstitution}</CommandEmpty>
                             <CommandGroup>
                               {institutions.map((i) => (
                                 <CommandItem
@@ -372,7 +374,7 @@ export default function Appointments() {
                         </Command>
                         <div className="border-t p-2">
                           <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setInstitutionOpen(false); setAddInstitutionOpen(true); }}>
-                            <Plus className="h-4 w-4 mr-2" />Add new institution
+                            <Plus className="h-4 w-4 mr-2" />{t.appointments.addNewInstitution}
                           </Button>
                         </div>
                       </PopoverContent>
@@ -381,22 +383,22 @@ export default function Appointments() {
                 </div>
                 {editingId && (
                   <div className="form-field">
-                    <Label>Status</Label>
+                    <Label>{t.appointments.status}</Label>
                     <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Upcoming">Upcoming</SelectItem>
-                        <SelectItem value="Completed">Completed</SelectItem>
-                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                        <SelectItem value="Upcoming">{t.appointments.upcoming}</SelectItem>
+                        <SelectItem value="Completed">{t.appointments.completed}</SelectItem>
+                        <SelectItem value="Cancelled">{t.appointments.cancelled}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 )}
                 <div className="form-field">
-                  <Label>Notes</Label>
+                  <Label>{t.appointments.notes}</Label>
                   <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                 </div>
-                <Button type="submit" className="w-full">{editingId ? "Save Changes" : "Create Appointment"}</Button>
+                <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.appointments.createAppointment}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -407,12 +409,12 @@ export default function Appointments() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete item?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>{t.dialogs.deleteItem}</AlertDialogTitle>
+            <AlertDialogDescription>{t.dialogs.deleteItemDescription}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -420,11 +422,11 @@ export default function Appointments() {
       {/* Quick Add Doctor Dialog */}
       <Dialog open={addDoctorOpen} onOpenChange={setAddDoctorOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Stethoscope className="h-5 w-5" />Add New Doctor</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Stethoscope className="h-5 w-5" />{t.doctors.newDoctor}</DialogTitle></DialogHeader>
           <form onSubmit={handleAddDoctor} className="space-y-4">
-            <div className="form-field"><Label>Full Name *</Label><Input value={newDoctor.full_name} onChange={(e) => setNewDoctor({ ...newDoctor, full_name: e.target.value })} required /></div>
-            <div className="form-field"><Label>Specialty</Label><Input value={newDoctor.specialty} onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })} placeholder="e.g., Cardiology" /></div>
-            <Button type="submit" className="w-full">Add Doctor</Button>
+            <div className="form-field"><Label>{t.doctors.fullName} *</Label><Input value={newDoctor.full_name} onChange={(e) => setNewDoctor({ ...newDoctor, full_name: e.target.value })} required /></div>
+            <div className="form-field"><Label>{t.doctors.specialty}</Label><Input value={newDoctor.specialty} onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })} placeholder={t.doctors.specialtyPlaceholder} /></div>
+            <Button type="submit" className="w-full">{t.doctors.addDoctor}</Button>
           </form>
         </DialogContent>
       </Dialog>
@@ -432,23 +434,28 @@ export default function Appointments() {
       {/* Quick Add Institution Dialog */}
       <Dialog open={addInstitutionOpen} onOpenChange={setAddInstitutionOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" />Add New Institution</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" />{t.institutions.addNewInstitution}</DialogTitle></DialogHeader>
           <form onSubmit={handleAddInstitution} className="space-y-4">
-            <div className="form-field"><Label>Name *</Label><Input value={newInstitution.name} onChange={(e) => setNewInstitution({ ...newInstitution, name: e.target.value })} required /></div>
+            <div className="form-field"><Label>{t.institutions.name} *</Label><Input value={newInstitution.name} onChange={(e) => setNewInstitution({ ...newInstitution, name: e.target.value })} required /></div>
             <div className="form-field">
-              <Label>Type</Label>
+              <Label>{t.institutions.type}</Label>
               <Select value={newInstitution.type} onValueChange={(v) => setNewInstitution({ ...newInstitution, type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="Clinic">Clinic</SelectItem><SelectItem value="Lab">Lab</SelectItem><SelectItem value="Hospital">Hospital</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent>
+                <SelectContent>
+                  <SelectItem value="Clinic">{t.institutions.clinic}</SelectItem>
+                  <SelectItem value="Lab">{t.institutions.lab}</SelectItem>
+                  <SelectItem value="Hospital">{t.institutions.hospital}</SelectItem>
+                  <SelectItem value="Other">{t.institutions.other}</SelectItem>
+                </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-full">Add Institution</Button>
+            <Button type="submit" className="w-full">{t.institutions.addInstitution}</Button>
           </form>
         </DialogContent>
       </Dialog>
 
       {appointments.length === 0 ? (
-        <EmptyState icon={Calendar} title="No appointments yet" description="Schedule your first appointment to keep track of your visits." action={{ label: "Add appointment", onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={Calendar} title={t.appointments.noAppointments} description={t.appointments.noAppointmentsDescription} action={{ label: t.appointments.addAppointment, onClick: () => setDialogOpen(true) }} />
       ) : (
         <>
           {/* Sort: upcoming first (ascending), then past (descending) */}
@@ -485,18 +492,18 @@ export default function Appointments() {
                           </div>
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
-                          {apt.doctors?.full_name && <p>Doctor: {apt.doctors.full_name}</p>}
-                          {apt.institutions?.name && <p>Institution: {apt.institutions.name}</p>}
+                          {apt.doctors?.full_name && <p>{t.appointments.doctor}: {apt.doctors.full_name}</p>}
+                          {apt.institutions?.name && <p>{t.appointments.institution}: {apt.institutions.name}</p>}
                         </div>
                         <div className="flex items-center gap-2 mt-3 pt-3 border-t">
                           <Button variant="ghost" size="sm" onClick={() => setViewingAppointment(apt)}>
-                            <Eye className="h-4 w-4 mr-1" />View
+                            <Eye className="h-4 w-4 mr-1" />{t.actions.view}
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => openEdit(apt)}>
-                            <Pencil className="h-4 w-4 mr-1" />Edit
+                            <Pencil className="h-4 w-4 mr-1" />{t.actions.edit}
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => setDeleteId(apt.id)}>
-                            <Trash2 className="h-4 w-4 mr-1 text-destructive" />Delete
+                            <Trash2 className="h-4 w-4 mr-1 text-destructive" />{t.actions.delete}
                           </Button>
                         </div>
                       </div>
@@ -507,7 +514,7 @@ export default function Appointments() {
                 {/* Desktop Table Layout */}
                 <div className="hidden md:block data-grid overflow-x-auto">
                   <table className="w-full">
-                    <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Date & Time</th><th className="text-left p-4 font-medium">Doctor</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Reason</th><th className="text-left p-4 font-medium">Status</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
+                    <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">{t.appointments.date} & {t.appointments.time}</th><th className="text-left p-4 font-medium">{t.appointments.doctor}</th><th className="text-left p-4 font-medium">{t.appointments.institution}</th><th className="text-left p-4 font-medium">{t.appointments.reason}</th><th className="text-left p-4 font-medium">{t.appointments.status}</th><th className="text-right p-4 font-medium">{t.actions.view}</th></tr></thead>
                     <tbody>
                       {sortedAppointments.map((apt) => {
                         const attachCount = attachmentCounts[apt.id] || 0;
@@ -528,13 +535,13 @@ export default function Appointments() {
                             <td className="p-4"><StatusBadge status={displayStatus === "Past" ? "past" : normalizeStatus(displayStatus)} /></td>
                             <td className="p-4 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <Button variant="ghost" size="icon" onClick={() => setViewingAppointment(apt)} aria-label="View appointment">
+                                <Button variant="ghost" size="icon" onClick={() => setViewingAppointment(apt)} aria-label={t.actions.view}>
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => openEdit(apt)} aria-label="Edit appointment">
+                                <Button variant="ghost" size="icon" onClick={() => openEdit(apt)} aria-label={t.actions.edit}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => setDeleteId(apt.id)} aria-label="Delete appointment">
+                                <Button variant="ghost" size="icon" onClick={() => setDeleteId(apt.id)} aria-label={t.actions.delete}>
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </div>

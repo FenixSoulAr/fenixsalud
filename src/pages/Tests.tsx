@@ -17,9 +17,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useTranslations } from "@/i18n";
 
 export default function Tests() {
   const { user } = useAuth();
+  const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<any[]>([]);
@@ -81,7 +83,7 @@ export default function Tests() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.type || !form.date) { toast.error("Type and date are required."); return; }
+    if (!form.type || !form.date) { toast.error(t.tests.typeRequired + " " + t.tests.dateRequired); return; }
     
     const payload = {
       type: form.type,
@@ -93,12 +95,12 @@ export default function Tests() {
 
     if (editingId) {
       const { error } = await supabase.from("tests").update(payload).eq("id", editingId);
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
-      toast.success("Changes updated.");
+      if (error) { toast.error(t.toast.error); return; }
+      toast.success(t.toast.changesUpdated);
     } else {
       const { error } = await supabase.from("tests").insert({ ...payload, user_id: user!.id });
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
-      toast.success("Saved successfully.");
+      if (error) { toast.error(t.toast.error); return; }
+      toast.success(t.toast.savedSuccess);
     }
     
     setDialogOpen(false);
@@ -109,8 +111,8 @@ export default function Tests() {
   async function handleDelete() {
     if (!deleteId) return;
     const { error } = await supabase.from("tests").delete().eq("id", deleteId);
-    if (error) { toast.error("Something went wrong. Please try again."); return; }
-    toast.success("Deleted successfully.");
+    if (error) { toast.error(t.toast.error); return; }
+    toast.success(t.toast.deletedSuccess);
     setDeleteId(null);
     setViewingTest(null);
     fetchData();
@@ -123,7 +125,7 @@ export default function Tests() {
     return (
       <div className="animate-fade-in">
         <Button variant="ghost" onClick={() => setViewingTest(null)} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />Back to Tests
+          <ArrowLeft className="h-4 w-4 mr-2" />{t.tests.backToTests}
         </Button>
         
         <div className="max-w-2xl space-y-6">
@@ -137,16 +139,16 @@ export default function Tests() {
             </div>
             
             <div className="space-y-3 text-sm">
-              <div><span className="font-medium">Institution:</span> {viewingTest.institutions?.name || "—"}</div>
-              {viewingTest.notes && <div><span className="font-medium">Notes:</span> {viewingTest.notes}</div>}
+              <div><span className="font-medium">{t.tests.institution}:</span> {viewingTest.institutions?.name || "—"}</div>
+              {viewingTest.notes && <div><span className="font-medium">{t.tests.notes}:</span> {viewingTest.notes}</div>}
             </div>
             
             <div className="flex gap-2 mt-6 pt-4 border-t">
               <Button onClick={() => openEdit(viewingTest)}>
-                <Pencil className="h-4 w-4 mr-2" />Edit
+                <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
               </Button>
               <Button variant="destructive" onClick={() => setDeleteId(viewingTest.id)}>
-                <Trash2 className="h-4 w-4 mr-2" />Delete
+                <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
               </Button>
             </div>
           </div>
@@ -159,12 +161,12 @@ export default function Tests() {
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete item?</AlertDialogTitle>
-              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+              <AlertDialogTitle>{t.dialogs.deleteItem}</AlertDialogTitle>
+              <AlertDialogDescription>{t.dialogs.deleteItemDescription}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+              <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -174,35 +176,35 @@ export default function Tests() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Tests" description="Track your medical tests and results"
+      <PageHeader title={t.tests.title} description={t.tests.description}
         actions={
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add test</Button></DialogTrigger>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.tests.addTest}</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>{editingId ? "Edit Test" : "New Test"}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingId ? t.tests.editTest : t.tests.newTest}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-field"><Label>Type *</Label><Input value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} placeholder="e.g., Blood test" required /></div>
-                <div className="form-field"><Label>Date *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></div>
+                <div className="form-field"><Label>{t.tests.type} *</Label><Input value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} placeholder={t.tests.typePlaceholder} required /></div>
+                <div className="form-field"><Label>{t.tests.date} *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></div>
                 <div className="form-field">
-                  <Label>Institution</Label>
+                  <Label>{t.tests.institution}</Label>
                   <Select value={form.institution_id} onValueChange={(v) => setForm({ ...form, institution_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select institution" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t.tests.selectInstitution} /></SelectTrigger>
                     <SelectContent>{institutions.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="form-field">
-                  <Label>Status</Label>
+                  <Label>{t.tests.status}</Label>
                   <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Scheduled">Scheduled</SelectItem>
-                      <SelectItem value="Done">Done</SelectItem>
-                      <SelectItem value="Result received">Result received</SelectItem>
+                      <SelectItem value="Scheduled">{t.tests.scheduled}</SelectItem>
+                      <SelectItem value="Done">{t.tests.done}</SelectItem>
+                      <SelectItem value="Result received">{t.tests.resultReceived}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <Button type="submit" className="w-full">{editingId ? "Save Changes" : "Create Test"}</Button>
+                <div className="form-field"><Label>{t.tests.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.tests.createTest}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -212,50 +214,50 @@ export default function Tests() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete item?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>{t.dialogs.deleteItem}</AlertDialogTitle>
+            <AlertDialogDescription>{t.dialogs.deleteItemDescription}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {tests.length === 0 ? (
-        <EmptyState icon={FlaskConical} title="No tests yet" description="Add your first test to track results and history." action={{ label: "Add test", onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={FlaskConical} title={t.tests.noTests} description={t.tests.noTestsDescription} action={{ label: t.tests.addTest, onClick: () => setDialogOpen(true) }} />
       ) : (
         <>
           {/* Mobile Card Layout */}
           <div className="md:hidden space-y-3">
-            {tests.map((t) => {
-              const attachCount = attachmentCounts[t.id] || 0;
+            {tests.map((test) => {
+              const attachCount = attachmentCounts[test.id] || 0;
               return (
-                <div key={t.id} className="health-card">
+                <div key={test.id} className="health-card">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium">{t.type}</p>
-                      <p className="text-sm text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")}</p>
+                      <p className="font-medium">{test.type}</p>
+                      <p className="text-sm text-muted-foreground">{format(new Date(test.date), "MMM d, yyyy")}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {attachCount > 0 && (
-                        <AttachmentIndicator entityType="TestStudy" entityId={t.id} count={attachCount} />
+                        <AttachmentIndicator entityType="TestStudy" entityId={test.id} count={attachCount} />
                       )}
-                      <StatusBadge status={normalizeStatus(t.status)} />
+                      <StatusBadge status={normalizeStatus(test.status)} />
                     </div>
                   </div>
-                  {t.institutions?.name && (
-                    <p className="text-sm text-muted-foreground">Institution: {t.institutions.name}</p>
+                  {test.institutions?.name && (
+                    <p className="text-sm text-muted-foreground">{t.tests.institution}: {test.institutions.name}</p>
                   )}
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                    <Button variant="ghost" size="sm" onClick={() => setViewingTest(t)}>
-                      <Eye className="h-4 w-4 mr-1" />View
+                    <Button variant="ghost" size="sm" onClick={() => setViewingTest(test)}>
+                      <Eye className="h-4 w-4 mr-1" />{t.actions.view}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(t)}>
-                      <Pencil className="h-4 w-4 mr-1" />Edit
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(test)}>
+                      <Pencil className="h-4 w-4 mr-1" />{t.actions.edit}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(t.id)}>
-                      <Trash2 className="h-4 w-4 mr-1 text-destructive" />Delete
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(test.id)}>
+                      <Trash2 className="h-4 w-4 mr-1 text-destructive" />{t.actions.delete}
                     </Button>
                   </div>
                 </div>
@@ -266,32 +268,32 @@ export default function Tests() {
           {/* Desktop Table Layout */}
           <div className="hidden md:block data-grid overflow-x-auto">
             <table className="w-full">
-              <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">Type</th><th className="text-left p-4 font-medium">Date</th><th className="text-left p-4 font-medium">Institution</th><th className="text-left p-4 font-medium">Status</th><th className="text-right p-4 font-medium">Actions</th></tr></thead>
+              <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">{t.tests.type}</th><th className="text-left p-4 font-medium">{t.tests.date}</th><th className="text-left p-4 font-medium">{t.tests.institution}</th><th className="text-left p-4 font-medium">{t.tests.status}</th><th className="text-right p-4 font-medium">{t.actions.view}</th></tr></thead>
               <tbody>
-                {tests.map((t) => {
-                  const attachCount = attachmentCounts[t.id] || 0;
+                {tests.map((test) => {
+                  const attachCount = attachmentCounts[test.id] || 0;
                   return (
-                    <tr key={t.id} className="border-b hover:bg-muted/30 transition-colors">
+                    <tr key={test.id} className="border-b hover:bg-muted/30 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          <span>{t.type}</span>
+                          <span>{test.type}</span>
                           {attachCount > 0 && (
-                            <AttachmentIndicator entityType="TestStudy" entityId={t.id} count={attachCount} />
+                            <AttachmentIndicator entityType="TestStudy" entityId={test.id} count={attachCount} />
                           )}
                         </div>
                       </td>
-                      <td className="p-4">{format(new Date(t.date), "MMM d, yyyy")}</td>
-                      <td className="p-4">{t.institutions?.name || "—"}</td>
-                      <td className="p-4"><StatusBadge status={normalizeStatus(t.status)} /></td>
+                      <td className="p-4">{format(new Date(test.date), "MMM d, yyyy")}</td>
+                      <td className="p-4">{test.institutions?.name || "—"}</td>
+                      <td className="p-4"><StatusBadge status={normalizeStatus(test.status)} /></td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => setViewingTest(t)} aria-label="View test">
+                          <Button variant="ghost" size="icon" onClick={() => setViewingTest(test)} aria-label={t.actions.view}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(t)} aria-label="Edit test">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(test)} aria-label={t.actions.edit}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(t.id)} aria-label="Delete test">
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(test.id)} aria-label={t.actions.delete}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
