@@ -118,6 +118,7 @@ export default function Procedures() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canEdit) { toast.error("You have view-only access to this profile."); return; }
     if (!form.title) { toast.error(t.procedures.titleRequired); return; }
     if (!form.date) { toast.error(t.procedures.dateRequired); return; }
     
@@ -192,14 +193,20 @@ export default function Procedures() {
               {viewingProcedure.notes && <div><span className="font-medium">{t.procedures.notes}:</span> {viewingProcedure.notes}</div>}
             </div>
             
-            <div className="flex gap-2 mt-6 pt-4 border-t">
-              <Button onClick={() => openEdit(viewingProcedure)}>
-                <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
-              </Button>
-              <Button variant="destructive" onClick={() => setDeleteId(viewingProcedure.id)}>
-                <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
-              </Button>
-            </div>
+            {(canEdit || canDelete) && (
+              <div className="flex gap-2 mt-6 pt-4 border-t">
+                {canEdit && (
+                  <Button onClick={() => openEdit(viewingProcedure)}>
+                    <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button variant="destructive" onClick={() => setDeleteId(viewingProcedure.id)}>
+                    <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="health-card">
@@ -227,8 +234,9 @@ export default function Procedures() {
     <div className="animate-fade-in">
       <PageHeader title={t.procedures.title} description={t.procedures.description}
         actions={
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.procedures.addProcedure}</Button></DialogTrigger>
+          canEdit ? (
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.procedures.addProcedure}</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editingId ? t.procedures.editProcedure : t.procedures.newProcedure}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -262,6 +270,7 @@ export default function Procedures() {
               </form>
             </DialogContent>
           </Dialog>
+          ) : undefined
         }
       />
 
@@ -291,7 +300,7 @@ export default function Procedures() {
       </AlertDialog>
 
       {filteredProcedures.length === 0 ? (
-        <EmptyState icon={Syringe} title={t.procedures.noProcedures} description={t.procedures.noProceduresDescription} action={{ label: t.procedures.addProcedure, onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={Syringe} title={t.procedures.noProcedures} description={t.procedures.noProceduresDescription} action={canEdit ? { label: t.procedures.addProcedure, onClick: () => setDialogOpen(true) } : undefined} />
       ) : (
         <>
           {/* Mobile Card Layout */}

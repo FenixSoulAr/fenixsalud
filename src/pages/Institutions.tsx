@@ -54,6 +54,7 @@ export default function Institutions() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canEdit) { toast.error("You have view-only access to this profile."); return; }
     if (!form.name) { toast.error("Institution name is required."); return; }
     
     const payload = {
@@ -96,8 +97,9 @@ export default function Institutions() {
     <div className="animate-fade-in">
       <PageHeader title="Institutions" description="Clinics, labs, and hospitals"
         actions={
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add institution</Button></DialogTrigger>
+          canEdit ? (
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add institution</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editingId ? "Edit Institution" : "Add Institution"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -116,6 +118,7 @@ export default function Institutions() {
               </form>
             </DialogContent>
           </Dialog>
+          ) : undefined
         }
       />
 
@@ -143,19 +146,25 @@ export default function Institutions() {
             {viewDialog?.phone && <div><Label className="text-muted-foreground text-xs">Phone</Label><p>{viewDialog.phone}</p></div>}
             {viewDialog?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{viewDialog.notes}</p></div>}
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); }}>
-              <Pencil className="h-4 w-4 mr-2" />Edit
-            </Button>
-            <Button variant="destructive" onClick={() => setDeleteId(viewDialog?.id)}>
-              <Trash2 className="h-4 w-4 mr-2" />Delete
-            </Button>
-          </div>
+          {(canEdit || canDelete) && (
+            <div className="flex gap-2 mt-4">
+              {canEdit && (
+                <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); }}>
+                  <Pencil className="h-4 w-4 mr-2" />Edit
+                </Button>
+              )}
+              {canDelete && (
+                <Button variant="destructive" onClick={() => setDeleteId(viewDialog?.id)}>
+                  <Trash2 className="h-4 w-4 mr-2" />Delete
+                </Button>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
       {institutions.length === 0 ? (
-        <EmptyState icon={Building2} title="No institutions yet" description="Add clinics, labs, or hospitals you visit." action={{ label: "Add institution", onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={Building2} title="No institutions yet" description="Add clinics, labs, or hospitals you visit." action={canEdit ? { label: "Add institution", onClick: () => setDialogOpen(true) } : undefined} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {institutions.map((i) => (
@@ -171,12 +180,16 @@ export default function Institutions() {
                     <DropdownMenuItem onClick={() => setViewDialog(i)}>
                       <Eye className="h-4 w-4 mr-2" />View
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => openEdit(i)}>
-                      <Pencil className="h-4 w-4 mr-2" />Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(i.id)}>
-                      <Trash2 className="h-4 w-4 mr-2" />Delete
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => openEdit(i)}>
+                        <Pencil className="h-4 w-4 mr-2" />Edit
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(i.id)}>
+                        <Trash2 className="h-4 w-4 mr-2" />Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

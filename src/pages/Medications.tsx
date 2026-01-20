@@ -68,6 +68,7 @@ export default function Medications() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canEdit) { toast.error("You have view-only access to this profile."); return; }
     if (!form.name) { toast.error(t.medications.nameRequired); return; }
     if (!form.dose_text) { toast.error(t.medications.doseRequired); return; }
     if (form.schedule_type === "Daily" && !form.times) { toast.error(t.medications.timesRequired); return; }
@@ -125,12 +126,16 @@ export default function Medications() {
         <div className="flex items-center gap-3">
           <StatusBadge status={normalizeStatus(m.status)} />
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => openEdit(m)} aria-label={t.actions.edit}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDeleteId(m.id)} aria-label={t.actions.delete}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
+            {canEdit && (
+              <Button variant="ghost" size="icon" onClick={() => openEdit(m)} aria-label={t.actions.edit}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+            {canDelete && (
+              <Button variant="ghost" size="icon" onClick={() => setDeleteId(m.id)} aria-label={t.actions.delete}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -141,8 +146,9 @@ export default function Medications() {
     <div className="animate-fade-in">
       <PageHeader title={t.medications.title} description={t.medications.description}
         actions={
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.medications.addMedication}</Button></DialogTrigger>
+          canEdit ? (
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.medications.addMedication}</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editingId ? t.medications.editMedication : t.medications.newMedication}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -174,10 +180,11 @@ export default function Medications() {
                   </div>
                 )}
                 <div className="form-field"><Label>{t.medications.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.medications.addMedication}</Button>
+              <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.medications.addMedication}</Button>
               </form>
             </DialogContent>
           </Dialog>
+          ) : undefined
         }
       />
 
@@ -195,7 +202,7 @@ export default function Medications() {
       </AlertDialog>
 
       {medications.length === 0 ? (
-        <EmptyState icon={Pill} title={t.medications.noMedications} description={t.medications.noMedicationsDescription} action={{ label: t.medications.addMedication, onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={Pill} title={t.medications.noMedications} description={t.medications.noMedicationsDescription} action={canEdit ? { label: t.medications.addMedication, onClick: () => setDialogOpen(true) } : undefined} />
       ) : (
         <Tabs defaultValue="active" className="space-y-6">
           <TabsList>
