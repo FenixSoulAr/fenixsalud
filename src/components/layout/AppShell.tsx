@@ -69,7 +69,7 @@ export function AppShell({ children }: AppShellProps) {
                 <Heart className="h-5 w-5" />
               </div>
               <span className="text-xl font-semibold text-sidebar-foreground tracking-tight">
-                My Health
+                {t.appName}
               </span>
             </Link>
             <Button
@@ -144,7 +144,7 @@ export function AppShell({ children }: AppShellProps) {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Heart className="h-4 w-4" />
             </div>
-            <span className="text-lg font-semibold tracking-tight">My Health</span>
+            <span className="text-lg font-semibold tracking-tight">{t.appName}</span>
           </Link>
         </header>
 

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTranslations } from "@/i18n";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -13,6 +14,7 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const navigate = useNavigate();
+  const t = useTranslations();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,15 +67,15 @@ export default function SignIn() {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground mb-6">
             <Mail className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-semibold mb-2">Check your email</h1>
+          <h1 className="text-2xl font-semibold mb-2">{t.auth.checkEmail}</h1>
           <p className="text-muted-foreground mb-6">
-            We've sent a magic link to <span className="font-medium text-foreground">{email}</span>
+            {t.auth.magicLinkSent} <span className="font-medium text-foreground">{email}</span>
           </p>
           <Button
             variant="outline"
             onClick={() => setMagicLinkSent(false)}
           >
-            Back to sign in
+            {t.auth.backToSignIn}
           </Button>
         </div>
       </div>
@@ -90,21 +92,21 @@ export default function SignIn() {
               <Heart className="h-6 w-6" />
             </div>
           </Link>
-          <h1 className="text-2xl font-semibold">Welcome back</h1>
-          <p className="text-muted-foreground mt-1">Sign in to your HealthTrack account</p>
+          <h1 className="text-2xl font-semibold">{t.auth.welcomeBack}</h1>
+          <p className="text-muted-foreground mt-1">{t.auth.signInSubtitle}</p>
         </div>
 
         {/* Form */}
         <div className="health-card">
           <form onSubmit={handleSignIn} className="space-y-4">
             <div className="form-field">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.auth.email}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t.auth.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -114,13 +116,13 @@ export default function SignIn() {
             </div>
 
             <div className="form-field">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t.auth.password}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder={t.auth.passwordPlaceholder}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -130,7 +132,7 @@ export default function SignIn() {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t.auth.signingIn : t.auth.signInButton}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
@@ -151,14 +153,14 @@ export default function SignIn() {
             disabled={loading}
           >
             <Mail className="mr-2 h-4 w-4" />
-            Sign in with magic link
+            {t.auth.magicLink}
           </Button>
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Don't have an account?{" "}
+          {t.auth.noAccount}{" "}
           <Link to="/auth/sign-up" className="text-primary hover:underline font-medium">
-            Sign up
+            {t.auth.signUp}
           </Link>
         </p>
       </div>

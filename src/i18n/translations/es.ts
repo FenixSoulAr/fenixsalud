@@ -1,6 +1,7 @@
 import type { Translations } from "./en";
 
 export const es: Translations = {
+  appName: "Mi Salud",
   // Navigation
   nav: {
     dashboard: "Inicio",
@@ -335,17 +336,30 @@ export const es: Translations = {
   // Auth
   auth: {
     signIn: "Iniciar sesión",
-    signUp: "Registrarse",
-    email: "Email",
+    signUp: "Crear cuenta",
+    welcomeBack: "Bienvenido/a",
+    signInSubtitle: "Ingresá a tu cuenta de Mi Salud",
+    createAccount: "Creá tu cuenta",
+    signUpSubtitle: "Comenzá a registrar tu salud",
+    email: "Correo electrónico",
+    emailPlaceholder: "tu@email.com",
     password: "Contraseña",
+    passwordPlaceholder: "••••••••",
     confirmPassword: "Confirmar contraseña",
     forgotPassword: "¿Olvidaste tu contraseña?",
     noAccount: "¿No tenés cuenta?",
     hasAccount: "¿Ya tenés cuenta?",
-    signInButton: "Iniciar sesión",
-    signUpButton: "Registrarse",
-    signingIn: "Iniciando sesión...",
-    signingUp: "Registrando...",
+    signInButton: "Ingresar",
+    signUpButton: "Crear cuenta",
+    signingIn: "Ingresando...",
+    signingUp: "Creando cuenta...",
+    magicLink: "Ingresar con link mágico",
+    checkEmail: "Revisá tu correo",
+    magicLinkSent: "Te enviamos un link mágico a",
+    backToSignIn: "Volver a ingresar",
+    fullName: "Nombre completo",
+    fullNamePlaceholder: "Juan Pérez",
+    passwordRequirement: "La contraseña debe tener al menos 10 caracteres e incluir un número o símbolo.",
   },
   
   // Dialogs
