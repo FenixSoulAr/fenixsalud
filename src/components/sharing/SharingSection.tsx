@@ -16,11 +16,35 @@ export function SharingSection() {
   const [role, setRole] = useState<"viewer" | "contributor">("viewer");
   const [inviting, setInviting] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   // Force refresh shares on mount to ensure list is up-to-date
   useEffect(() => {
-    refreshShares();
-  }, [refreshShares]);
+    let mounted = true;
+    
+    async function loadShares() {
+      try {
+        setFetchError(null);
+        await refreshShares();
+        if (mounted) {
+          setHasLoaded(true);
+        }
+      } catch (err: any) {
+        console.error("Failed to load shares:", err);
+        if (mounted) {
+          setFetchError(err?.message || "Failed to load shares");
+          setHasLoaded(true);
+        }
+      }
+    }
+    
+    loadShares();
+    
+    return () => {
+      mounted = false;
+    };
+  }, []); // Only run on mount
 
   if (!canManageSharing) {
     return null;
@@ -145,10 +169,28 @@ export function SharingSection() {
           : "Share your health information with trusted family members or caregivers. Maximum 2 people."}
       </p>
 
+      {/* Fetch error display */}
+      {fetchError && (
+        <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg mb-4">
+          <p className="text-sm text-destructive font-medium">
+            {lang === "es" ? "Error al cargar la lista:" : "Error loading list:"} {fetchError}
+          </p>
+        </div>
+      )}
+
+      {/* Loading state */}
+      {loading && !hasLoaded && (
+        <div className="p-3 bg-muted/50 rounded-lg mb-4">
+          <p className="text-sm text-muted-foreground">
+            {lang === "es" ? "Cargando..." : "Loading..."}
+          </p>
+        </div>
+      )}
+
       {/* Current shares */}
       {myShares.length > 0 && (
         <div className="space-y-3 mb-6">
-          <Label>{lang === "es" ? "Personas con acceso" : "People with access"}</Label>
+          <Label>{lang === "es" ? "Personas con acceso" : "People with access"} ({myShares.length})</Label>
           {myShares.map((share) => (
             <div
               key={share.id}
