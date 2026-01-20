@@ -149,7 +149,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       status: share.shared_with_user_id ? "active" : "pending",
     }));
 
-    console.log("Fetched myShares:", mappedOwnerShares);
+    console.log("[SharingContext] Fetched myShares for owner", user.id, ":", mappedOwnerShares.length, "shares", mappedOwnerShares);
     setMyShares(mappedOwnerShares);
     
     // For received shares, fetch owner profile names
