@@ -1,13 +1,10 @@
-import { useState, useCallback } from "react";
-import { Paperclip, FileText, Image, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { Paperclip } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useFileAttachments } from "@/hooks/useFileAttachments";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
-import { PdfAttachmentActions } from "@/components/PdfAttachmentActions";
-import { ImageAttachmentActions } from "@/components/ImageAttachmentActions";
-import { format } from "date-fns";
+import { AttachmentItem } from "@/components/AttachmentItem";
 import type { Database } from "@/integrations/supabase/types";
 
 type EntityType = Database["public"]["Enums"]["entity_type"];
@@ -16,24 +13,6 @@ interface AttachmentIndicatorProps {
   entityType: EntityType;
   entityId: string;
   count: number;
-}
-
-function getFileIcon(mimeType: string | null) {
-  if (mimeType?.startsWith("image/")) return Image;
-  return FileText;
-}
-
-function getFileTypeLabel(mimeType: string | null) {
-  if (mimeType === "application/pdf") return "PDF";
-  if (mimeType === "image/jpeg") return "JPG";
-  if (mimeType === "image/png") return "PNG";
-  return "File";
-}
-
-function isPdf(mimeType: string | null, fileName: string | null): boolean {
-  if (mimeType === "application/pdf") return true;
-  if (fileName?.toLowerCase().endsWith(".pdf")) return true;
-  return false;
 }
 
 export function AttachmentIndicator({ entityType, entityId, count }: AttachmentIndicatorProps) {
@@ -75,59 +54,19 @@ export function AttachmentIndicator({ entityType, entityId, count }: AttachmentI
 
           {loading ? (
             <div className="text-sm text-muted-foreground py-4">Loading attachments...</div>
-          ) : attachments.length === 0 ? (
+          ) : !attachments || attachments.length === 0 ? (
             <div className="text-sm text-muted-foreground py-4">No attachments found.</div>
           ) : (
             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-              {attachments.map((attachment) => {
-                const FileIcon = getFileIcon(attachment.mime_type);
-                const fileIsPdf = isPdf(attachment.mime_type, attachment.file_name);
-                
-                return (
-                  <div
-                    key={attachment.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <FileIcon className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{attachment.file_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {getFileTypeLabel(attachment.mime_type)}
-                          {attachment.uploaded_at && (
-                            <> • {format(new Date(attachment.uploaded_at), "MMM d, yyyy")}</>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {fileIsPdf ? (
-                        <PdfAttachmentActions
-                          fileName={attachment.file_name}
-                          getSignedUrl={useCallback(() => getSignedUrl(attachment.file_url), [attachment.file_url])}
-                          compact
-                        />
-                      ) : (
-                        <ImageAttachmentActions
-                          getSignedUrl={useCallback(() => getSignedUrl(attachment.file_url), [attachment.file_url])}
-                          compact
-                        />
-                      )}
-                      {canDelete && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteId(attachment.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {attachments.map((attachment) => (
+                <AttachmentItem
+                  key={attachment.id}
+                  attachment={attachment}
+                  getSignedUrl={getSignedUrl}
+                  canDelete={canDelete}
+                  onDelete={setDeleteId}
+                />
+              ))}
             </div>
           )}
         </DialogContent>
