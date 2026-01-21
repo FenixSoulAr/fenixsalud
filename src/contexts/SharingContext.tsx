@@ -254,19 +254,13 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // STEP 4: No valid stored preference - apply auto-selection logic
-      if (profiles.length === 0) {
-        // No shared profiles, default to own profile
-        setActiveProfileOwnerIdState(null);
-        storeActiveProfile(user.id, null);
-      } else if (profiles.length === 1) {
-        // Exactly 1 shared profile - auto-select it
-        setActiveProfileOwnerIdState(profiles[0].owner_id);
-        storeActiveProfile(user.id, profiles[0].owner_id);
-      } else {
-        // Multiple shared profiles - require selection
-        // Default to own profile but flag that selection is needed
-        setActiveProfileOwnerIdState(null);
+      // STEP 4: No valid stored preference - ALWAYS default to own profile
+      // User must explicitly select a shared profile from the switcher
+      setActiveProfileOwnerIdState(null);
+      storeActiveProfile(user.id, null);
+      
+      // Flag for profile selection only if there are shared profiles available
+      if (profiles.length > 0) {
         setNeedsProfileSelection(true);
       }
       
