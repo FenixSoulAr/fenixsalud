@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Paperclip, FileText, Image, Trash2, ExternalLink, Loader2, Monitor } from "lucide-react";
+import { Paperclip, FileText, Image, Trash2, ExternalLink, Loader2, Monitor, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -8,6 +8,7 @@ import { MobileFileUploader } from "@/components/MobileFileUploader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type EntityType = Database["public"]["Enums"]["entity_type"];
@@ -29,11 +30,18 @@ function getFileTypeLabel(mimeType: string | null) {
   return "File";
 }
 
+function isPdf(mimeType: string | null, fileName: string | null): boolean {
+  if (mimeType === "application/pdf") return true;
+  if (fileName?.toLowerCase().endsWith(".pdf")) return true;
+  return false;
+}
+
 export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) {
   const { attachments, loading, uploading, uploadFile, deleteFile, getSignedUrl } = useFileAttachments(entityType, entityId);
   const { canEdit, canDelete } = useActiveProfile();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   async function handleUpload(file: File): Promise<{ success: boolean; error?: string }> {
@@ -43,13 +51,47 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
     return result;
   }
 
-  async function handleOpen(filePath: string, attachmentId: string) {
+  async function handleOpen(filePath: string, attachmentId: string, mimeType: string | null, fileName: string) {
+    const fileIsPdf = isPdf(mimeType, fileName);
+    
     setOpeningId(attachmentId);
     const url = await getSignedUrl(filePath);
-    if (url) {
+    setOpeningId(null);
+    
+    if (!url) return;
+
+    if (fileIsPdf) {
+      // For PDFs, try to open but warn user about potential blocks
+      const newWindow = window.open(url, "_blank");
+      if (!newWindow || newWindow.closed) {
+        toast.error("PDF preview was blocked by your browser. Use Download instead.", {
+          action: {
+            label: "Download",
+            onClick: () => handleDownload(filePath, attachmentId, fileName),
+          },
+        });
+      }
+    } else {
+      // For images and other files, open directly
       window.open(url, "_blank");
     }
-    setOpeningId(null);
+  }
+
+  async function handleDownload(filePath: string, attachmentId: string, fileName: string) {
+    setDownloadingId(attachmentId);
+    const url = await getSignedUrl(filePath);
+    setDownloadingId(null);
+    
+    if (!url) return;
+
+    // Create a temporary anchor to trigger download
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   async function handleDelete() {
@@ -102,6 +144,10 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
         <div className="space-y-2">
           {attachments.map((attachment) => {
             const FileIcon = getFileIcon(attachment.mime_type);
+            const fileIsPdf = isPdf(attachment.mime_type, attachment.file_name);
+            const isOpening = openingId === attachment.id;
+            const isDownloading = downloadingId === attachment.id;
+            
             return (
               <div
                 key={attachment.id}
@@ -120,20 +166,59 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleOpen(attachment.file_url, attachment.id)}
-                    disabled={openingId === attachment.id}
-                    aria-label="Open file"
-                  >
-                    {openingId === attachment.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ExternalLink className="h-4 w-4" />
-                    )}
-                  </Button>
+                  {fileIsPdf ? (
+                    // PDF: Primary action is Download
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownload(attachment.file_url, attachment.id, attachment.file_name)}
+                        disabled={isDownloading}
+                        aria-label="Download PDF"
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpen(attachment.file_url, attachment.id, attachment.mime_type, attachment.file_name)}
+                        disabled={isOpening}
+                        aria-label="Open in new tab"
+                        title="Open in new tab (may be blocked by browser)"
+                      >
+                        {isOpening ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ExternalLink className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    // Images/other: Open button
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpen(attachment.file_url, attachment.id, attachment.mime_type, attachment.file_name)}
+                      disabled={isOpening}
+                      aria-label="Open file"
+                    >
+                      {isOpening ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ExternalLink className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
                   {canDelete && (
                     <Button
                       type="button"
