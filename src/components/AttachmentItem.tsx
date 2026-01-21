@@ -40,7 +40,7 @@ export function AttachmentItem({ attachment, getSignedUrl, canDelete, onDelete }
   const FileIcon = getFileIcon(attachment.mime_type);
   const fileIsPdf = isPdf(attachment.mime_type, attachment.file_name);
 
-  // Hook called at top level of this component - safe!
+  // Hook called at top level - safe!
   const getUrl = useCallback(
     () => getSignedUrl(attachment.file_url),
     [getSignedUrl, attachment.file_url]
@@ -63,8 +63,8 @@ export function AttachmentItem({ attachment, getSignedUrl, canDelete, onDelete }
       <div className="flex items-center gap-1 shrink-0">
         {fileIsPdf ? (
           <PdfAttachmentActions
+            attachmentId={attachment.id}
             fileName={attachment.file_name}
-            getSignedUrl={getUrl}
             compact
           />
         ) : (
