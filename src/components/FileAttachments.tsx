@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Paperclip, FileText, Image, Trash2, ExternalLink, Loader2, Monitor, Download } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Paperclip, FileText, Image, Trash2, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -7,8 +7,9 @@ import { useFileAttachments } from "@/hooks/useFileAttachments";
 import { MobileFileUploader } from "@/components/MobileFileUploader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { PdfAttachmentActions } from "@/components/PdfAttachmentActions";
+import { ImageAttachmentActions } from "@/components/ImageAttachmentActions";
 import { format } from "date-fns";
-import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type EntityType = Database["public"]["Enums"]["entity_type"];
@@ -40,8 +41,6 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
   const { attachments, loading, uploading, uploadFile, deleteFile, getSignedUrl } = useFileAttachments(entityType, entityId);
   const { canEdit, canDelete } = useActiveProfile();
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [openingId, setOpeningId] = useState<string | null>(null);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   async function handleUpload(file: File): Promise<{ success: boolean; error?: string }> {
@@ -49,49 +48,6 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
     const result = await uploadFile(file);
     console.log("[FileAttachments] uploadFile result:", result);
     return result;
-  }
-
-  async function handleOpen(filePath: string, attachmentId: string, mimeType: string | null, fileName: string) {
-    const fileIsPdf = isPdf(mimeType, fileName);
-    
-    setOpeningId(attachmentId);
-    const url = await getSignedUrl(filePath);
-    setOpeningId(null);
-    
-    if (!url) return;
-
-    if (fileIsPdf) {
-      // For PDFs, try to open but warn user about potential blocks
-      const newWindow = window.open(url, "_blank");
-      if (!newWindow || newWindow.closed) {
-        toast.error("PDF preview was blocked by your browser. Use Download instead.", {
-          action: {
-            label: "Download",
-            onClick: () => handleDownload(filePath, attachmentId, fileName),
-          },
-        });
-      }
-    } else {
-      // For images and other files, open directly
-      window.open(url, "_blank");
-    }
-  }
-
-  async function handleDownload(filePath: string, attachmentId: string, fileName: string) {
-    setDownloadingId(attachmentId);
-    const url = await getSignedUrl(filePath);
-    setDownloadingId(null);
-    
-    if (!url) return;
-
-    // Create a temporary anchor to trigger download
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   }
 
   async function handleDelete() {
@@ -141,84 +97,29 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
       ) : attachments.length === 0 ? (
         <div className="text-sm text-muted-foreground">No attachments yet.</div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {attachments.map((attachment) => {
             const FileIcon = getFileIcon(attachment.mime_type);
             const fileIsPdf = isPdf(attachment.mime_type, attachment.file_name);
-            const isOpening = openingId === attachment.id;
-            const isDownloading = downloadingId === attachment.id;
             
             return (
               <div
                 key={attachment.id}
-                className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                className="p-3 rounded-lg border bg-muted/30 space-y-2"
               >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <FileIcon className="h-5 w-5 text-muted-foreground shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{attachment.file_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {getFileTypeLabel(attachment.mime_type)}
-                      {attachment.uploaded_at && (
-                        <> • {format(new Date(attachment.uploaded_at), "MMM d, yyyy")}</>
-                      )}
-                    </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <FileIcon className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{attachment.file_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {getFileTypeLabel(attachment.mime_type)}
+                        {attachment.uploaded_at && (
+                          <> • {format(new Date(attachment.uploaded_at), "MMM d, yyyy")}</>
+                        )}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {fileIsPdf ? (
-                    // PDF: Primary action is Download
-                    <>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownload(attachment.file_url, attachment.id, attachment.file_name)}
-                        disabled={isDownloading}
-                        aria-label="Download PDF"
-                      >
-                        {isDownloading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Download className="h-4 w-4 mr-1" />
-                            Download
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpen(attachment.file_url, attachment.id, attachment.mime_type, attachment.file_name)}
-                        disabled={isOpening}
-                        aria-label="Open in new tab"
-                        title="Open in new tab (may be blocked by browser)"
-                      >
-                        {isOpening ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <ExternalLink className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </>
-                  ) : (
-                    // Images/other: Open button
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleOpen(attachment.file_url, attachment.id, attachment.mime_type, attachment.file_name)}
-                      disabled={isOpening}
-                      aria-label="Open file"
-                    >
-                      {isOpening ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <ExternalLink className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
                   {canDelete && (
                     <Button
                       type="button"
@@ -229,6 +130,20 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
+                  )}
+                </div>
+                
+                {/* Actions row */}
+                <div className="pl-8">
+                  {fileIsPdf ? (
+                    <PdfAttachmentActions
+                      fileName={attachment.file_name}
+                      getSignedUrl={useCallback(() => getSignedUrl(attachment.file_url), [attachment.file_url])}
+                    />
+                  ) : (
+                    <ImageAttachmentActions
+                      getSignedUrl={useCallback(() => getSignedUrl(attachment.file_url), [attachment.file_url])}
+                    />
                   )}
                 </div>
               </div>
