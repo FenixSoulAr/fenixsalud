@@ -130,6 +130,10 @@ export default function Appointments() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canEdit) {
+      toast.error("You have view-only access to this profile.");
+      return;
+    }
     if (!form.date) { toast.error(t.appointments.dateRequired); return; }
     
     const payload = {
@@ -159,8 +163,17 @@ export default function Appointments() {
 
   async function handleDelete() {
     if (!deleteId) return;
+    if (!canDelete) {
+      toast.error("You don't have permission to delete appointments.");
+      setDeleteId(null);
+      return;
+    }
     const { error } = await supabase.from("appointments").delete().eq("id", deleteId);
-    if (error) { toast.error(t.toast.error); return; }
+    if (error) { 
+      toast.error("You don't have permission to delete appointments."); 
+      setDeleteId(null);
+      return; 
+    }
     toast.success(t.toast.deletedSuccess);
     setDeleteId(null);
     setViewingAppointment(null);
@@ -468,7 +481,7 @@ export default function Appointments() {
       </Dialog>
 
       {appointments.length === 0 ? (
-        <EmptyState icon={Calendar} title={t.appointments.noAppointments} description={t.appointments.noAppointmentsDescription} action={{ label: t.appointments.addAppointment, onClick: () => setDialogOpen(true) }} />
+        <EmptyState icon={Calendar} title={t.appointments.noAppointments} description={t.appointments.noAppointmentsDescription} action={canEdit ? { label: t.appointments.addAppointment, onClick: () => setDialogOpen(true) } : undefined} />
       ) : (
         <>
           {/* Sort: upcoming first (ascending), then past (descending) */}
@@ -512,12 +525,16 @@ export default function Appointments() {
                           <Button variant="ghost" size="sm" onClick={() => setViewingAppointment(apt)}>
                             <Eye className="h-4 w-4 mr-1" />{t.actions.view}
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(apt)}>
-                            <Pencil className="h-4 w-4 mr-1" />{t.actions.edit}
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteId(apt.id)}>
-                            <Trash2 className="h-4 w-4 mr-1 text-destructive" />{t.actions.delete}
-                          </Button>
+                          {canEdit && (
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(apt)}>
+                              <Pencil className="h-4 w-4 mr-1" />{t.actions.edit}
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button variant="ghost" size="sm" onClick={() => setDeleteId(apt.id)}>
+                              <Trash2 className="h-4 w-4 mr-1 text-destructive" />{t.actions.delete}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     );
@@ -551,12 +568,16 @@ export default function Appointments() {
                                 <Button variant="ghost" size="icon" onClick={() => setViewingAppointment(apt)} aria-label={t.actions.view}>
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => openEdit(apt)} aria-label={t.actions.edit}>
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => setDeleteId(apt.id)} aria-label={t.actions.delete}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
+                                {canEdit && (
+                                  <Button variant="ghost" size="icon" onClick={() => openEdit(apt)} aria-label={t.actions.edit}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {canDelete && (
+                                  <Button variant="ghost" size="icon" onClick={() => setDeleteId(apt.id)} aria-label={t.actions.delete}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                )}
                               </div>
                             </td>
                           </tr>
