@@ -94,7 +94,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       const filePath = `${dataOwnerId}/${entityType}/${entityId}/${timestamp}_${safeName}`;
 
       // Upload to storage with explicit content type for mobile compatibility
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from("health-files")
         .upload(filePath, file, {
           contentType: mimeType,
@@ -104,6 +104,13 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
 
       if (uploadError) {
         console.error("Upload error:", uploadError);
+        // Check if it's a permission error
+        const errorMessage = uploadError.message?.toLowerCase() || "";
+        if (errorMessage.includes("policy") || errorMessage.includes("permission") || errorMessage.includes("403") || errorMessage.includes("unauthorized")) {
+          const errorMsg = "You don't have permission to upload files.";
+          toast.error(errorMsg);
+          return { success: false, error: errorMsg };
+        }
         const errorMsg = `Upload failed: ${uploadError.message}`;
         toast.error(errorMsg);
         return { success: false, error: errorMsg };
@@ -125,6 +132,13 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
         console.error("DB error:", dbError);
         // Try to clean up uploaded file
         await supabase.storage.from("health-files").remove([filePath]);
+        // Check if it's a permission error
+        const errorMessage = dbError.message?.toLowerCase() || "";
+        if (errorMessage.includes("policy") || errorMessage.includes("permission") || dbError.code === "42501") {
+          const errorMsg = "You don't have permission to upload files.";
+          toast.error(errorMsg);
+          return { success: false, error: errorMsg };
+        }
         const errorMsg = `Failed to save file record: ${dbError.message}`;
         toast.error(errorMsg);
         return { success: false, error: errorMsg };
@@ -133,11 +147,22 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       await fetchAttachments();
       toast.success("File uploaded.");
       return { success: true };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Unexpected error:", error);
-      const errorMsg = error instanceof Error 
-        ? `Upload failed: ${error.message}` 
-        : "Upload failed. Please check your connection and try again.";
+      // Handle cases where error might be a Response object or have non-JSON body
+      let errorMsg = "Upload failed. Please check your connection and try again.";
+      if (error instanceof Error) {
+        // Check for permission-related errors
+        const msg = error.message.toLowerCase();
+        if (msg.includes("policy") || msg.includes("permission") || msg.includes("403") || msg.includes("unauthorized")) {
+          errorMsg = "You don't have permission to upload files.";
+        } else if (msg.includes("unexpected token") || msg.includes("not valid json")) {
+          // Server returned HTML instead of JSON - usually means 403/401
+          errorMsg = "Upload failed. You may not have permission to upload files.";
+        } else {
+          errorMsg = `Upload failed: ${error.message}`;
+        }
+      }
       toast.error(errorMsg);
       return { success: false, error: errorMsg };
     } finally {
