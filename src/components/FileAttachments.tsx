@@ -137,8 +137,8 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
                 <div className="pl-8">
                   {fileIsPdf ? (
                     <PdfAttachmentActions
+                      attachmentId={attachment.id}
                       fileName={attachment.file_name}
-                      getSignedUrl={useCallback(() => getSignedUrl(attachment.file_url), [attachment.file_url])}
                     />
                   ) : (
                     <ImageAttachmentActions

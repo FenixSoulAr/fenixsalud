@@ -1,1 +1,4 @@
 project_id = "pwwadvtoabvqvnjkcvjr"
+
+[functions.attachment-proxy]
+verify_jwt = false

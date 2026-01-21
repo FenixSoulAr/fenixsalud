@@ -1,68 +1,111 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ExternalLink, Copy, Download, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PdfAttachmentActionsProps {
+  attachmentId: string;
   fileName: string;
-  getSignedUrl: () => Promise<string | null>;
   compact?: boolean;
 }
 
-export function PdfAttachmentActions({ fileName, getSignedUrl, compact = false }: PdfAttachmentActionsProps) {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+export function PdfAttachmentActions({ attachmentId, fileName, compact = false }: PdfAttachmentActionsProps) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
 
-  // Generate signed URL on mount
-  useEffect(() => {
-    let mounted = true;
-    
-    async function fetchUrl() {
-      setLoading(true);
-      setError(false);
-      const url = await getSignedUrl();
-      if (mounted) {
-        setSignedUrl(url);
-        setLoading(false);
-        if (!url) setError(true);
-      }
-    }
-    
-    fetchUrl();
-    
-    return () => { mounted = false; };
-  }, [getSignedUrl]);
+  // Get the proxy URL for this attachment
+  function getProxyUrl(download: boolean = false): string {
+    const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/attachment-proxy/${attachmentId}`;
+    return download ? `${baseUrl}?download=1` : baseUrl;
+  }
 
-  async function handleCopyLink() {
-    if (!signedUrl) {
-      // Try to get a fresh URL
-      const url = await getSignedUrl();
-      if (url) {
-        await navigator.clipboard.writeText(url);
-        toast.success("Secure link copied.");
-      } else {
-        toast.error("Failed to generate link. Please try again.");
-      }
-      return;
-    }
-    
+  // Handle opening PDF in new tab via proxy
+  async function handleOpen() {
+    setLoading(true);
     try {
-      await navigator.clipboard.writeText(signedUrl);
-      toast.success("Secure link copied.");
-    } catch {
-      toast.error("Failed to copy link.");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Please sign in to view files.");
+        return;
+      }
+
+      // Fetch the file through the proxy with auth
+      const response = await fetch(getProxyUrl(false), {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.status === 403) {
+        toast.error("You don't have permission to view this file.");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch file");
+      }
+
+      // Create blob URL and open in new tab
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+      
+      // Clean up blob URL after a delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (error) {
+      console.error("Error opening PDF:", error);
+      toast.error("Failed to open file. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
-  async function handleRefresh() {
+  // Handle downloading PDF via proxy
+  async function handleDownload() {
     setLoading(true);
-    setError(false);
-    const url = await getSignedUrl();
-    setSignedUrl(url);
-    setLoading(false);
-    if (!url) setError(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Please sign in to download files.");
+        return;
+      }
+
+      // Fetch the file through the proxy with auth
+      const response = await fetch(getProxyUrl(true), {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.status === 403) {
+        toast.error("You don't have permission to download this file.");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch file");
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(blobUrl);
+      toast.success("Download started.");
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      toast.error("Failed to download file. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (loading) {
@@ -74,67 +117,28 @@ export function PdfAttachmentActions({ fileName, getSignedUrl, compact = false }
     );
   }
 
-  if (error || !signedUrl) {
-    return (
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-        >
-          Retry
-        </Button>
-        <span className="text-sm text-muted-foreground">Failed to load</span>
-      </div>
-    );
-  }
-
   if (compact) {
     return (
       <div className="flex items-center gap-1">
-        {/* Real anchor link for Open PDF */}
         <Button
-          asChild
+          type="button"
           variant="ghost"
           size="sm"
+          onClick={handleDownload}
+          title="Download PDF"
         >
-          <a
-            href={signedUrl}
-            target="_blank"
-            rel="noreferrer"
-            download={fileName}
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Download
-          </a>
+          <Download className="h-4 w-4 mr-1" />
+          Download
         </Button>
         
-        {/* Real anchor link for Open in new tab */}
-        <Button
-          asChild
-          variant="ghost"
-          size="icon"
-          title="Open in new tab"
-        >
-          <a
-            href={signedUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        </Button>
-        
-        {/* Copy secure link */}
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          onClick={handleCopyLink}
-          title="Copy secure link"
+          onClick={handleOpen}
+          title="Open in new tab"
         >
-          <Copy className="h-4 w-4" />
+          <ExternalLink className="h-4 w-4" />
         </Button>
       </div>
     );
@@ -143,55 +147,31 @@ export function PdfAttachmentActions({ fileName, getSignedUrl, compact = false }
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Real anchor link with download attribute */}
-        <Button
-          asChild
-          variant="default"
-          size="sm"
-        >
-          <a
-            href={signedUrl}
-            target="_blank"
-            rel="noreferrer"
-            download={fileName}
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Download PDF
-          </a>
-        </Button>
-        
-        {/* Real anchor link for Open in new tab */}
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-        >
-          <a
-            href={signedUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <ExternalLink className="h-4 w-4 mr-1" />
-            Open PDF
-          </a>
-        </Button>
-        
-        {/* Copy secure link */}
         <Button
           type="button"
-          variant="ghost"
+          variant="default"
           size="sm"
-          onClick={handleCopyLink}
+          onClick={handleDownload}
         >
-          <Copy className="h-4 w-4 mr-1" />
-          Copy link
+          <Download className="h-4 w-4 mr-1" />
+          Download PDF
+        </Button>
+        
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleOpen}
+        >
+          <ExternalLink className="h-4 w-4 mr-1" />
+          Open PDF
         </Button>
       </div>
       
       <Alert variant="default" className="bg-muted/50 border-muted">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription className="text-xs">
-          If your browser blocks PDF access, use "Copy link" and paste it in a new tab, or temporarily disable ad blockers.
+          PDFs are served securely through our server to ensure compatibility with all browsers.
         </AlertDescription>
       </Alert>
     </div>
