@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useFileAttachments } from "@/hooks/useFileAttachments";
 import { MobileFileUploader } from "@/components/MobileFileUploader";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -30,6 +31,7 @@ function getFileTypeLabel(mimeType: string | null) {
 
 export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) {
   const { attachments, loading, uploading, uploadFile, deleteFile, getSignedUrl } = useFileAttachments(entityType, entityId);
+  const { canEdit, canDelete } = useActiveProfile();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const isMobile = useIsMobile();
@@ -71,21 +73,25 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
         <h3 className="text-sm font-medium">Attachments</h3>
       </div>
 
-      {/* Show mobile notice or desktop uploader */}
-      {isMobile ? (
-        <Alert>
-          <Monitor className="h-4 w-4" />
-          <AlertTitle>File upload not available on mobile</AlertTitle>
-          <AlertDescription>
-            For now, documents can only be uploaded from a computer. You can still view existing files on your phone.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <MobileFileUploader 
-          onUpload={handleUpload}
-          uploading={uploading}
-          disabled={!entityId}
-        />
+      {/* Show upload controls only for users with edit permission */}
+      {canEdit && (
+        <>
+          {isMobile ? (
+            <Alert>
+              <Monitor className="h-4 w-4" />
+              <AlertTitle>File upload not available on mobile</AlertTitle>
+              <AlertDescription>
+                For now, documents can only be uploaded from a computer. You can still view existing files on your phone.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <MobileFileUploader 
+              onUpload={handleUpload}
+              uploading={uploading}
+              disabled={!entityId}
+            />
+          )}
+        </>
       )}
 
       {loading ? (
@@ -128,15 +134,17 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
                       <ExternalLink className="h-4 w-4" />
                     )}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setDeleteId(attachment.id)}
-                    aria-label="Delete file"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {canDelete && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteId(attachment.id)}
+                      aria-label="Delete file"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               </div>
             );

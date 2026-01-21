@@ -332,12 +332,16 @@ export default function Procedures() {
                     <Button variant="ghost" size="sm" onClick={() => setViewingProcedure(p)}>
                       <Eye className="h-4 w-4 mr-1" />{t.actions.view}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
-                      <Pencil className="h-4 w-4 mr-1" />{t.actions.edit}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(p.id)}>
-                      <Trash2 className="h-4 w-4 mr-1 text-destructive" />{t.actions.delete}
-                    </Button>
+                    {canEdit && (
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
+                        <Pencil className="h-4 w-4 mr-1" />{t.actions.edit}
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteId(p.id)}>
+                        <Trash2 className="h-4 w-4 mr-1 text-destructive" />{t.actions.delete}
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
@@ -374,12 +378,16 @@ export default function Procedures() {
                           <Button variant="ghost" size="icon" onClick={() => setViewingProcedure(p)} aria-label={t.actions.view}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(p)} aria-label={t.actions.edit}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)} aria-label={t.actions.delete}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {canEdit && (
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(p)} aria-label={t.actions.edit}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)} aria-label={t.actions.delete}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
