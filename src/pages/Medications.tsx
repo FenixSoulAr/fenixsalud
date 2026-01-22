@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Pill, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pill, Pencil, Trash2, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -24,10 +24,11 @@ export default function Medications() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [medications, setMedications] = useState<any[]>([]);
+  const [diagnoses, setDiagnoses] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(searchParams.get("new") === "true");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active" });
+  const [form, setForm] = useState({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active", diagnosis_id: "" });
 
   useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
   
@@ -43,8 +44,15 @@ export default function Medications() {
   async function fetchData() {
     if (!activeProfileOwnerId) return;
     setLoading(true);
-    const { data } = await supabase.from("medications").select("*").eq("user_id", activeProfileOwnerId).order("name", { ascending: true });
-    setMedications(data || []);
+    
+    // Fetch medications and diagnoses in parallel
+    const [medsResult, diagsResult] = await Promise.all([
+      supabase.from("medications").select("*").eq("user_id", activeProfileOwnerId).order("name", { ascending: true }),
+      supabase.from("diagnoses").select("*").eq("user_id", activeProfileOwnerId).eq("status", "active").order("condition", { ascending: true })
+    ]);
+    
+    setMedications(medsResult.data || []);
+    setDiagnoses(diagsResult.data || []);
     setLoading(false);
   }
 
@@ -57,13 +65,14 @@ export default function Medications() {
       times: med.times ? med.times.join(", ") : "",
       notes: med.notes || "",
       status: med.status || "Active",
+      diagnosis_id: med.diagnosis_id || "",
     });
     setDialogOpen(true);
   }
 
   function resetForm() {
     setEditingId(null);
-    setForm({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active" });
+    setForm({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active", diagnosis_id: "" });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -80,6 +89,7 @@ export default function Medications() {
       times: form.times ? form.times.split(",").map(t => t.trim()) : [],
       notes: form.notes || null,
       status: form.status as any,
+      diagnosis_id: form.diagnosis_id || null,
     };
 
     if (editingId) {
@@ -113,33 +123,49 @@ export default function Medications() {
 
   if (loading) return <LoadingPage />;
 
+  // Helper to get diagnosis name by ID
+  const getDiagnosisName = (diagnosisId: string | null) => {
+    if (!diagnosisId) return null;
+    const diag = diagnoses.find(d => d.id === diagnosisId);
+    return diag?.condition || null;
+  };
+
   const MedList = ({ meds }: { meds: any[] }) => meds.length === 0 ? <p className="text-muted-foreground text-center py-8">{t.medications.noMedicationsTab}</p> : (
-    <div className="space-y-3">{meds.map((m) => (
-      <div key={m.id} className="health-card flex items-center justify-between">
-        <div>
-          <p className="font-medium">{m.name}</p>
-          <p className="text-sm text-muted-foreground">{m.dose_text} • {m.schedule_type === "Daily" ? t.medications.daily : m.schedule_type === "Weekly" ? t.medications.weekly : t.medications.asNeeded}</p>
-          {m.times && m.times.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">{t.medications.times}: {m.times.join(", ")}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <StatusBadge status={normalizeStatus(m.status)} />
-          <div className="flex items-center gap-1">
-            {canEdit && (
-              <Button variant="ghost" size="icon" onClick={() => openEdit(m)} aria-label={t.actions.edit}>
-                <Pencil className="h-4 w-4" />
-              </Button>
+    <div className="space-y-3">{meds.map((m) => {
+      const diagName = getDiagnosisName(m.diagnosis_id);
+      return (
+        <div key={m.id} className="health-card flex items-center justify-between">
+          <div>
+            <p className="font-medium">{m.name}</p>
+            <p className="text-sm text-muted-foreground">{m.dose_text} • {m.schedule_type === "Daily" ? t.medications.daily : m.schedule_type === "Weekly" ? t.medications.weekly : t.medications.asNeeded}</p>
+            {m.times && m.times.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">{t.medications.times}: {m.times.join(", ")}</p>
             )}
-            {canDelete && (
-              <Button variant="ghost" size="icon" onClick={() => setDeleteId(m.id)} aria-label={t.actions.delete}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+            {diagName && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <HeartPulse className="h-3 w-3" />
+                {diagName}
+              </p>
             )}
           </div>
+          <div className="flex items-center gap-3">
+            <StatusBadge status={normalizeStatus(m.status)} />
+            <div className="flex items-center gap-1">
+              {canEdit && (
+                <Button variant="ghost" size="icon" onClick={() => openEdit(m)} aria-label={t.actions.edit}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+              {canDelete && (
+                <Button variant="ghost" size="icon" onClick={() => setDeleteId(m.id)} aria-label={t.actions.delete}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    ))}</div>
+      );
+    })}</div>
   );
 
   return (
@@ -179,6 +205,19 @@ export default function Medications() {
                     </Select>
                   </div>
                 )}
+                <div className="form-field">
+                  <Label>{t.medications.diagnosis}</Label>
+                  <Select value={form.diagnosis_id} onValueChange={(v) => setForm({ ...form, diagnosis_id: v === "none" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder={t.medications.selectDiagnosis} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">—</SelectItem>
+                      {diagnoses.map(d => (
+                        <SelectItem key={d.id} value={d.id}>{d.condition}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">{t.medications.diagnosisHelper}</p>
+                </div>
                 <div className="form-field"><Label>{t.medications.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
               <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.medications.addMedication}</Button>
               </form>

@@ -9,6 +9,7 @@ export interface Translations {
     tests: string;
     procedures: string;
     medications: string;
+    diagnoses: string;
     doctors: string;
     institutions: string;
     reminders: string;
@@ -161,6 +162,35 @@ export interface Translations {
     deleteMedication: string;
     deleteMedicationDesc: string;
     noMedicationsTab: string;
+    diagnosis: string;
+    selectDiagnosis: string;
+    diagnosisHelper: string;
+  };
+  diagnoses: {
+    title: string;
+    description: string;
+    addDiagnosis: string;
+    newDiagnosis: string;
+    editDiagnosis: string;
+    noDiagnoses: string;
+    noDiagnosesDescription: string;
+    noDiagnosesTab: string;
+    condition: string;
+    conditionPlaceholder: string;
+    conditionRequired: string;
+    diagnosedDate: string;
+    diagnosed: string;
+    status: string;
+    notes: string;
+    notesPlaceholder: string;
+    active: string;
+    resolved: string;
+    deleteDiagnosis: string;
+    deleteDiagnosisDesc: string;
+    relatedMedications: string;
+    noRelatedMedications: string;
+    linkedMedications: string;
+    viewOnlyAccess: string;
   };
   doctors: {
     title: string;
@@ -392,6 +422,7 @@ export const en: Translations = {
     tests: "Tests",
     procedures: "Procedures",
     medications: "Medications",
+    diagnoses: "Diagnoses",
     doctors: "Doctors",
     institutions: "Institutions",
     reminders: "Reminders",
@@ -556,6 +587,37 @@ export const en: Translations = {
     deleteMedication: "Delete medication?",
     deleteMedicationDesc: "This action cannot be undone. The medication record will be permanently removed.",
     noMedicationsTab: "No medications",
+    diagnosis: "Diagnosis (optional)",
+    selectDiagnosis: "Select a diagnosis",
+    diagnosisHelper: "Link this medication to the condition it treats.",
+  },
+  
+  // Diagnoses
+  diagnoses: {
+    title: "Diagnoses",
+    description: "Track your medical conditions and diagnoses",
+    addDiagnosis: "Add diagnosis",
+    newDiagnosis: "New Diagnosis",
+    editDiagnosis: "Edit Diagnosis",
+    noDiagnoses: "No diagnoses yet",
+    noDiagnosesDescription: "Add your first diagnosis to track your medical conditions.",
+    noDiagnosesTab: "No diagnoses",
+    condition: "Condition",
+    conditionPlaceholder: "e.g., Type 2 Diabetes",
+    conditionRequired: "Condition is required.",
+    diagnosedDate: "Diagnosed date",
+    diagnosed: "Diagnosed",
+    status: "Status",
+    notes: "Notes",
+    notesPlaceholder: "Additional notes about the condition...",
+    active: "Active",
+    resolved: "Resolved",
+    deleteDiagnosis: "Delete diagnosis?",
+    deleteDiagnosisDesc: "This action cannot be undone. The diagnosis record will be permanently removed.",
+    relatedMedications: "Related Medications",
+    noRelatedMedications: "No medications linked to this diagnosis.",
+    linkedMedications: "linked medication(s)",
+    viewOnlyAccess: "You have view-only access to this profile.",
   },
   
   // Doctors

@@ -71,6 +71,39 @@ export type Database = {
           },
         ]
       }
+      diagnoses: {
+        Row: {
+          condition: string
+          created_at: string
+          diagnosed_date: string | null
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["diagnosis_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          condition: string
+          created_at?: string
+          diagnosed_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["diagnosis_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          condition?: string
+          created_at?: string
+          diagnosed_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["diagnosis_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       doctors: {
         Row: {
           created_at: string | null
@@ -217,6 +250,7 @@ export type Database = {
       medications: {
         Row: {
           created_at: string | null
+          diagnosis_id: string | null
           dose_text: string
           end_date: string | null
           id: string
@@ -231,6 +265,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          diagnosis_id?: string | null
           dose_text: string
           end_date?: string | null
           id?: string
@@ -245,6 +280,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          diagnosis_id?: string | null
           dose_text?: string
           end_date?: string | null
           id?: string
@@ -257,7 +293,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "medications_diagnosis_id_fkey"
+            columns: ["diagnosis_id"]
+            isOneToOne: false
+            referencedRelation: "diagnoses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       procedures: {
         Row: {
@@ -514,6 +558,7 @@ export type Database = {
     }
     Enums: {
       appointment_status: "Upcoming" | "Completed" | "Cancelled"
+      diagnosis_status: "active" | "resolved"
       entity_type: "Appointment" | "TestStudy" | "Procedure"
       institution_type: "Clinic" | "Lab" | "Hospital" | "Other"
       medication_log_status: "Taken" | "Skipped"
@@ -656,6 +701,7 @@ export const Constants = {
   public: {
     Enums: {
       appointment_status: ["Upcoming", "Completed", "Cancelled"],
+      diagnosis_status: ["active", "resolved"],
       entity_type: ["Appointment", "TestStudy", "Procedure"],
       institution_type: ["Clinic", "Lab", "Hospital", "Other"],
       medication_log_status: ["Taken", "Skipped"],
