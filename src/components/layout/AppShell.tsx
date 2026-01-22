@@ -77,9 +77,14 @@ export function AppShell({ children }: AppShellProps) {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <Heart className="h-5 w-5" />
               </div>
-              <span className="text-xl font-semibold text-sidebar-foreground tracking-tight">
-                {t.appName}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-semibold text-sidebar-foreground tracking-tight">
+                  {t.appName}
+                </span>
+                <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                  Beta
+                </span>
+              </div>
             </Link>
             <Button
               variant="ghost"
@@ -182,6 +187,9 @@ export function AppShell({ children }: AppShellProps) {
               <Heart className="h-4 w-4" />
             </div>
             <span className="text-lg font-semibold tracking-tight">{t.appName}</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+              Beta
+            </span>
           </Link>
         </header>
 
