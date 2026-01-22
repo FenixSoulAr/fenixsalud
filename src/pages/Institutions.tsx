@@ -7,13 +7,20 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileSelect } from "@/components/ui/mobile-select";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
+
+const INSTITUTION_TYPE_OPTIONS = [
+  { value: "Clinic", label: "Clinic" },
+  { value: "Lab", label: "Lab" },
+  { value: "Hospital", label: "Hospital" },
+  { value: "Other", label: "Other" },
+];
 
 export default function Institutions() {
   const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
@@ -106,10 +113,13 @@ export default function Institutions() {
                 <div className="form-field"><Label>Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
                 <div className="form-field">
                   <Label>Type</Label>
-                  <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="Clinic">Clinic</SelectItem><SelectItem value="Lab">Lab</SelectItem><SelectItem value="Hospital">Hospital</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent>
-                  </Select>
+                  <MobileSelect
+                    value={form.type}
+                    onValueChange={(v) => setForm({ ...form, type: v })}
+                    options={INSTITUTION_TYPE_OPTIONS}
+                    placeholder="Select type"
+                    label="Institution type"
+                  />
                 </div>
                 <div className="form-field"><Label>Address</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
                 <div className="form-field"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
