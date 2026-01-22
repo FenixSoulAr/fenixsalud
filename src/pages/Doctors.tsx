@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Plus, Stethoscope, MoreHorizontal, Pencil, Trash2, Eye, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -98,25 +99,34 @@ export default function Doctors() {
       <PageHeader title="Doctors" description="Your healthcare providers"
         actions={
           canEdit ? (
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add doctor</Button></DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>{editingId ? "Edit Doctor" : "Add Doctor"}</DialogTitle></DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="form-field"><Label>Full Name *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required /></div>
-                  <div className="form-field"><Label>Specialty</Label><Input value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} placeholder="e.g., Cardiology" /></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="form-field"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-                    <div className="form-field"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                  </div>
-                  <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                  <Button type="submit" className="w-full">{editingId ? "Save Changes" : "Add Doctor"}</Button>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />Add doctor
+            </Button>
           ) : undefined
         }
       />
+
+      <ResponsiveFormModal
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}
+        title={editingId ? "Edit Doctor" : "Add Doctor"}
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" form="doctor-form">{editingId ? "Save Changes" : "Add Doctor"}</Button>
+          </div>
+        }
+      >
+        <form id="doctor-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="form-field"><Label>Full Name *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required /></div>
+          <div className="form-field"><Label>Specialty</Label><Input value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} placeholder="e.g., Cardiology" /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-field"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+            <div className="form-field"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+          </div>
+          <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+        </form>
+      </ResponsiveFormModal>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

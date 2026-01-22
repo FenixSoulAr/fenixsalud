@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Plus, Bell, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -128,46 +129,55 @@ export default function Reminders() {
       <PageHeader title="Reminders" description="Never miss an important health task"
         actions={
           canEdit ? (
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { resetForm(); setPastWarning(false); } }}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add reminder</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>{editingId ? "Edit Reminder" : "New Reminder"}</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-field"><Label>Title *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="form-field"><Label>Date *</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required /></div>
-                  <div className="form-field"><Label>Time</Label><Input type="time" value={form.due_time} onChange={(e) => setForm({ ...form, due_time: e.target.value })} /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="form-field">
-                    <Label>Type</Label>
-                    <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="Checkup">Checkup</SelectItem><SelectItem value="Appointment follow-up">Appointment follow-up</SelectItem><SelectItem value="Test follow-up">Test follow-up</SelectItem><SelectItem value="Custom">Custom</SelectItem></SelectContent>
-                    </Select>
-                  </div>
-                  <div className="form-field">
-                    <Label>Repeat</Label>
-                    <Select value={form.repeat_rule} onValueChange={(v) => setForm({ ...form, repeat_rule: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="None">None</SelectItem>
-                        <SelectItem value="Daily">Daily</SelectItem>
-                        <SelectItem value="Weekly">Weekly</SelectItem>
-                        <SelectItem value="Monthly">Monthly</SelectItem>
-                        <SelectItem value="Yearly">Yearly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <Button type="submit" className="w-full">{editingId ? "Save Changes" : "Create Reminder"}</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />Add reminder
+            </Button>
           ) : undefined
         }
       />
+
+      <ResponsiveFormModal
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) { resetForm(); setPastWarning(false); } }}
+        title={editingId ? "Edit Reminder" : "New Reminder"}
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" form="reminder-form">{editingId ? "Save Changes" : "Create Reminder"}</Button>
+          </div>
+        }
+      >
+        <form id="reminder-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="form-field"><Label>Title *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-field"><Label>Date *</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required /></div>
+            <div className="form-field"><Label>Time</Label><Input type="time" value={form.due_time} onChange={(e) => setForm({ ...form, due_time: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-field">
+              <Label>Type</Label>
+              <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="Checkup">Checkup</SelectItem><SelectItem value="Appointment follow-up">Appointment follow-up</SelectItem><SelectItem value="Test follow-up">Test follow-up</SelectItem><SelectItem value="Custom">Custom</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div className="form-field">
+              <Label>Repeat</Label>
+              <Select value={form.repeat_rule} onValueChange={(v) => setForm({ ...form, repeat_rule: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="None">None</SelectItem>
+                  <SelectItem value="Daily">Daily</SelectItem>
+                  <SelectItem value="Weekly">Weekly</SelectItem>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
+                  <SelectItem value="Yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+        </form>
+      </ResponsiveFormModal>
 
       {/* Past Date Warning */}
       <AlertDialog open={pastWarning} onOpenChange={setPastWarning}>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Plus, Pill, Pencil, Trash2, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -173,59 +173,68 @@ export default function Medications() {
       <PageHeader title={t.medications.title} description={t.medications.description}
         actions={
           canEdit ? (
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.medications.addMedication}</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>{editingId ? t.medications.editMedication : t.medications.newMedication}</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-field"><Label>{t.medications.name} *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.medications.namePlaceholder} required /></div>
-                <div className="form-field"><Label>{t.medications.dose} *</Label><Input value={form.dose_text} onChange={(e) => setForm({ ...form, dose_text: e.target.value })} placeholder={t.medications.dosePlaceholder} required /></div>
-                <div className="form-field">
-                  <Label>{t.medications.schedule}</Label>
-                  <Select value={form.schedule_type} onValueChange={(v) => setForm({ ...form, schedule_type: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Daily">{t.medications.daily}</SelectItem>
-                      <SelectItem value="Weekly">{t.medications.weekly}</SelectItem>
-                      <SelectItem value="As needed">{t.medications.asNeeded}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {form.schedule_type === "Daily" && <div className="form-field"><Label>{t.medications.times}</Label><Input value={form.times} onChange={(e) => setForm({ ...form, times: e.target.value })} placeholder={t.medications.timesPlaceholder} /></div>}
-                {editingId && (
-                  <div className="form-field">
-                    <Label>{t.medications.status}</Label>
-                    <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Active">{t.medications.active}</SelectItem>
-                        <SelectItem value="Paused">{t.medications.paused}</SelectItem>
-                        <SelectItem value="Completed">{t.medications.completed}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div className="form-field">
-                  <Label>{t.medications.diagnosis}</Label>
-                  <Select value={form.diagnosis_id} onValueChange={(v) => setForm({ ...form, diagnosis_id: v === "none" ? "" : v })}>
-                    <SelectTrigger><SelectValue placeholder={t.medications.selectDiagnosis} /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">—</SelectItem>
-                      {diagnoses.map(d => (
-                        <SelectItem key={d.id} value={d.id}>{d.condition}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">{t.medications.diagnosisHelper}</p>
-                </div>
-                <div className="form-field"><Label>{t.medications.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-              <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.medications.addMedication}</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />{t.medications.addMedication}
+            </Button>
           ) : undefined
         }
       />
+
+      <ResponsiveFormModal
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}
+        title={editingId ? t.medications.editMedication : t.medications.newMedication}
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>{t.actions.cancel}</Button>
+            <Button type="submit" form="medication-form">{editingId ? t.actions.saveChanges : t.medications.addMedication}</Button>
+          </div>
+        }
+      >
+        <form id="medication-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="form-field"><Label>{t.medications.name} *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.medications.namePlaceholder} required /></div>
+          <div className="form-field"><Label>{t.medications.dose} *</Label><Input value={form.dose_text} onChange={(e) => setForm({ ...form, dose_text: e.target.value })} placeholder={t.medications.dosePlaceholder} required /></div>
+          <div className="form-field">
+            <Label>{t.medications.schedule}</Label>
+            <Select value={form.schedule_type} onValueChange={(v) => setForm({ ...form, schedule_type: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Daily">{t.medications.daily}</SelectItem>
+                <SelectItem value="Weekly">{t.medications.weekly}</SelectItem>
+                <SelectItem value="As needed">{t.medications.asNeeded}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {form.schedule_type === "Daily" && <div className="form-field"><Label>{t.medications.times}</Label><Input value={form.times} onChange={(e) => setForm({ ...form, times: e.target.value })} placeholder={t.medications.timesPlaceholder} /></div>}
+          {editingId && (
+            <div className="form-field">
+              <Label>{t.medications.status}</Label>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">{t.medications.active}</SelectItem>
+                  <SelectItem value="Paused">{t.medications.paused}</SelectItem>
+                  <SelectItem value="Completed">{t.medications.completed}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="form-field">
+            <Label>{t.medications.diagnosis}</Label>
+            <Select value={form.diagnosis_id} onValueChange={(v) => setForm({ ...form, diagnosis_id: v === "none" ? "" : v })}>
+              <SelectTrigger><SelectValue placeholder={t.medications.selectDiagnosis} /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                {diagnoses.map(d => (
+                  <SelectItem key={d.id} value={d.id}>{d.condition}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">{t.medications.diagnosisHelper}</p>
+          </div>
+          <div className="form-field"><Label>{t.medications.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+        </form>
+      </ResponsiveFormModal>
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
