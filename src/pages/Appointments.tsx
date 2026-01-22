@@ -19,8 +19,9 @@ import { AttachmentIndicator } from "@/components/AttachmentIndicator";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { useTimezone } from "@/hooks/useTimezone";
 import { toast } from "sonner";
-import { format, isPast } from "date-fns";
+import { isPast } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/i18n";
 
@@ -34,6 +35,7 @@ function getDisplayStatus(apt: any): "Upcoming" | "Past" | "Completed" | "Cancel
 
 export default function Appointments() {
   const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
+  const { localToISO, isoToLocal, formatDateTime, formatTime } = useTimezone();
   const t = useTranslations();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -102,11 +104,11 @@ export default function Appointments() {
 
   function openEdit(apt: any) {
     setEditingId(apt.id);
-    const dt = apt.datetime_start ? new Date(apt.datetime_start) : null;
-    const hasTime = dt && (dt.getHours() !== 0 || dt.getMinutes() !== 0);
+    // Use timezone-aware parsing to get local date/time
+    const { date, time, hasTime } = isoToLocal(apt.datetime_start);
     setForm({
-      date: dt ? format(dt, "yyyy-MM-dd") : "",
-      time: hasTime ? format(dt, "HH:mm") : "",
+      date,
+      time: hasTime ? time : "",
       reason: apt.reason || "",
       notes: apt.notes || "",
       doctor_id: apt.doctor_id || "",
@@ -124,8 +126,8 @@ export default function Appointments() {
 
   function buildDateTime() {
     if (!form.date) return "";
-    const time = form.time || "00:00";
-    return `${form.date}T${time}`;
+    // Use timezone-aware conversion to ISO string
+    return localToISO(form.date, form.time || undefined);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -230,8 +232,7 @@ export default function Appointments() {
 
   // Detail View
   if (viewingAppointment) {
-    const dt = new Date(viewingAppointment.datetime_start);
-    const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
+    const { hasTime } = isoToLocal(viewingAppointment.datetime_start);
     const fromDashboard = searchParams.get("from") === "dashboard";
     
     const handleBack = () => {
@@ -254,8 +255,8 @@ export default function Appointments() {
               <div>
                 <h1 className="text-2xl font-bold">{viewingAppointment.reason || t.misc.appointment}</h1>
                 <p className="text-muted-foreground">
-                  {format(dt, "MMMM d, yyyy")}
-                  {hasTime && ` at ${format(dt, "h:mm a")}`}
+                  {formatDateTime(viewingAppointment.datetime_start)}
+                  {hasTime && ` at ${formatTime(viewingAppointment.datetime_start)}`}
                 </p>
               </div>
               <StatusBadge status={getDisplayStatus(viewingAppointment) === "Past" ? "past" : normalizeStatus(getDisplayStatus(viewingAppointment))} />
@@ -496,8 +497,7 @@ export default function Appointments() {
                 {/* Mobile Card Layout */}
                 <div className="md:hidden space-y-3">
                   {sortedAppointments.map((apt) => {
-                    const dt = new Date(apt.datetime_start);
-                    const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
+                    const { hasTime } = isoToLocal(apt.datetime_start);
                     const attachCount = attachmentCounts[apt.id] || 0;
                     const displayStatus = getDisplayStatus(apt);
                     return (
@@ -505,8 +505,8 @@ export default function Appointments() {
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="min-w-0 flex-1">
                             <p className="font-medium text-sm">
-                              {format(dt, "MMM d, yyyy")}
-                              {hasTime && ` at ${format(dt, "h:mm a")}`}
+                              {formatDateTime(apt.datetime_start, { month: "short", day: "numeric", year: "numeric" })}
+                              {hasTime && ` at ${formatTime(apt.datetime_start)}`}
                             </p>
                             {apt.reason && <p className="text-foreground mt-1">{apt.reason}</p>}
                           </div>
@@ -549,9 +549,12 @@ export default function Appointments() {
                       {sortedAppointments.map((apt) => {
                         const attachCount = attachmentCounts[apt.id] || 0;
                         const displayStatus = getDisplayStatus(apt);
+                        const { hasTime } = isoToLocal(apt.datetime_start);
+                        const dateDisplay = formatDateTime(apt.datetime_start, { month: "short", day: "numeric", year: "numeric" });
+                        const timeDisplay = hasTime ? ` ${formatTime(apt.datetime_start)}` : "";
                         return (
                           <tr key={apt.id} className="border-b hover:bg-muted/30 transition-colors">
-                            <td className="p-4">{format(new Date(apt.datetime_start), "MMM d, yyyy h:mm a")}</td>
+                            <td className="p-4">{dateDisplay}{timeDisplay}</td>
                             <td className="p-4">{apt.doctors?.full_name || "—"}</td>
                             <td className="p-4">{apt.institutions?.name || "—"}</td>
                             <td className="p-4">
