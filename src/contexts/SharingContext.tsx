@@ -9,6 +9,7 @@ interface ProfileShare {
   owner_id: string;
   shared_with_email: string;
   shared_with_user_id: string | null;
+  shared_with_name: string | null; // Name of the person shared with (from their profile)
   role: "viewer" | "contributor";
   created_at: string;
   status: "pending" | "active";
@@ -136,16 +137,36 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       throw new Error(ownerError.message);
     }
 
-    // Map owner shares - status comes from DB now
-    const mappedOwnerShares: ProfileShare[] = (ownerShares || []).map((share: any) => ({
-      id: share.id,
-      owner_id: share.owner_id,
-      shared_with_email: share.shared_with_email,
-      shared_with_user_id: share.shared_with_user_id,
-      role: share.role,
-      created_at: share.created_at,
-      status: share.status as "pending" | "active",
-    }));
+    // Map owner shares and fetch names for linked users
+    const mappedOwnerShares: ProfileShare[] = [];
+    for (const share of ownerShares || []) {
+      let sharedWithName: string | null = null;
+      
+      // If the share is active and has a linked user, fetch their profile name
+      if (share.shared_with_user_id && share.status === "active") {
+        const { data: sharedProfile } = await supabase
+          .from("profiles")
+          .select("full_name, first_name, last_name")
+          .eq("user_id", share.shared_with_user_id)
+          .maybeSingle();
+        
+        sharedWithName = sharedProfile?.full_name || 
+          (sharedProfile?.first_name && sharedProfile?.last_name 
+            ? `${sharedProfile.first_name} ${sharedProfile.last_name}` 
+            : sharedProfile?.first_name || null);
+      }
+      
+      mappedOwnerShares.push({
+        id: share.id,
+        owner_id: share.owner_id,
+        shared_with_email: share.shared_with_email,
+        shared_with_user_id: share.shared_with_user_id,
+        shared_with_name: sharedWithName,
+        role: share.role,
+        created_at: share.created_at,
+        status: share.status as "pending" | "active",
+      });
+    }
 
     console.log("[SharingContext] Fetched myShares for owner", user.id, ":", mappedOwnerShares.length, "shares", mappedOwnerShares);
     setMyShares(mappedOwnerShares);

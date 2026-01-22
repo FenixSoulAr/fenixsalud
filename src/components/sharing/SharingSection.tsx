@@ -191,75 +191,102 @@ export function SharingSection() {
       {myShares.length > 0 && (
         <div className="space-y-3 mb-6">
           <Label>{lang === "es" ? "Personas con acceso" : "People with access"} ({myShares.length})</Label>
-          {myShares.map((share) => (
-            <div
-              key={share.id}
-              className="flex items-center justify-between gap-4 p-3 bg-muted/50 rounded-lg"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium truncate">{share.shared_with_email}</p>
+          {myShares.map((share) => {
+            // Display name: prefer profile name, fallback to email
+            const displayName = share.shared_with_name || share.shared_with_email;
+            const showEmailSeparately = share.shared_with_name && share.shared_with_name !== share.shared_with_email;
+            
+            return (
+              <div
+                key={share.id}
+                className="p-3 bg-muted/50 rounded-lg space-y-3"
+              >
+                {/* Top row: Name/Email and badges */}
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="font-medium text-sm break-all">{displayName}</span>
+                    </div>
+                    {showEmailSeparately && (
+                      <p className="text-xs text-muted-foreground mt-1 break-all pl-6">
+                        {share.shared_with_email}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Badges */}
+                  <div className="flex flex-wrap items-center gap-2 pl-6 sm:pl-0">
                     <Badge 
-                      variant={share.status === "active" ? "default" : "secondary"}
+                      variant={share.role === "contributor" ? "default" : "secondary"}
+                      className="text-xs shrink-0"
+                    >
+                      {getRoleLabel(share.role)}
+                    </Badge>
+                    <Badge 
+                      variant={share.status === "active" ? "outline" : "secondary"}
                       className="text-xs shrink-0"
                     >
                       {getStatusLabel(share.status)}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {share.status === "active"
-                      ? (lang === "es" ? "Cuenta vinculada" : "Account linked")
-                      : (lang === "es" ? "Pendiente de registro" : "Pending registration")}
-                  </p>
+                </div>
+                
+                {/* Status description */}
+                <p className="text-xs text-muted-foreground pl-6 sm:pl-0">
+                  {share.status === "active"
+                    ? (lang === "es" ? "Cuenta vinculada" : "Account linked")
+                    : (lang === "es" ? "Pendiente de registro" : "Pending registration")}
+                </p>
+                
+                {/* Actions row */}
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
+                  <Select
+                    value={share.role}
+                    onValueChange={(value: "viewer" | "contributor") => handleRoleChange(share.id, value)}
+                  >
+                    <SelectTrigger className="w-full sm:w-32 h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="viewer">{getRoleLabel("viewer")}</SelectItem>
+                      <SelectItem value="contributor">{getRoleLabel("contributor")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-destructive hover:text-destructive flex-1 sm:flex-none">
+                        <Trash2 className="h-4 w-4 mr-2 sm:mr-0" />
+                        <span className="sm:hidden">{lang === "es" ? "Revocar" : "Revoke"}</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {lang === "es" ? "¿Revocar acceso?" : "Revoke access?"}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {lang === "es"
+                            ? `${displayName} ya no podrá ver tu información de salud.`
+                            : `${displayName} will no longer be able to view your health information.`}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{lang === "es" ? "Cancelar" : "Cancel"}</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleRevoke(share.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {lang === "es" ? "Revocar" : "Revoke"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Select
-                  value={share.role}
-                  onValueChange={(value: "viewer" | "contributor") => handleRoleChange(share.id, value)}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="viewer">{getRoleLabel("viewer")}</SelectItem>
-                    <SelectItem value="contributor">{getRoleLabel("contributor")}</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        {lang === "es" ? "¿Revocar acceso?" : "Revoke access?"}
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {lang === "es"
-                          ? `${share.shared_with_email} ya no podrá ver tu información de salud.`
-                          : `${share.shared_with_email} will no longer be able to view your health information.`}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{lang === "es" ? "Cancelar" : "Cancel"}</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleRevoke(share.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        {lang === "es" ? "Revocar" : "Revoke"}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
