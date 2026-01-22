@@ -52,6 +52,7 @@ export const es: Translations = {
     viewAll: "Ver todo",
     editInMedications: "Editar en Medicación",
     editInReminders: "Editar en Recordatorios",
+    unlinkedNoDiagnosis: "Sin vincular (Sin diagnóstico)",
   },
   
   // Appointments
