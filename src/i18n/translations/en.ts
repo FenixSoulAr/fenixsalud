@@ -15,7 +15,31 @@ export interface Translations {
     reminders: string;
     clinicalSummary: string;
     settings: string;
+    about: string;
+    contact: string;
     signOut: string;
+  };
+  about: {
+    title: string;
+    subtitle: string;
+    version: string;
+    betaStatus: string;
+    description: string;
+    privacyTitle: string;
+    privacyDescription: string;
+    easyTitle: string;
+    easyDescription: string;
+    madeWith: string;
+  };
+  contact: {
+    title: string;
+    subtitle: string;
+    feedbackTitle: string;
+    feedbackMessage: string;
+    sendEmail: string;
+    emailNote: string;
+    emailSubject: string;
+    emailBody: string;
   };
   actions: {
     add: string;
@@ -429,7 +453,35 @@ export const en: Translations = {
     reminders: "Reminders",
     clinicalSummary: "Clinical Summary",
     settings: "Settings",
+    about: "About",
+    contact: "Contact",
     signOut: "Sign out",
+  },
+  
+  // About
+  about: {
+    title: "About this app",
+    subtitle: "Learn more about My Health",
+    version: "Version 1.0.0",
+    betaStatus: "Beta",
+    description: "My Health is your personal health companion. Track appointments, medications, tests, and more—all in one place. Designed to help you stay organized and informed about your health journey.",
+    privacyTitle: "Your privacy matters",
+    privacyDescription: "Your health data stays secure and private. Only you control who can access your information.",
+    easyTitle: "Simple and intuitive",
+    easyDescription: "Built to be easy to use, so you can focus on what matters most—your health.",
+    madeWith: "Made with care for your well-being.",
+  },
+  
+  // Contact
+  contact: {
+    title: "Contact",
+    subtitle: "We'd love to hear from you",
+    feedbackTitle: "Share your feedback",
+    feedbackMessage: "Have a suggestion, found a bug, or just want to say hello? We appreciate all feedback and use it to make My Health better for everyone.",
+    sendEmail: "Send email",
+    emailNote: "Opens your email app to send us a message.",
+    emailSubject: "My Health App Feedback",
+    emailBody: "Hello,\n\nI'd like to share the following feedback:\n\n",
   },
   
   // Common actions

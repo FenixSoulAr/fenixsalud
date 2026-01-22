@@ -22,6 +22,8 @@ import Institutions from "./pages/Institutions";
 import Reminders from "./pages/Reminders";
 import Settings from "./pages/Settings";
 import ClinicalSummary from "./pages/ClinicalSummary";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +70,8 @@ function AppRoutes() {
       <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/clinical-summary" element={<ProtectedRoute><ClinicalSummary /></ProtectedRoute>} />
+      <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+      <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>

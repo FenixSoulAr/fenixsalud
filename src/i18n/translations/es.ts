@@ -15,7 +15,35 @@ export const es: Translations = {
     reminders: "Recordatorios",
     clinicalSummary: "Resumen clínico",
     settings: "Configuración",
+    about: "Acerca de",
+    contact: "Contactar",
     signOut: "Cerrar sesión",
+  },
+  
+  // About
+  about: {
+    title: "Acerca de esta app",
+    subtitle: "Conocé más sobre Mi Salud",
+    version: "Versión 1.0.0",
+    betaStatus: "Beta",
+    description: "Mi Salud es tu compañero personal de salud. Registrá citas, medicación, estudios y más, todo en un solo lugar. Diseñada para ayudarte a mantenerte organizado e informado sobre tu salud.",
+    privacyTitle: "Tu privacidad importa",
+    privacyDescription: "Tus datos de salud se mantienen seguros y privados. Solo vos controlás quién puede acceder a tu información.",
+    easyTitle: "Simple e intuitiva",
+    easyDescription: "Diseñada para ser fácil de usar, para que puedas enfocarte en lo más importante: tu salud.",
+    madeWith: "Hecha con cariño para tu bienestar.",
+  },
+  
+  // Contact
+  contact: {
+    title: "Contactar",
+    subtitle: "Nos encantaría saber de vos",
+    feedbackTitle: "Compartí tu opinión",
+    feedbackMessage: "¿Tenés una sugerencia, encontraste un error o simplemente querés saludar? Apreciamos todos los comentarios y los usamos para mejorar Mi Salud.",
+    sendEmail: "Enviar email",
+    emailNote: "Abre tu app de correo para enviarnos un mensaje.",
+    emailSubject: "Comentarios sobre Mi Salud",
+    emailBody: "Hola,\n\nQuiero compartir lo siguiente:\n\n",
   },
   
   // Common actions
