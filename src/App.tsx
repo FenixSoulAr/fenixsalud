@@ -16,6 +16,7 @@ import Appointments from "./pages/Appointments";
 import Tests from "./pages/Tests";
 import Procedures from "./pages/Procedures";
 import Medications from "./pages/Medications";
+import Diagnoses from "./pages/Diagnoses";
 import Doctors from "./pages/Doctors";
 import Institutions from "./pages/Institutions";
 import Reminders from "./pages/Reminders";
@@ -60,6 +61,8 @@ function AppRoutes() {
       <Route path="/procedures/:id" element={<ProtectedRoute><Procedures /></ProtectedRoute>} />
       <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
       <Route path="/medications/:id" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
+      <Route path="/diagnoses" element={<ProtectedRoute><Diagnoses /></ProtectedRoute>} />
+      <Route path="/diagnoses/:id" element={<ProtectedRoute><Diagnoses /></ProtectedRoute>} />
       <Route path="/doctors" element={<ProtectedRoute><Doctors /></ProtectedRoute>} />
       <Route path="/institutions" element={<ProtectedRoute><Institutions /></ProtectedRoute>} />
       <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
