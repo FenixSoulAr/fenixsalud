@@ -16,6 +16,8 @@ import {
   LogOut,
   Heart,
   FileText,
+  Info,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "@/i18n";
 import { SharingBanner } from "@/components/sharing/SharingBanner";
 import { ActiveProfileIndicator } from "@/components/sharing/ActiveProfileIndicator";
+import { Separator } from "@/components/ui/separator";
 
 interface AppShellProps {
   children: ReactNode;
@@ -34,18 +37,20 @@ export function AppShell({ children }: AppShellProps) {
   const { signOut, user } = useAuth();
   const t = useTranslations();
 
-  const navigation = [
+  const primaryNavigation = [
     { name: t.nav.dashboard, href: "/", icon: LayoutDashboard },
     { name: t.nav.appointments, href: "/appointments", icon: Calendar },
     { name: t.nav.tests, href: "/tests", icon: FlaskConical },
-    { name: t.nav.procedures, href: "/procedures", icon: Syringe },
     { name: t.nav.medications, href: "/medications", icon: Pill },
     { name: t.nav.diagnoses, href: "/diagnoses", icon: HeartPulse },
-    { name: t.nav.doctors, href: "/doctors", icon: Stethoscope },
-    { name: t.nav.institutions, href: "/institutions", icon: Building2 },
-    { name: t.nav.reminders, href: "/reminders", icon: Bell },
+    { name: t.nav.procedures, href: "/procedures", icon: Syringe },
     { name: t.nav.clinicalSummary, href: "/clinical-summary", icon: FileText },
     { name: t.nav.settings, href: "/settings", icon: Settings },
+  ];
+
+  const secondaryNavigation = [
+    { name: t.nav.about, href: "/about", icon: Info },
+    { name: t.nav.contact, href: "/contact", icon: Mail },
   ];
 
   return (
@@ -93,9 +98,32 @@ export function AppShell({ children }: AppShellProps) {
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-            {navigation.map((item) => {
+            {/* Primary navigation - Health features */}
+            {primaryNavigation.map((item) => {
               const isActive = location.pathname === item.href || 
                 (item.href !== "/" && location.pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    "nav-item",
+                    isActive && "active"
+                  )}
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {item.name}
+                </Link>
+              );
+            })}
+
+            {/* Separator */}
+            <Separator className="my-3" />
+
+            {/* Secondary navigation - About & Contact */}
+            {secondaryNavigation.map((item) => {
+              const isActive = location.pathname === item.href;
               return (
                 <Link
                   key={item.href}
