@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, FlaskConical, Pencil, Trash2, Eye, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -188,39 +188,48 @@ export default function Tests() {
       <PageHeader title={t.tests.title} description={t.tests.description}
         actions={
           canEdit ? (
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.tests.addTest}</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>{editingId ? t.tests.editTest : t.tests.newTest}</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-field"><Label>{t.tests.type} *</Label><Input value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} placeholder={t.tests.typePlaceholder} required /></div>
-                <div className="form-field"><Label>{t.tests.date} *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></div>
-                <div className="form-field">
-                  <Label>{t.tests.institution}</Label>
-                  <Select value={form.institution_id} onValueChange={(v) => setForm({ ...form, institution_id: v })}>
-                    <SelectTrigger><SelectValue placeholder={t.tests.selectInstitution} /></SelectTrigger>
-                    <SelectContent>{institutions.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="form-field">
-                  <Label>{t.tests.status}</Label>
-                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Scheduled">{t.tests.scheduled}</SelectItem>
-                      <SelectItem value="Done">{t.tests.done}</SelectItem>
-                      <SelectItem value="Result received">{t.tests.resultReceived}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="form-field"><Label>{t.tests.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.tests.createTest}</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />{t.tests.addTest}
+            </Button>
           ) : undefined
         }
       />
+
+      <ResponsiveFormModal
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}
+        title={editingId ? t.tests.editTest : t.tests.newTest}
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>{t.actions.cancel}</Button>
+            <Button type="submit" form="test-form">{editingId ? t.actions.saveChanges : t.tests.createTest}</Button>
+          </div>
+        }
+      >
+        <form id="test-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="form-field"><Label>{t.tests.type} *</Label><Input value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} placeholder={t.tests.typePlaceholder} required /></div>
+          <div className="form-field"><Label>{t.tests.date} *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></div>
+          <div className="form-field">
+            <Label>{t.tests.institution}</Label>
+            <Select value={form.institution_id} onValueChange={(v) => setForm({ ...form, institution_id: v })}>
+              <SelectTrigger><SelectValue placeholder={t.tests.selectInstitution} /></SelectTrigger>
+              <SelectContent>{institutions.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="form-field">
+            <Label>{t.tests.status}</Label>
+            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Scheduled">{t.tests.scheduled}</SelectItem>
+                <SelectItem value="Done">{t.tests.done}</SelectItem>
+                <SelectItem value="Result received">{t.tests.resultReceived}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="form-field"><Label>{t.tests.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+        </form>
+      </ResponsiveFormModal>
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>

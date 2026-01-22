@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Plus, Calendar, Pencil, Trash2, Stethoscope, Building2, Eye, ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -312,125 +313,135 @@ export default function Appointments() {
         description={t.appointments.description}
         actions={
           canEdit ? (
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.appointments.addAppointment}</Button></DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>{editingId ? t.appointments.editAppointment : t.appointments.newAppointment}</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="form-field">
-                    <Label>{t.appointments.date} *</Label>
-                    <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
-                  </div>
-                  <div className="form-field">
-                    <Label>{t.appointments.time}</Label>
-                    <Input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
-                  </div>
-                </div>
-                <div className="form-field">
-                  <Label>{t.appointments.reason}</Label>
-                  <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t.appointments.reasonPlaceholder} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Doctor Combobox */}
-                  <div className="form-field">
-                    <Label>{t.appointments.doctor}</Label>
-                    <Popover open={doctorOpen} onOpenChange={setDoctorOpen}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={doctorOpen} className="w-full justify-between font-normal">
-                          {form.doctor_id ? doctors.find(d => d.id === form.doctor_id)?.full_name : t.appointments.selectDoctor}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                          <CommandInput placeholder={t.appointments.searchDoctor} />
-                          <CommandList>
-                            <CommandEmpty>{t.appointments.noDoctor}</CommandEmpty>
-                            <CommandGroup>
-                              {doctors.map((d) => (
-                                <CommandItem
-                                  key={d.id}
-                                  value={d.full_name}
-                                  onSelect={() => { setForm({ ...form, doctor_id: d.id }); setDoctorOpen(false); }}
-                                >
-                                  <Check className={cn("mr-2 h-4 w-4", form.doctor_id === d.id ? "opacity-100" : "opacity-0")} />
-                                  {d.full_name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                        <div className="border-t p-2">
-                          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setDoctorOpen(false); setAddDoctorOpen(true); }}>
-                            <Plus className="h-4 w-4 mr-2" />{t.appointments.addNewDoctor}
-                          </Button>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  {/* Institution Combobox */}
-                  <div className="form-field">
-                    <Label>{t.appointments.institution}</Label>
-                    <Popover open={institutionOpen} onOpenChange={setInstitutionOpen}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={institutionOpen} className="w-full justify-between font-normal">
-                          {form.institution_id ? institutions.find(i => i.id === form.institution_id)?.name : t.appointments.selectInstitution}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                          <CommandInput placeholder={t.appointments.searchInstitution} />
-                          <CommandList>
-                            <CommandEmpty>{t.appointments.noInstitution}</CommandEmpty>
-                            <CommandGroup>
-                              {institutions.map((i) => (
-                                <CommandItem
-                                  key={i.id}
-                                  value={i.name}
-                                  onSelect={() => { setForm({ ...form, institution_id: i.id }); setInstitutionOpen(false); }}
-                                >
-                                  <Check className={cn("mr-2 h-4 w-4", form.institution_id === i.id ? "opacity-100" : "opacity-0")} />
-                                  {i.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                        <div className="border-t p-2">
-                          <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setInstitutionOpen(false); setAddInstitutionOpen(true); }}>
-                            <Plus className="h-4 w-4 mr-2" />{t.appointments.addNewInstitution}
-                          </Button>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-                {editingId && (
-                  <div className="form-field">
-                    <Label>{t.appointments.status}</Label>
-                    <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Upcoming">{t.appointments.upcoming}</SelectItem>
-                        <SelectItem value="Completed">{t.appointments.completed}</SelectItem>
-                        <SelectItem value="Cancelled">{t.appointments.cancelled}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div className="form-field">
-                  <Label>{t.appointments.notes}</Label>
-                  <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-                </div>
-                <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.appointments.createAppointment}</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />{t.appointments.addAppointment}
+            </Button>
           ) : null
         }
       />
+
+      <ResponsiveFormModal
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}
+        title={editingId ? t.appointments.editAppointment : t.appointments.newAppointment}
+        maxWidth="lg"
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>{t.actions.cancel}</Button>
+            <Button type="submit" form="appointment-form">{editingId ? t.actions.saveChanges : t.appointments.createAppointment}</Button>
+          </div>
+        }
+      >
+        <form id="appointment-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-field">
+              <Label>{t.appointments.date} *</Label>
+              <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+            </div>
+            <div className="form-field">
+              <Label>{t.appointments.time}</Label>
+              <Input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
+            </div>
+          </div>
+          <div className="form-field">
+            <Label>{t.appointments.reason}</Label>
+            <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t.appointments.reasonPlaceholder} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Doctor Combobox */}
+            <div className="form-field">
+              <Label>{t.appointments.doctor}</Label>
+              <Popover open={doctorOpen} onOpenChange={setDoctorOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" aria-expanded={doctorOpen} className="w-full justify-between font-normal">
+                    {form.doctor_id ? doctors.find(d => d.id === form.doctor_id)?.full_name : t.appointments.selectDoctor}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <Command>
+                    <CommandInput placeholder={t.appointments.searchDoctor} />
+                    <CommandList>
+                      <CommandEmpty>{t.appointments.noDoctor}</CommandEmpty>
+                      <CommandGroup>
+                        {doctors.map((d) => (
+                          <CommandItem
+                            key={d.id}
+                            value={d.full_name}
+                            onSelect={() => { setForm({ ...form, doctor_id: d.id }); setDoctorOpen(false); }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", form.doctor_id === d.id ? "opacity-100" : "opacity-0")} />
+                            {d.full_name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                  <div className="border-t p-2">
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setDoctorOpen(false); setAddDoctorOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-2" />{t.appointments.addNewDoctor}
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            {/* Institution Combobox */}
+            <div className="form-field">
+              <Label>{t.appointments.institution}</Label>
+              <Popover open={institutionOpen} onOpenChange={setInstitutionOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" aria-expanded={institutionOpen} className="w-full justify-between font-normal">
+                    {form.institution_id ? institutions.find(i => i.id === form.institution_id)?.name : t.appointments.selectInstitution}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <Command>
+                    <CommandInput placeholder={t.appointments.searchInstitution} />
+                    <CommandList>
+                      <CommandEmpty>{t.appointments.noInstitution}</CommandEmpty>
+                      <CommandGroup>
+                        {institutions.map((i) => (
+                          <CommandItem
+                            key={i.id}
+                            value={i.name}
+                            onSelect={() => { setForm({ ...form, institution_id: i.id }); setInstitutionOpen(false); }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", form.institution_id === i.id ? "opacity-100" : "opacity-0")} />
+                            {i.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                  <div className="border-t p-2">
+                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setInstitutionOpen(false); setAddInstitutionOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-2" />{t.appointments.addNewInstitution}
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          {editingId && (
+            <div className="form-field">
+              <Label>{t.appointments.status}</Label>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Upcoming">{t.appointments.upcoming}</SelectItem>
+                  <SelectItem value="Completed">{t.appointments.completed}</SelectItem>
+                  <SelectItem value="Cancelled">{t.appointments.cancelled}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="form-field">
+            <Label>{t.appointments.notes}</Label>
+            <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+        </form>
+      </ResponsiveFormModal>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

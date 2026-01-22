@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Syringe, Pencil, Trash2, Eye, ArrowLeft, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -235,44 +235,53 @@ export default function Procedures() {
       <PageHeader title={t.procedures.title} description={t.procedures.description}
         actions={
           canEdit ? (
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />{t.procedures.addProcedure}</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>{editingId ? t.procedures.editProcedure : t.procedures.newProcedure}</DialogTitle></DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="form-field">
-                  <Label>{t.procedures.type} *</Label>
-                  <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as ProcedureType })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {PROCEDURE_TYPES.map(type => <SelectItem key={type} value={type}>{getTranslatedType(type)}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="form-field"><Label>{t.procedures.title_field} *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={t.procedures.titlePlaceholder} required /></div>
-                <div className="form-field"><Label>{t.procedures.date} *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></div>
-                <div className="form-field">
-                  <Label>{t.procedures.institution}</Label>
-                  <Select value={form.institution_id} onValueChange={(v) => setForm({ ...form, institution_id: v })}>
-                    <SelectTrigger><SelectValue placeholder={t.procedures.selectInstitution} /></SelectTrigger>
-                    <SelectContent>{institutions.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="form-field">
-                  <Label>{t.procedures.doctor}</Label>
-                  <Select value={form.doctor_id} onValueChange={(v) => setForm({ ...form, doctor_id: v })}>
-                    <SelectTrigger><SelectValue placeholder={t.procedures.selectDoctor} /></SelectTrigger>
-                    <SelectContent>{doctors.map((d) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="form-field"><Label>{t.procedures.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                <Button type="submit" className="w-full">{editingId ? t.actions.saveChanges : t.procedures.createProcedure}</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />{t.procedures.addProcedure}
+            </Button>
           ) : undefined
         }
       />
+
+      <ResponsiveFormModal
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}
+        title={editingId ? t.procedures.editProcedure : t.procedures.newProcedure}
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>{t.actions.cancel}</Button>
+            <Button type="submit" form="procedure-form">{editingId ? t.actions.saveChanges : t.procedures.createProcedure}</Button>
+          </div>
+        }
+      >
+        <form id="procedure-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="form-field">
+            <Label>{t.procedures.type} *</Label>
+            <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as ProcedureType })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PROCEDURE_TYPES.map(type => <SelectItem key={type} value={type}>{getTranslatedType(type)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="form-field"><Label>{t.procedures.title_field} *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={t.procedures.titlePlaceholder} required /></div>
+          <div className="form-field"><Label>{t.procedures.date} *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></div>
+          <div className="form-field">
+            <Label>{t.procedures.institution}</Label>
+            <Select value={form.institution_id} onValueChange={(v) => setForm({ ...form, institution_id: v })}>
+              <SelectTrigger><SelectValue placeholder={t.procedures.selectInstitution} /></SelectTrigger>
+              <SelectContent>{institutions.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="form-field">
+            <Label>{t.procedures.doctor}</Label>
+            <Select value={form.doctor_id} onValueChange={(v) => setForm({ ...form, doctor_id: v })}>
+              <SelectTrigger><SelectValue placeholder={t.procedures.selectDoctor} /></SelectTrigger>
+              <SelectContent>{doctors.map((d) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="form-field"><Label>{t.procedures.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+        </form>
+      </ResponsiveFormModal>
 
       {/* Filter */}
       <div className="flex items-center gap-2 mb-4">
