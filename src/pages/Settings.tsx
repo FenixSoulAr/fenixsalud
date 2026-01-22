@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Trash2, User, Shield, FileText, Mail, MessageSquare } from "lucide-react";
+import { Trash2, User, Shield, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,62 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSharing } from "@/contexts/SharingContext";
 import { toast } from "sonner";
-import { getLanguage, useTranslations } from "@/i18n";
+import { useTranslations } from "@/i18n";
 
 const timezones = ["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "Europe/Paris", "Asia/Tokyo", "Asia/Singapore", "Australia/Sydney"];
-
-// Support section component
-function SupportSection() {
-  const t = useTranslations();
-  const lang = getLanguage();
-  
-  const deviceInfo = typeof navigator !== "undefined" ? navigator.userAgent : "Unknown";
-  
-  const handleContact = () => {
-    const isSpanish = lang === "es";
-    
-    const subject = encodeURIComponent("Feedback – Health App");
-    
-    const body = isSpanish
-      ? `Hola,
-
-Quería compartir el siguiente comentario sobre la app:
-
-(escribí acá)
-
-Dispositivo: ${deviceInfo}
-Idioma: ${lang}`
-      : `Hi,
-
-I'd like to share the following feedback about the app:
-
-(write here)
-
-Device: ${deviceInfo}
-Language: ${lang}`;
-    
-    const mailtoUrl = `mailto:fenixsoular@gmail.com?subject=${subject}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailtoUrl;
-  };
-  
-  return (
-    <section className="health-card">
-      <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-        <MessageSquare className="h-5 w-5" />
-        {lang === "es" ? "Soporte" : "Support"}
-      </h2>
-      <p className="text-sm text-muted-foreground mb-4">
-        {lang === "es" 
-          ? "¿Tenés comentarios o sugerencias? Nos encantaría escucharte."
-          : "Have feedback or suggestions? We'd love to hear from you."}
-      </p>
-      <Button variant="outline" onClick={handleContact}>
-        <Mail className="h-4 w-4 mr-2" />
-        {lang === "es" ? "Contactar" : "Contact"}
-      </Button>
-    </section>
-  );
-}
 
 interface ProfileData {
   first_name: string;
@@ -182,7 +128,6 @@ export default function Settings() {
     setDeletingProfile(false);
     if (error) { toast.error(t.toast.couldNotDeleteProfile); return; }
     
-    // Reset local state
     setProfile({
       first_name: "",
       last_name: "",
@@ -198,7 +143,6 @@ export default function Settings() {
   }
 
   async function handleDeleteAccount() {
-    // In production, this would call an edge function to delete user data
     await signOut();
     toast.success(t.toast.accountDeleted);
   }
@@ -206,7 +150,6 @@ export default function Settings() {
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     
-    // Validation
     if (!passwordForm.current.trim()) {
       toast.error(t.settings.currentPassword + " " + t.form.required);
       return;
@@ -225,7 +168,6 @@ export default function Settings() {
     
     setSavingPassword(true);
     
-    // First verify current password by attempting to sign in
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: user!.email!,
       password: passwordForm.current,
@@ -237,7 +179,6 @@ export default function Settings() {
       return;
     }
     
-    // Update password
     const { error } = await supabase.auth.updateUser({
       password: passwordForm.newPassword,
     });
@@ -260,11 +201,6 @@ export default function Settings() {
       <PageHeader 
         title={t.settings.title}
         description={t.settings.description}
-        actions={
-          <Button variant="outline" asChild>
-            <Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />{t.nav.clinicalSummary}</Link>
-          </Button>
-        }
       />
 
       <div className="max-w-2xl space-y-8">
@@ -373,55 +309,72 @@ export default function Settings() {
               />
             </div>
             
-            <Button type="submit" disabled={savingProfile}>
-              {savingProfile ? t.settings.saving : t.settings.saveProfile}
-            </Button>
-            
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" type="button" disabled={deletingProfile}>
-                  <Trash2 className="h-4 w-4 mr-2" />{deletingProfile ? t.settings.deleting : t.settings.deleteProfileData}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t.settings.deleteProfileTitle}</AlertDialogTitle>
-                  <AlertDialogDescription>{t.settings.deleteProfileDescription}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteProfileData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" disabled={savingProfile}>
+                {savingProfile ? t.settings.saving : t.settings.saveProfile}
+              </Button>
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" type="button" disabled={deletingProfile} className="text-destructive hover:text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />{deletingProfile ? t.settings.deleting : t.settings.deleteProfileData}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t.settings.deleteProfileTitle}</AlertDialogTitle>
+                    <AlertDialogDescription>{t.settings.deleteProfileDescription}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteProfileData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </form>
         </section>
 
-        {/* Notifications */}
+        {/* Sharing Section */}
+        <SharingSection />
+
+        {/* Notifications Section */}
         <section className="health-card">
-          <h2 className="text-lg font-semibold mb-4">{t.settings.notifications}</h2>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            {t.settings.notifications}
+          </h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div><Label>{t.settings.inAppReminders}</Label><p className="text-sm text-muted-foreground">{t.settings.inAppRemindersDesc}</p></div>
+              <div>
+                <Label>{t.settings.inAppReminders}</Label>
+                <p className="text-sm text-muted-foreground">{t.settings.inAppRemindersDesc}</p>
+              </div>
               <Switch checked={settings.notification_in_app} onCheckedChange={(v) => setSettings({ ...settings, notification_in_app: v })} />
             </div>
             <div className="flex items-center justify-between">
-              <div><Label>{t.settings.emailReminders}</Label><p className="text-sm text-muted-foreground">{t.settings.emailRemindersDesc}</p></div>
+              <div>
+                <Label>{t.settings.emailReminders}</Label>
+                <p className="text-sm text-muted-foreground">{t.settings.emailRemindersDesc}</p>
+              </div>
               <Switch checked={settings.notification_email} onCheckedChange={(v) => setSettings({ ...settings, notification_email: v })} />
             </div>
+            
+            <div className="border-t pt-4 mt-4">
+              <div className="form-field">
+                <Label>{t.settings.timezone}</Label>
+                <Select value={settings.timezone} onValueChange={(v) => setSettings({ ...settings, timezone: v })}>
+                  <SelectTrigger className="w-full max-w-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{timezones.map((tz) => <SelectItem key={tz} value={tz}>{tz}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <Button onClick={handleSaveSettings} disabled={savingSettings}>
+              {savingSettings ? t.settings.saving : t.settings.saveSettings}
+            </Button>
           </div>
         </section>
-
-        {/* Timezone */}
-        <section className="health-card">
-          <h2 className="text-lg font-semibold mb-4">{t.settings.timezone}</h2>
-          <Select value={settings.timezone} onValueChange={(v) => setSettings({ ...settings, timezone: v })}>
-            <SelectTrigger className="w-full max-w-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>{timezones.map((tz) => <SelectItem key={tz} value={tz}>{tz}</SelectItem>)}</SelectContent>
-          </Select>
-        </section>
-
-        <Button onClick={handleSaveSettings} disabled={savingSettings}>{savingSettings ? t.settings.saving : t.settings.saveSettings}</Button>
 
         {/* Security Section */}
         <section className="health-card">
@@ -429,63 +382,68 @@ export default function Settings() {
             <Shield className="h-5 w-5" />
             {t.settings.security}
           </h2>
-          <form onSubmit={handleChangePassword} className="space-y-4">
-            <div className="form-field">
-              <Label>{t.settings.currentPassword}</Label>
-              <Input 
-                type="password" 
-                value={passwordForm.current} 
-                onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })} 
-                placeholder={t.settings.currentPassword}
-              />
+          
+          <div className="space-y-6">
+            {/* Change Password */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">{t.settings.updatePassword}</h3>
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div className="form-field">
+                  <Label>{t.settings.currentPassword}</Label>
+                  <Input 
+                    type="password" 
+                    value={passwordForm.current} 
+                    onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })} 
+                    placeholder={t.settings.currentPassword}
+                  />
+                </div>
+                <div className="form-field">
+                  <Label>{t.settings.newPassword}</Label>
+                  <Input 
+                    type="password" 
+                    value={passwordForm.newPassword} 
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} 
+                    placeholder={t.settings.newPassword}
+                  />
+                </div>
+                <div className="form-field">
+                  <Label>{t.settings.confirmPassword}</Label>
+                  <Input 
+                    type="password" 
+                    value={passwordForm.confirm} 
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} 
+                    placeholder={t.settings.confirmPassword}
+                  />
+                </div>
+                <Button type="submit" disabled={savingPassword}>
+                  {savingPassword ? t.settings.updating : t.settings.updatePassword}
+                </Button>
+              </form>
             </div>
-            <div className="form-field">
-              <Label>{t.settings.newPassword}</Label>
-              <Input 
-                type="password" 
-                value={passwordForm.newPassword} 
-                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} 
-                placeholder={t.settings.newPassword}
-              />
+            
+            {/* Danger Zone */}
+            <div className="border-t pt-6">
+              <h3 className="text-sm font-medium text-destructive mb-2">{t.settings.dangerZone}</h3>
+              <p className="text-sm text-muted-foreground mb-4">{t.settings.dangerZoneDesc}</p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />{t.settings.deleteAccount}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t.settings.deleteAccountTitle}</AlertDialogTitle>
+                    <AlertDialogDescription>{t.settings.deleteAccountDescription}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
-            <div className="form-field">
-              <Label>{t.settings.confirmPassword}</Label>
-              <Input 
-                type="password" 
-                value={passwordForm.confirm} 
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} 
-                placeholder={t.settings.confirmPassword}
-              />
-            </div>
-            <Button type="submit" disabled={savingPassword}>
-              {savingPassword ? t.settings.updating : t.settings.updatePassword}
-            </Button>
-          </form>
-        </section>
-
-        {/* Sharing Section */}
-        <SharingSection />
-
-        {/* Support Section */}
-        <SupportSection />
-
-        {/* Danger Zone */}
-        <section className="health-card border-destructive/50">
-          <h2 className="text-lg font-semibold text-destructive mb-4">{t.settings.dangerZone}</h2>
-          <p className="text-sm text-muted-foreground mb-4">{t.settings.dangerZoneDesc}</p>
-          <AlertDialog>
-            <AlertDialogTrigger asChild><Button variant="destructive"><Trash2 className="h-4 w-4 mr-2" />{t.settings.deleteAccount}</Button></AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t.settings.deleteAccountTitle}</AlertDialogTitle>
-                <AlertDialogDescription>{t.settings.deleteAccountDescription}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          </div>
         </section>
       </div>
     </div>
