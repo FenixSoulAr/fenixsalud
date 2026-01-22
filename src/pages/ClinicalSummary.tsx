@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar } from "lucide-react";
+import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { format, subMonths, isAfter } from "date-fns";
 import { useTranslations } from "@/i18n";
+import { groupMedicationsByDiagnosis } from "@/hooks/useMedicationsByDiagnosis";
 
 export default function ClinicalSummary() {
   const { activeProfileOwnerId, isViewingOwnProfile } = useActiveProfile();
@@ -24,6 +25,7 @@ export default function ClinicalSummary() {
   // Data states
   const [profile, setProfile] = useState<any>(null);
   const [medications, setMedications] = useState<any[]>([]);
+  const [diagnoses, setDiagnoses] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
   const [testAttachments, setTestAttachments] = useState<Record<string, string[]>>({});
   const [procedures, setProcedures] = useState<any[]>([]);
@@ -39,9 +41,10 @@ export default function ClinicalSummary() {
     if (!activeProfileOwnerId) return;
     setLoading(true);
     
-    const [profileRes, medsRes, testsRes, proceduresRes, appointmentsRes] = await Promise.all([
+    const [profileRes, medsRes, diagRes, testsRes, proceduresRes, appointmentsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", activeProfileOwnerId).maybeSingle(),
       supabase.from("medications").select("*").eq("user_id", activeProfileOwnerId).eq("status", "Active").order("name"),
+      supabase.from("diagnoses").select("*").eq("user_id", activeProfileOwnerId),
       supabase.from("tests").select("*, institutions(name)").eq("user_id", activeProfileOwnerId).order("date", { ascending: false }),
       supabase.from("procedures").select("*, institutions(name), doctors(full_name)").eq("user_id", activeProfileOwnerId).order("date", { ascending: false }),
       supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("user_id", activeProfileOwnerId).order("datetime_start", { ascending: false }),
@@ -49,6 +52,7 @@ export default function ClinicalSummary() {
 
     setProfile(profileRes.data);
     setMedications(medsRes.data || []);
+    setDiagnoses(diagRes.data || []);
     
     // Filter tests to last 12 months
     const allTests = testsRes.data || [];
@@ -107,6 +111,9 @@ export default function ClinicalSummary() {
   const surgeries = procedures.filter(p => p.type === "Surgery");
   const hospitalizations = procedures.filter(p => p.type === "Hospitalization");
   const vaccines = procedures.filter(p => p.type === "Vaccine");
+  
+  // Group medications by diagnosis
+  const medicationGroups = groupMedicationsByDiagnosis(medications, diagnoses);
 
   return (
     <div className="animate-fade-in">
@@ -186,7 +193,7 @@ export default function ClinicalSummary() {
           )}
         </div>
 
-        {/* Current Medications */}
+        {/* Current Medications - Grouped by Diagnosis */}
         <div className="section">
           <h2 className="flex items-center gap-2 text-lg font-semibold mb-3">
             <Pill className="h-5 w-5" />{t.clinicalSummary.currentMedications}
@@ -194,25 +201,41 @@ export default function ClinicalSummary() {
           {medications.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t.clinicalSummary.noActiveMedications}</p>
           ) : (
-            <div className="health-card print:shadow-none print:border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 font-medium">{t.clinicalSummary.medication}</th>
-                    <th className="text-left py-2 font-medium">{t.clinicalSummary.dose}</th>
-                    <th className="text-left py-2 font-medium">{t.clinicalSummary.schedule}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {medications.map(m => (
-                    <tr key={m.id} className="border-b last:border-0">
-                      <td className="py-2">{m.name}</td>
-                      <td className="py-2">{m.dose_text}</td>
-                      <td className="py-2">{m.schedule_type}{m.times?.length ? ` (${m.times.join(", ")})` : ""}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-4">
+              {medicationGroups.map((group) => (
+                <div key={group.diagnosis?.id || "unlinked"}>
+                  {/* Diagnosis subheading */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <HeartPulse className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {group.diagnosis 
+                        ? `${group.diagnosis.condition}${group.diagnosis.status === "resolved" ? ` (${t.diagnoses.resolved})` : ""}`
+                        : t.dashboard.unlinkedNoDiagnosis
+                      }
+                    </span>
+                  </div>
+                  <div className="health-card print:shadow-none print:border">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 font-medium">{t.clinicalSummary.medication}</th>
+                          <th className="text-left py-2 font-medium">{t.clinicalSummary.dose}</th>
+                          <th className="text-left py-2 font-medium">{t.clinicalSummary.schedule}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.medications.map(m => (
+                          <tr key={m.id} className="border-b last:border-0">
+                            <td className="py-2">{m.name}</td>
+                            <td className="py-2">{m.dose_text}</td>
+                            <td className="py-2">{m.schedule_type}{m.times?.length ? ` (${m.times.join(", ")})` : ""}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

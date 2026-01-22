@@ -48,6 +48,7 @@ export interface Translations {
     viewAll: string;
     editInMedications: string;
     editInReminders: string;
+    unlinkedNoDiagnosis: string;
   };
   appointments: {
     title: string;
@@ -465,6 +466,7 @@ export const en: Translations = {
     viewAll: "View all",
     editInMedications: "Edit in Medications",
     editInReminders: "Edit in Reminders",
+    unlinkedNoDiagnosis: "Unlinked (No diagnosis)",
   },
   
   // Appointments

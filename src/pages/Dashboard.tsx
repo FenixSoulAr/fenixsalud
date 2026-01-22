@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Calendar, FlaskConical, Pill, Bell, Clock, ArrowRight, FileText } from "lucide-react";
+import { Plus, Calendar, FlaskConical, Pill, Bell, Clock, ArrowRight, FileText, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { groupMedicationsByDiagnosis, DiagnosisGroup } from "@/hooks/useMedicationsByDiagnosis";
 import { format } from "date-fns";
 import { useTranslations } from "@/i18n";
 
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
   const [medications, setMedications] = useState<any[]>([]);
+  const [diagnoses, setDiagnoses] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
   
   // Detail view states
@@ -38,21 +40,26 @@ export default function Dashboard() {
     setLoading(true);
     const today = new Date().toISOString();
 
-    const [apptRes, remRes, medRes, testRes] = await Promise.all([
+    const [apptRes, remRes, medRes, diagRes, testRes] = await Promise.all([
       supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("user_id", activeProfileOwnerId).gte("datetime_start", today).eq("status", "Upcoming").order("datetime_start").limit(5),
       supabase.from("reminders").select("*").eq("user_id", activeProfileOwnerId).gte("due_date_time", today).eq("is_completed", false).order("due_date_time").limit(5),
-      supabase.from("medications").select("*").eq("user_id", activeProfileOwnerId).eq("status", "Active").limit(5),
+      supabase.from("medications").select("*").eq("user_id", activeProfileOwnerId).eq("status", "Active"),
+      supabase.from("diagnoses").select("*").eq("user_id", activeProfileOwnerId),
       supabase.from("tests").select("*, institutions(name)").eq("user_id", activeProfileOwnerId).gte("date", today.split("T")[0]).order("date").limit(5),
     ]);
 
     setAppointments(apptRes.data || []);
     setReminders(remRes.data || []);
     setMedications(medRes.data || []);
+    setDiagnoses(diagRes.data || []);
     setTests(testRes.data || []);
     setLoading(false);
   }
 
   const hasData = appointments.length > 0 || reminders.length > 0 || medications.length > 0 || tests.length > 0;
+  
+  // Group medications by diagnosis
+  const medicationGroups = groupMedicationsByDiagnosis(medications, diagnoses);
 
   if (loading) return <LoadingPage />;
 
@@ -118,26 +125,42 @@ export default function Dashboard() {
               </section>
             )}
 
-            {/* Medications */}
+            {/* Medications - Grouped by Diagnosis */}
             {medications.length > 0 && (
               <section className="health-card">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold flex items-center gap-2"><Pill className="h-5 w-5 text-primary" />{t.dashboard.activeMedications}</h2>
+                  <h2 className="text-lg font-semibold flex items-center gap-2"><Pill className="h-5 w-5 text-primary" />{t.nav.medications}</h2>
                   <Link to="/medications" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                 </div>
-                <div className="space-y-3">
-                  {medications.map((med) => (
-                    <button 
-                      key={med.id} 
-                      onClick={() => setSelectedMedication(med)}
-                      className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors text-left min-h-[56px]"
-                    >
-                      <div>
-                        <p className="font-medium">{med.name}</p>
-                        <p className="text-sm text-muted-foreground">{med.dose_text}</p>
+                <div className="space-y-4">
+                  {medicationGroups.map((group, idx) => (
+                    <div key={group.diagnosis?.id || "unlinked"}>
+                      {/* Diagnosis subheading */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <HeartPulse className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">
+                          {group.diagnosis 
+                            ? `${group.diagnosis.condition}${group.diagnosis.status === "resolved" ? ` (${t.diagnoses.resolved})` : ""}`
+                            : t.dashboard.unlinkedNoDiagnosis
+                          }
+                        </span>
                       </div>
-                      <StatusBadge status={normalizeStatus(med.status)} />
-                    </button>
+                      <div className="space-y-2 pl-6">
+                        {group.medications.map((med) => (
+                          <button 
+                            key={med.id} 
+                            onClick={() => setSelectedMedication(med)}
+                            className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors text-left min-h-[56px]"
+                          >
+                            <div>
+                              <p className="font-medium">{med.name}</p>
+                              <p className="text-sm text-muted-foreground">{med.dose_text}</p>
+                            </div>
+                            <StatusBadge status={normalizeStatus(med.status)} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </section>
