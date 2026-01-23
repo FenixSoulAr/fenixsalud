@@ -66,6 +66,7 @@ export default function Dashboard() {
   return (
     <div className="animate-fade-in">
       <PageHeader
+        variant="gradient"
         title={t.dashboard.title}
         description={t.dashboard.description}
         actions={
