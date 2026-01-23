@@ -2,124 +2,124 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Friendly Wellness Design System - Calm, Trustworthy, Clean */
+/* Friendly Wellness Design System - Teal/Blue Gradient Theme */
 
 @layer base {
   :root {
     /* Base backgrounds - soft white with warmth */
     --background: 0 0% 99%;
-    --foreground: 210 20% 20%;
+    --foreground: 200 20% 18%;
 
     /* Cards and surfaces */
     --card: 0 0% 100%;
-    --card-foreground: 210 20% 20%;
+    --card-foreground: 200 20% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 20% 20%;
+    --popover-foreground: 200 20% 18%;
 
-    /* Primary - Soft wellness green */
-    --primary: 152 55% 45%;
+    /* Primary - Teal/Cyan matching logo */
+    --primary: 174 60% 45%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Muted blue/teal for accents */
-    --secondary: 190 30% 95%;
-    --secondary-foreground: 190 40% 35%;
+    /* Secondary - Sky blue accent */
+    --secondary: 199 90% 96%;
+    --secondary-foreground: 199 70% 40%;
 
     /* Muted backgrounds */
-    --muted: 210 15% 96%;
-    --muted-foreground: 210 10% 45%;
+    --muted: 199 20% 96%;
+    --muted-foreground: 200 10% 45%;
 
-    /* Accent - Light teal/blue */
-    --accent: 190 40% 93%;
-    --accent-foreground: 190 45% 35%;
+    /* Accent - Light sky blue */
+    --accent: 199 60% 94%;
+    --accent-foreground: 199 70% 38%;
 
     /* Destructive - Soft red */
     --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
 
     /* Borders and inputs */
-    --border: 210 15% 90%;
-    --input: 210 15% 90%;
-    --ring: 152 55% 45%;
+    --border: 199 20% 90%;
+    --input: 199 20% 90%;
+    --ring: 174 60% 45%;
 
     --radius: 1rem;
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 210 20% 30%;
-    --sidebar-primary: 152 55% 45%;
+    --sidebar-foreground: 200 20% 25%;
+    --sidebar-primary: 174 60% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 152 40% 94%;
-    --sidebar-accent-foreground: 152 55% 35%;
-    --sidebar-border: 210 15% 92%;
-    --sidebar-ring: 152 55% 45%;
+    --sidebar-accent: 174 50% 94%;
+    --sidebar-accent-foreground: 174 60% 35%;
+    --sidebar-border: 199 15% 92%;
+    --sidebar-ring: 174 60% 45%;
 
     /* Semantic tokens */
-    --success: 152 55% 45%;
+    --success: 160 60% 45%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 38 92% 15%;
-    --info: 190 60% 50%;
+    --info: 199 85% 50%;
     --info-foreground: 0 0% 100%;
 
     /* Shadows - soft and subtle */
-    --shadow-sm: 0 1px 2px 0 hsl(210 10% 50% / 0.04);
-    --shadow-md: 0 4px 8px -2px hsl(210 10% 50% / 0.08), 0 2px 4px -2px hsl(210 10% 50% / 0.04);
-    --shadow-lg: 0 12px 24px -4px hsl(210 10% 50% / 0.1), 0 4px 8px -2px hsl(210 10% 50% / 0.04);
-    --shadow-card: 0 2px 8px -2px hsl(210 10% 50% / 0.08), 0 1px 2px 0 hsl(210 10% 50% / 0.04);
-    --shadow-elevated: 0 20px 40px -8px hsl(210 10% 50% / 0.12), 0 8px 16px -4px hsl(210 10% 50% / 0.06);
+    --shadow-sm: 0 1px 2px 0 hsl(200 15% 50% / 0.04);
+    --shadow-md: 0 4px 8px -2px hsl(200 15% 50% / 0.08), 0 2px 4px -2px hsl(200 15% 50% / 0.04);
+    --shadow-lg: 0 12px 24px -4px hsl(200 15% 50% / 0.1), 0 4px 8px -2px hsl(200 15% 50% / 0.04);
+    --shadow-card: 0 2px 8px -2px hsl(200 15% 50% / 0.08), 0 1px 2px 0 hsl(200 15% 50% / 0.04);
+    --shadow-elevated: 0 20px 40px -8px hsl(200 15% 50% / 0.12), 0 8px 16px -4px hsl(200 15% 50% / 0.06);
   }
 
   .dark {
-    --background: 220 20% 10%;
-    --foreground: 210 15% 95%;
+    --background: 200 25% 9%;
+    --foreground: 199 15% 95%;
 
-    --card: 220 20% 13%;
-    --card-foreground: 210 15% 95%;
+    --card: 200 25% 12%;
+    --card-foreground: 199 15% 95%;
 
-    --popover: 220 20% 13%;
-    --popover-foreground: 210 15% 95%;
+    --popover: 200 25% 12%;
+    --popover-foreground: 199 15% 95%;
 
-    --primary: 152 50% 50%;
-    --primary-foreground: 220 20% 10%;
+    --primary: 174 55% 48%;
+    --primary-foreground: 200 25% 9%;
 
-    --secondary: 220 15% 18%;
-    --secondary-foreground: 190 30% 75%;
+    --secondary: 200 20% 16%;
+    --secondary-foreground: 199 40% 75%;
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 210 10% 60%;
+    --muted: 200 20% 16%;
+    --muted-foreground: 199 10% 60%;
 
-    --accent: 220 15% 18%;
-    --accent-foreground: 190 40% 65%;
+    --accent: 200 20% 16%;
+    --accent-foreground: 199 50% 65%;
 
     --destructive: 0 55% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 22%;
-    --input: 220 15% 22%;
-    --ring: 152 50% 50%;
+    --border: 200 20% 20%;
+    --input: 200 20% 20%;
+    --ring: 174 55% 48%;
 
-    --sidebar-background: 220 20% 11%;
-    --sidebar-foreground: 210 15% 90%;
-    --sidebar-primary: 152 50% 50%;
-    --sidebar-primary-foreground: 220 20% 10%;
-    --sidebar-accent: 220 15% 18%;
-    --sidebar-accent-foreground: 152 45% 60%;
-    --sidebar-border: 220 15% 20%;
-    --sidebar-ring: 152 50% 50%;
+    --sidebar-background: 200 25% 10%;
+    --sidebar-foreground: 199 15% 90%;
+    --sidebar-primary: 174 55% 48%;
+    --sidebar-primary-foreground: 200 25% 9%;
+    --sidebar-accent: 200 20% 16%;
+    --sidebar-accent-foreground: 174 50% 60%;
+    --sidebar-border: 200 20% 18%;
+    --sidebar-ring: 174 55% 48%;
 
-    --success: 152 50% 50%;
-    --success-foreground: 220 20% 10%;
+    --success: 160 55% 48%;
+    --success-foreground: 200 25% 9%;
     --warning: 38 80% 55%;
     --warning-foreground: 38 80% 10%;
-    --info: 190 55% 55%;
-    --info-foreground: 220 20% 10%;
+    --info: 199 70% 55%;
+    --info-foreground: 200 25% 9%;
 
-    --shadow-sm: 0 1px 2px 0 hsl(220 30% 5% / 0.2);
-    --shadow-md: 0 4px 8px -2px hsl(220 30% 5% / 0.3), 0 2px 4px -2px hsl(220 30% 5% / 0.2);
-    --shadow-lg: 0 12px 24px -4px hsl(220 30% 5% / 0.4), 0 4px 8px -2px hsl(220 30% 5% / 0.2);
-    --shadow-card: 0 2px 8px -2px hsl(220 30% 5% / 0.3), 0 1px 2px 0 hsl(220 30% 5% / 0.2);
-    --shadow-elevated: 0 20px 40px -8px hsl(220 30% 5% / 0.5), 0 8px 16px -4px hsl(220 30% 5% / 0.3);
+    --shadow-sm: 0 1px 2px 0 hsl(200 35% 5% / 0.2);
+    --shadow-md: 0 4px 8px -2px hsl(200 35% 5% / 0.3), 0 2px 4px -2px hsl(200 35% 5% / 0.2);
+    --shadow-lg: 0 12px 24px -4px hsl(200 35% 5% / 0.4), 0 4px 8px -2px hsl(200 35% 5% / 0.2);
+    --shadow-card: 0 2px 8px -2px hsl(200 35% 5% / 0.3), 0 1px 2px 0 hsl(200 35% 5% / 0.2);
+    --shadow-elevated: 0 20px 40px -8px hsl(200 35% 5% / 0.5), 0 8px 16px -4px hsl(200 35% 5% / 0.3);
   }
 }
 
