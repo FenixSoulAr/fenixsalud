@@ -17,7 +17,12 @@ export function PageHeader({ title, description, actions, variant = "default" }:
       isGradient && "relative -mx-4 lg:-mx-8 -mt-6 lg:-mt-8 mb-8 px-4 lg:px-8 pt-6 lg:pt-8 pb-8 rounded-b-3xl overflow-hidden"
     )}>
       {isGradient && (
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-info/10 to-accent/20 dark:from-primary/20 dark:via-info/15 dark:to-accent/25" />
+        <>
+          {/* Base gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-info/10 to-accent/20 dark:from-primary/20 dark:via-info/15 dark:to-accent/25" />
+          {/* Animated shimmer overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
+        </>
       )}
       <div className={cn(
         "relative flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4",
