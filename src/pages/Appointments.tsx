@@ -309,6 +309,7 @@ export default function Appointments() {
   return (
     <div className="animate-fade-in">
       <PageHeader
+        variant="gradient"
         title={t.appointments.title}
         description={t.appointments.description}
         actions={

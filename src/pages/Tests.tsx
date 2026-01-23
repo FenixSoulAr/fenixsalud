@@ -185,7 +185,7 @@ export default function Tests() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title={t.tests.title} description={t.tests.description}
+      <PageHeader variant="gradient" title={t.tests.title} description={t.tests.description}
         actions={
           canEdit ? (
             <Button onClick={() => setDialogOpen(true)}>
