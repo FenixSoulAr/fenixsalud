@@ -126,7 +126,7 @@ export default function Reminders() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Reminders" description="Never miss an important health task"
+      <PageHeader variant="gradient" title="Reminders" description="Never miss an important health task"
         actions={
           canEdit ? (
             <Button onClick={() => setDialogOpen(true)}>

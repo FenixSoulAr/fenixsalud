@@ -276,7 +276,7 @@ export default function Diagnoses() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title={t.diagnoses.title} description={t.diagnoses.description}
+      <PageHeader variant="gradient" title={t.diagnoses.title} description={t.diagnoses.description}
         actions={
           canEdit ? (
             <Button onClick={() => setDialogOpen(true)}>

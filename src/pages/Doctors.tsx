@@ -96,7 +96,7 @@ export default function Doctors() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Doctors" description="Your healthcare providers"
+      <PageHeader variant="gradient" title="Doctors" description="Your healthcare providers"
         actions={
           canEdit ? (
             <Button onClick={() => setDialogOpen(true)}>

@@ -232,7 +232,7 @@ export default function Procedures() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title={t.procedures.title} description={t.procedures.description}
+      <PageHeader variant="gradient" title={t.procedures.title} description={t.procedures.description}
         actions={
           canEdit ? (
             <Button onClick={() => setDialogOpen(true)}>
