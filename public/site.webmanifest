@@ -1,20 +1,21 @@
 {
-  "name": "My Health",
-  "short_name": "My Health",
-  "description": "Your personal health companion",
+  "name": "Mi Salud",
+  "short_name": "Mi Salud",
+  "description": "Tu historial de salud personal, seguro y siempre accesible.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#22c55e",
+  "theme_color": "#16a34a",
   "icons": [
     {
-      "src": "/favicon-96x96.png",
-      "sizes": "96x96",
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/apple-touch-icon.png",
-      "sizes": "180x180",
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
       "type": "image/png"
     }
   ]
