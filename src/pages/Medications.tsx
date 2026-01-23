@@ -170,7 +170,7 @@ export default function Medications() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title={t.medications.title} description={t.medications.description}
+      <PageHeader variant="gradient" title={t.medications.title} description={t.medications.description}
         actions={
           canEdit ? (
             <Button onClick={() => setDialogOpen(true)}>
