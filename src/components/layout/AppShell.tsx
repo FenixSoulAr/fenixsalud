@@ -74,9 +74,11 @@ export function AppShell({ children }: AppShellProps) {
           {/* Logo */}
           <div className="flex h-16 items-center justify-between px-5 border-b border-sidebar-border">
             <Link to="/" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <Heart className="h-5 w-5" />
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Mi Salud" 
+                className="h-10 w-10 rounded-xl object-contain"
+              />
               <div className="flex items-center gap-2">
                 <span className="text-xl font-semibold text-sidebar-foreground tracking-tight">
                   {t.appName}
@@ -183,9 +185,11 @@ export function AppShell({ children }: AppShellProps) {
             <Menu className="h-5 w-5" />
           </Button>
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Heart className="h-4 w-4" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Mi Salud" 
+              className="h-9 w-9 rounded-xl object-contain"
+            />
             <span className="text-lg font-semibold tracking-tight">{t.appName}</span>
             <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
               Beta
