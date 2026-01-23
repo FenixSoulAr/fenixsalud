@@ -199,6 +199,7 @@ export default function Settings() {
   return (
     <div className="animate-fade-in">
       <PageHeader 
+        variant="gradient"
         title={t.settings.title}
         description={t.settings.description}
       />

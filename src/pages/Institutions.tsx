@@ -103,7 +103,7 @@ export default function Institutions() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Institutions" description="Clinics, labs, and hospitals"
+      <PageHeader variant="gradient" title="Institutions" description="Clinics, labs, and hospitals"
         actions={
           canEdit ? (
             <Button onClick={() => setDialogOpen(true)}>
