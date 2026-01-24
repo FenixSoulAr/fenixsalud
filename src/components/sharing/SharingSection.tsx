@@ -1,16 +1,20 @@
 import { useState, useEffect } from "react";
-import { Users, Mail, Trash2, UserPlus } from "lucide-react";
+import { Users, Mail, Trash2, UserPlus, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useSharing } from "@/contexts/SharingContext";
+import { useEntitlementGate } from "@/hooks/useEntitlementGate";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 export function SharingSection() {
   const { myShares, inviteUser, revokeAccess, updateRole, canManageSharing, refreshShares, loading } = useSharing();
+  const { canShare, canUseRoles } = useEntitlementGate();
+  const navigate = useNavigate();
   const lang = getLanguage();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"viewer" | "contributor">("viewer");
@@ -48,6 +52,32 @@ export function SharingSection() {
 
   if (!canManageSharing) {
     return null;
+  }
+
+  // Show upgrade prompt if sharing is not enabled
+  if (!canShare) {
+    return (
+      <section className="health-card">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          {lang === "es" ? "Compartir perfil" : "Profile Sharing"}
+        </h2>
+        <div className="text-center py-6">
+          <Crown className="h-12 w-12 mx-auto mb-3 text-amber-500" />
+          <h3 className="font-medium mb-2">
+            {lang === "es" ? "Función Plus" : "Plus Feature"}
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            {lang === "es"
+              ? "Compartí tu información de salud con familiares o cuidadores de confianza. Actualizá a Plus para habilitar esta función."
+              : "Share your health information with trusted family members or caregivers. Upgrade to Plus to enable this feature."}
+          </p>
+          <Button onClick={() => navigate("/pricing")} size="sm">
+            {lang === "es" ? "Ver planes" : "View Plans"}
+          </Button>
+        </div>
+      </section>
+    );
   }
 
   const handleInvite = async (e: React.FormEvent) => {

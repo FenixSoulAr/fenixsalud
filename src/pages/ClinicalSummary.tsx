@@ -1,23 +1,26 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar, HeartPulse } from "lucide-react";
+import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar, HeartPulse, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { useEntitlementGate } from "@/hooks/useEntitlementGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { format, subMonths, isAfter } from "date-fns";
-import { useTranslations } from "@/i18n";
+import { useTranslations, getLanguage } from "@/i18n";
 import { groupMedicationsByDiagnosis } from "@/hooks/useMedicationsByDiagnosis";
 
 export default function ClinicalSummary() {
   const { activeProfileOwnerId, isViewingOwnProfile } = useActiveProfile();
+  const { canExportPdf, loading: entitlementsLoading } = useEntitlementGate();
   const { user } = useAuth();
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
   const t = useTranslations();
+  const lang = getLanguage();
   
   const [loading, setLoading] = useState(true);
   const [includeVisits, setIncludeVisits] = useState(false);
@@ -102,7 +105,32 @@ export default function ClinicalSummary() {
     window.print();
   }
 
-  if (loading) return <LoadingPage />;
+  if (loading || entitlementsLoading) return <LoadingPage />;
+
+  // Check if PDF export is gated
+  if (!canExportPdf) {
+    return (
+      <div className="animate-fade-in">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />{t.actions.back}
+        </Button>
+        <div className="max-w-lg mx-auto text-center py-12">
+          <Crown className="h-16 w-16 mx-auto mb-4 text-amber-500" />
+          <h2 className="text-xl font-semibold mb-2">
+            {lang === "es" ? "Función Plus" : "Plus Feature"}
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            {lang === "es" 
+              ? "El resumen clínico y la exportación PDF son funciones exclusivas de Plus. Actualizá tu plan para generar y descargar tu resumen clínico."
+              : "Clinical summary and PDF export are Plus-exclusive features. Upgrade your plan to generate and download your clinical summary."}
+          </p>
+          <Button onClick={() => navigate("/pricing")}>
+            {lang === "es" ? "Ver planes" : "View Plans"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const today = format(new Date(), "MMMM d, yyyy");
   const fullName = profile?.full_name || [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || t.misc.patient;
