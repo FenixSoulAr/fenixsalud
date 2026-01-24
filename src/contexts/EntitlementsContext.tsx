@@ -3,16 +3,17 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 
 interface EntitlementsContextValue {
   loading: boolean;
+  error: string | null;
   planCode: string | null;
   planName: string | null;
-  isPlusPlan: boolean;
+  isPlus: boolean;
   maxProfiles: number;
   maxAttachments: number;
-  canShare: boolean;
-  canUseRoles: boolean;
   canExportPdf: boolean;
-  canExportBackup: boolean;
+  canShareProfiles: boolean;
+  canUseRoles: boolean;
   canUseProcedures: boolean;
+  canExportBackup: boolean;
   refetch: () => Promise<void>;
 }
 

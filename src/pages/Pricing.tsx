@@ -6,7 +6,7 @@ import { useTranslations, getLanguage } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 
 export default function Pricing() {
-  const { planCode, isPlusPlan } = useEntitlementsContext();
+  const { planCode, isPlus } = useEntitlementsContext();
   const lang = getLanguage();
 
   const t = {
@@ -109,8 +109,8 @@ export default function Pricing() {
         </div>
 
         {/* Plus Plan */}
-        <div className={`health-card relative border-2 border-primary/50 ${isPlusPlan ? "ring-2 ring-primary" : ""}`}>
-          {isPlusPlan && (
+        <div className={`health-card relative border-2 border-primary/50 ${isPlus ? "ring-2 ring-primary" : ""}`}>
+          {isPlus && (
             <Badge className="absolute -top-3 left-4 bg-primary">
               {t.currentPlan}
             </Badge>
@@ -135,7 +135,7 @@ export default function Pricing() {
             ))}
           </ul>
 
-          {isPlusPlan ? (
+          {isPlus ? (
             <Button variant="outline" disabled className="w-full">
               {t.youreOnThisPlan}
             </Button>

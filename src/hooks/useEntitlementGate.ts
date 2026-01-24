@@ -19,7 +19,7 @@ export function useEntitlementGate() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const {
-    canShare,
+    canShareProfiles,
     canUseRoles,
     canExportPdf,
     canExportBackup,
@@ -68,7 +68,7 @@ export function useEntitlementGate() {
 
       switch (feature) {
         case "sharing":
-          return canShare;
+          return canShareProfiles;
         case "roles":
           return canUseRoles;
         case "pdf_export":
@@ -81,7 +81,7 @@ export function useEntitlementGate() {
           return true;
       }
     },
-    [loading, canShare, canUseRoles, canExportPdf, canExportBackup, canUseProcedures]
+    [loading, canShareProfiles, canUseRoles, canExportPdf, canExportBackup, canUseProcedures]
   );
 
   const gateFeature = useCallback(
@@ -103,18 +103,8 @@ export function useEntitlementGate() {
   const checkProfileLimit = useCallback(async (): Promise<boolean> => {
     if (loading || !user) return true;
 
-    // Count current profiles (profile_shares where user is owner)
-    // In this app, each user has 1 profile, so we check shared profiles
-    // Actually, in this app "profiles" are just the user's own profile
-    // The "profiles.max" likely refers to how many people's data they can manage
-    
-    // For now, we interpret this as: the user's own profile = 1
-    // If they want to share with others (becoming the "owner" of shared access), that's still 1 profile
-    // This may need refinement based on exact product requirements
-    
     // For MVP: profiles.max = 1 means they can only manage their own profile
-    // profiles.max = 10 means they can invite others to access theirs (but it's still 1 profile)
-    
+    // profiles.max = 10 means they can manage multiple profiles
     // Since the current model doesn't support multiple profiles per user,
     // this check always passes for profile creation
     return true;
@@ -151,7 +141,7 @@ export function useEntitlementGate() {
     gateFeature,
     checkProfileLimit,
     checkAttachmentLimit,
-    canShare,
+    canShare: canShareProfiles,
     canUseRoles,
     canExportPdf,
     canExportBackup,
