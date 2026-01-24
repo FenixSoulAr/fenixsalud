@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { ensureSubscriptionRow } from "@/lib/subscriptions";
 
 interface EntitlementValues {
   maxProfiles: number;
@@ -81,6 +82,9 @@ export function useEntitlements(): UseEntitlementsReturn {
     setError(null);
 
     try {
+      // Ensure subscription row exists before reading
+      await ensureSubscriptionRow();
+      
       // Get user's subscription and plan
       const { data: subscription, error: subError } = await supabase
         .from("subscriptions")
