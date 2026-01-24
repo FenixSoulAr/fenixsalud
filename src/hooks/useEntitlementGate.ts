@@ -53,8 +53,8 @@ export function useEntitlementGate() {
       es: "Procedimientos (cirugías, hospitalizaciones, vacunas) son una función Plus. Actualizá para registrar tus procedimientos.",
     },
     profiles: {
-      en: `You've reached the limit of ${maxProfiles} profile(s). Upgrade to Plus for up to 10 profiles.`,
-      es: `Has alcanzado el límite de ${maxProfiles} perfil(es). Actualizá a Plus para hasta 10 perfiles.`,
+      en: "Free plan allows only 1 personal profile. Upgrade to Plus to manage family profiles.",
+      es: "El plan Free permite solo 1 perfil personal. Actualizá a Plus para gestionar perfiles familiares.",
     },
     attachments: {
       en: `You've reached the limit of ${maxAttachments} attachments. Upgrade to Plus for unlimited attachments.`,
@@ -103,12 +103,27 @@ export function useEntitlementGate() {
   const checkProfileLimit = useCallback(async (): Promise<boolean> => {
     if (loading || !user) return true;
 
-    // For MVP: profiles.max = 1 means they can only manage their own profile
-    // profiles.max = 10 means they can manage multiple profiles
-    // Since the current model doesn't support multiple profiles per user,
-    // this check always passes for profile creation
+    // Count current profiles for this user
+    const { count, error } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error checking profile count:", error);
+      return true; // Allow on error
+    }
+
+    const currentCount = count || 0;
+    if (currentCount >= maxProfiles) {
+      const msg = lang === "es" ? messages.profiles.es : messages.profiles.en;
+      toast.error(msg);
+      navigate("/pricing");
+      return false;
+    }
+
     return true;
-  }, [loading, user, maxProfiles]);
+  }, [loading, user, maxProfiles, navigate, lang]);
 
   const checkAttachmentLimit = useCallback(async (): Promise<boolean> => {
     if (loading || !user) return true;
