@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trash2, User, Shield, Bell } from "lucide-react";
+import { Trash2, User, Shield, Bell, CreditCard, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +13,10 @@ import { SharingSection } from "@/components/sharing/SharingSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSharing } from "@/contexts/SharingContext";
+import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { toast } from "sonner";
 import { useTranslations } from "@/i18n";
+import { useNavigate } from "react-router-dom";
 
 const timezones = ["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "Europe/Paris", "Asia/Tokyo", "Asia/Singapore", "Australia/Sydney"];
 
@@ -39,6 +41,8 @@ interface SettingsData {
 export default function Settings() {
   const { user, signOut } = useAuth();
   const { canManageSharing } = useSharing();
+  const { isPlus, maxProfiles, maxAttachments, loading: entitlementsLoading } = useEntitlementsContext();
+  const navigate = useNavigate();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -334,6 +338,75 @@ export default function Settings() {
               </AlertDialog>
             </div>
           </form>
+        </section>
+
+        {/* Plan & Subscription Section */}
+        <section className="health-card">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            {t.settings.planSubscription || "Plan & Subscription"}
+          </h2>
+          
+          <div className="space-y-4">
+            {/* Current Plan */}
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-3">
+                {isPlus ? (
+                  <Crown className="h-5 w-5 text-primary" />
+                ) : (
+                  <div className="h-5 w-5 rounded-full bg-muted-foreground/20" />
+                )}
+                <div>
+                  <p className="font-medium">
+                    {isPlus 
+                      ? (t.settings.plusPlan || "Plus") 
+                      : (t.settings.freePlan || "Free")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.settings.currentPlan || "Current plan"}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Limits Summary */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-muted/30 rounded-lg text-center">
+                <p className="text-2xl font-bold text-primary">{maxProfiles}</p>
+                <p className="text-xs text-muted-foreground">
+                  {maxProfiles === 1 
+                    ? (t.settings.profile || "Profile") 
+                    : (t.settings.profiles || "Profiles")}
+                </p>
+              </div>
+              <div className="p-3 bg-muted/30 rounded-lg text-center">
+                <p className="text-2xl font-bold text-primary">
+                  {maxAttachments >= 9999 ? "∞" : maxAttachments}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t.settings.attachments || "Attachments"}
+                </p>
+              </div>
+            </div>
+            
+            {/* Upgrade CTA */}
+            {!isPlus && (
+              <Button 
+                onClick={() => navigate("/pricing")} 
+                className="w-full"
+                variant="default"
+              >
+                <Crown className="h-4 w-4 mr-2" />
+                {t.settings.upgradePlus || "Upgrade to Plus"}
+              </Button>
+            )}
+            
+            {isPlus && (
+              <p className="text-sm text-muted-foreground text-center">
+                {t.settings.plusActive || "You're on the Plus plan. Thank you for your support!"}
+              </p>
+            )}
+          </div>
         </section>
 
         {/* Sharing Section */}
