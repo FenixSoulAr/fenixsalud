@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SharingProvider } from "@/contexts/SharingContext";
+import { EntitlementsProvider } from "@/contexts/EntitlementsContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 
@@ -22,6 +23,7 @@ import Institutions from "./pages/Institutions";
 import Reminders from "./pages/Reminders";
 import Settings from "./pages/Settings";
 import ClinicalSummary from "./pages/ClinicalSummary";
+import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
@@ -70,6 +72,7 @@ function AppRoutes() {
       <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/clinical-summary" element={<ProtectedRoute><ClinicalSummary /></ProtectedRoute>} />
+      <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
       <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
       <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
       
@@ -86,9 +89,11 @@ function App() {
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <SharingProvider>
-              <AppRoutes />
-            </SharingProvider>
+            <EntitlementsProvider>
+              <SharingProvider>
+                <AppRoutes />
+              </SharingProvider>
+            </EntitlementsProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

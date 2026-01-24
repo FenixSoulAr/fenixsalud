@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Syringe, Pencil, Trash2, Eye, ArrowLeft, Filter } from "lucide-react";
+import { Plus, Syringe, Pencil, Trash2, Eye, ArrowLeft, Filter, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -15,9 +15,11 @@ import { FileAttachments } from "@/components/FileAttachments";
 import { AttachmentIndicator } from "@/components/AttachmentIndicator";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { useEntitlementGate } from "@/hooks/useEntitlementGate";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { useTranslations } from "@/i18n";
+import { useTranslations, getLanguage } from "@/i18n";
+import { useNavigate } from "react-router-dom";
 
 type ProcedureType = "Surgery" | "Hospitalization" | "Vaccine";
 
@@ -34,7 +36,10 @@ function getProcedureStatusStyle(type: ProcedureType) {
 
 export default function Procedures() {
   const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
+  const { canUseProcedures, gateFeature, loading: entitlementsLoading } = useEntitlementGate();
+  const navigate = useNavigate();
   const t = useTranslations();
+  const lang = getLanguage();
   const [loading, setLoading] = useState(true);
   const [procedures, setProcedures] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<any[]>([]);
@@ -161,7 +166,30 @@ export default function Procedures() {
     ? procedures 
     : procedures.filter(p => p.type === filterType);
 
-  if (loading) return <LoadingPage />;
+  if (loading || entitlementsLoading) return <LoadingPage />;
+
+  // Check if procedures feature is gated
+  if (!canUseProcedures) {
+    return (
+      <div className="animate-fade-in">
+        <PageHeader variant="gradient" title={t.procedures.title} description={t.procedures.description} />
+        <div className="max-w-lg mx-auto text-center py-12">
+          <Crown className="h-16 w-16 mx-auto mb-4 text-amber-500" />
+          <h2 className="text-xl font-semibold mb-2">
+            {lang === "es" ? "Función Plus" : "Plus Feature"}
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            {lang === "es" 
+              ? "Procedimientos (cirugías, hospitalizaciones, vacunas) son una función exclusiva de Plus. Actualizá tu plan para registrar y visualizar tus procedimientos médicos."
+              : "Procedures (surgeries, hospitalizations, vaccines) are a Plus-exclusive feature. Upgrade your plan to track and view your medical procedures."}
+          </p>
+          <Button onClick={() => navigate("/pricing")}>
+            {lang === "es" ? "Ver planes" : "View Plans"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Detail View
   if (viewingProcedure) {

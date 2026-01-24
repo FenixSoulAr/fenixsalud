@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { useEntitlementGate } from "@/hooks/useEntitlementGate";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -20,6 +21,7 @@ const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 export function useFileAttachments(entityType: EntityType, entityId: string | null) {
   const { dataOwnerId, activeProfileOwnerId } = useActiveProfile();
+  const { checkAttachmentLimit } = useEntitlementGate();
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -50,6 +52,12 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
   const uploadFile = async (file: File): Promise<{ success: boolean; error?: string }> => {
     if (!dataOwnerId || !entityId) {
       return { success: false, error: "Not authenticated or missing entity ID." };
+    }
+
+    // Check entitlement limit before uploading
+    const canUpload = await checkAttachmentLimit();
+    if (!canUpload) {
+      return { success: false, error: "Attachment limit reached. Upgrade to Plus for unlimited attachments." };
     }
 
     // Normalize MIME type for mobile compatibility (some devices report different types)
