@@ -1,52 +1,84 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface EntitlementValues {
   maxProfiles: number;
   maxAttachments: number;
-  canShare: boolean;
-  canUseRoles: boolean;
   canExportPdf: boolean;
-  canExportBackup: boolean;
+  canShareProfiles: boolean;
+  canUseRoles: boolean;
   canUseProcedures: boolean;
+  canExportBackup: boolean;
 }
 
 interface UseEntitlementsReturn extends EntitlementValues {
   loading: boolean;
+  error: string | null;
   planCode: string | null;
   planName: string | null;
-  isPlusPlan: boolean;
+  isPlus: boolean;
   refetch: () => Promise<void>;
 }
 
 const FREE_DEFAULTS: EntitlementValues = {
   maxProfiles: 1,
   maxAttachments: 9,
-  canShare: false,
-  canUseRoles: false,
   canExportPdf: false,
-  canExportBackup: false,
+  canShareProfiles: false,
+  canUseRoles: false,
   canUseProcedures: false,
+  canExportBackup: false,
 };
+
+// In-memory cache for entitlements per user
+const entitlementCache = new Map<string, {
+  entitlements: EntitlementValues;
+  planCode: string;
+  planName: string;
+  timestamp: number;
+}>();
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export function useEntitlements(): UseEntitlementsReturn {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [planCode, setPlanCode] = useState<string | null>(null);
   const [planName, setPlanName] = useState<string | null>(null);
   const [entitlements, setEntitlements] = useState<EntitlementValues>(FREE_DEFAULTS);
+  const fetchingRef = useRef(false);
 
-  const fetchEntitlements = useCallback(async () => {
+  const fetchEntitlements = useCallback(async (forceRefresh = false) => {
     if (!user) {
       setLoading(false);
+      setError(null);
       setEntitlements(FREE_DEFAULTS);
-      setPlanCode(null);
-      setPlanName(null);
+      setPlanCode("free");
+      setPlanName("Free");
       return;
     }
 
+    // Check cache first (unless force refresh)
+    if (!forceRefresh) {
+      const cached = entitlementCache.get(user.id);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        setEntitlements(cached.entitlements);
+        setPlanCode(cached.planCode);
+        setPlanName(cached.planName);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+    }
+
+    // Prevent concurrent fetches
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+
     setLoading(true);
+    setError(null);
 
     try {
       // Get user's subscription and plan
@@ -54,14 +86,15 @@ export function useEntitlements(): UseEntitlementsReturn {
         .from("subscriptions")
         .select("plan_id, status, plans(id, code, name)")
         .eq("user_id", user.id)
-        .eq("status", "active")
+        .in("status", ["active", "trialing"])
         .maybeSingle();
 
       if (subError) {
         console.error("Error fetching subscription:", subError);
+        throw new Error("Failed to load subscription");
       }
 
-      // If no active subscription, use free plan
+      // Determine current plan
       let currentPlanId: string | null = null;
       let currentPlanCode = "free";
       let currentPlanName = "Free";
@@ -73,11 +106,16 @@ export function useEntitlements(): UseEntitlementsReturn {
         currentPlanName = plan.name;
       } else {
         // Get free plan ID
-        const { data: freePlan } = await supabase
+        const { data: freePlan, error: freePlanError } = await supabase
           .from("plans")
           .select("id")
           .eq("code", "free")
           .single();
+        
+        if (freePlanError) {
+          console.error("Error fetching free plan:", freePlanError);
+          throw new Error("Failed to load plan configuration");
+        }
         
         if (freePlan) {
           currentPlanId = freePlan.id;
@@ -88,6 +126,8 @@ export function useEntitlements(): UseEntitlementsReturn {
       setPlanName(currentPlanName);
 
       // Get entitlements for the plan
+      let resolvedEntitlements = FREE_DEFAULTS;
+
       if (currentPlanId) {
         const { data: entitlementRows, error: entError } = await supabase
           .from("entitlements")
@@ -96,6 +136,7 @@ export function useEntitlements(): UseEntitlementsReturn {
 
         if (entError) {
           console.error("Error fetching entitlements:", entError);
+          throw new Error("Failed to load entitlements");
         }
 
         if (entitlementRows && entitlementRows.length > 0) {
@@ -104,26 +145,38 @@ export function useEntitlements(): UseEntitlementsReturn {
             entMap[e.key] = e.value;
           });
 
-          setEntitlements({
+          resolvedEntitlements = {
             maxProfiles: entMap["profiles.max"]?.limit ?? FREE_DEFAULTS.maxProfiles,
             maxAttachments: entMap["attachments.max"]?.limit ?? FREE_DEFAULTS.maxAttachments,
-            canShare: entMap["sharing.enabled"]?.enabled ?? FREE_DEFAULTS.canShare,
-            canUseRoles: entMap["sharing.roles"]?.enabled ?? FREE_DEFAULTS.canUseRoles,
             canExportPdf: entMap["pdf_export.enabled"]?.enabled ?? FREE_DEFAULTS.canExportPdf,
-            canExportBackup: entMap["export_backup.enabled"]?.enabled ?? FREE_DEFAULTS.canExportBackup,
+            canShareProfiles: entMap["sharing.enabled"]?.enabled ?? FREE_DEFAULTS.canShareProfiles,
+            canUseRoles: entMap["sharing.roles"]?.enabled ?? FREE_DEFAULTS.canUseRoles,
             canUseProcedures: entMap["procedures.enabled"]?.enabled ?? FREE_DEFAULTS.canUseProcedures,
-          });
-        } else {
-          setEntitlements(FREE_DEFAULTS);
+            canExportBackup: entMap["export_backup.enabled"]?.enabled ?? FREE_DEFAULTS.canExportBackup,
+          };
         }
-      } else {
-        setEntitlements(FREE_DEFAULTS);
       }
-    } catch (error) {
-      console.error("Error in fetchEntitlements:", error);
+
+      setEntitlements(resolvedEntitlements);
+
+      // Update cache
+      entitlementCache.set(user.id, {
+        entitlements: resolvedEntitlements,
+        planCode: currentPlanCode,
+        planName: currentPlanName,
+        timestamp: Date.now(),
+      });
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error loading entitlements";
+      console.error("Error in fetchEntitlements:", err);
+      setError(errorMessage);
       setEntitlements(FREE_DEFAULTS);
+      setPlanCode("free");
+      setPlanName("Free");
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
   }, [user]);
 
@@ -131,14 +184,31 @@ export function useEntitlements(): UseEntitlementsReturn {
     fetchEntitlements();
   }, [fetchEntitlements]);
 
-  const isPlusPlan = planCode === "plus_monthly" || planCode === "plus_yearly";
+  // Clear cache on sign out
+  useEffect(() => {
+    if (!user) {
+      entitlementCache.clear();
+    }
+  }, [user]);
+
+  const isPlus = planCode === "plus_monthly" || planCode === "plus_yearly";
 
   return {
     loading,
+    error,
     planCode,
     planName,
-    isPlusPlan,
+    isPlus,
     ...entitlements,
-    refetch: fetchEntitlements,
+    refetch: () => fetchEntitlements(true),
   };
+}
+
+// Utility to invalidate cache (useful after subscription changes)
+export function invalidateEntitlementsCache(userId?: string) {
+  if (userId) {
+    entitlementCache.delete(userId);
+  } else {
+    entitlementCache.clear();
+  }
 }
