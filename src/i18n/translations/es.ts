@@ -392,6 +392,15 @@ export const es: Translations = {
     deleting: "Eliminando...",
     optional: "Opcional",
     required: "obligatorio",
+    planSubscription: "Plan y suscripción",
+    currentPlan: "Plan actual",
+    freePlan: "Gratis",
+    plusPlan: "Plus",
+    profile: "Perfil",
+    profiles: "Perfiles",
+    attachments: "Adjuntos",
+    upgradePlus: "Actualizar a Plus",
+    plusActive: "Estás en el plan Plus. ¡Gracias por tu apoyo!",
   },
   
   // Auth

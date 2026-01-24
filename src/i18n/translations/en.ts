@@ -364,6 +364,15 @@ export interface Translations {
     deleting: string;
     optional: string;
     required: string;
+    planSubscription: string;
+    currentPlan: string;
+    freePlan: string;
+    plusPlan: string;
+    profile: string;
+    profiles: string;
+    attachments: string;
+    upgradePlus: string;
+    plusActive: string;
   };
   auth: {
     signIn: string;
@@ -830,6 +839,15 @@ export const en: Translations = {
     deleting: "Deleting...",
     optional: "Optional",
     required: "required",
+    planSubscription: "Plan & Subscription",
+    currentPlan: "Current plan",
+    freePlan: "Free",
+    plusPlan: "Plus",
+    profile: "Profile",
+    profiles: "Profiles",
+    attachments: "Attachments",
+    upgradePlus: "Upgrade to Plus",
+    plusActive: "You're on the Plus plan. Thank you for your support!",
   },
   
   // Auth
