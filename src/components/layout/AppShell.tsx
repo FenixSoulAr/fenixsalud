@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/i18n";
 import { SharingBanner } from "@/components/sharing/SharingBanner";
+import { ActiveProfileBanner } from "@/components/sharing/ActiveProfileBanner";
 import { ActiveProfileIndicator } from "@/components/sharing/ActiveProfileIndicator";
 import { Separator } from "@/components/ui/separator";
 
@@ -200,6 +201,7 @@ export function AppShell({ children }: AppShellProps) {
         {/* Page content */}
         <main className="min-h-[calc(100vh-4rem)] lg:min-h-screen">
           <div className="container py-6 lg:py-8 max-w-7xl px-4 lg:px-8">
+            <ActiveProfileBanner />
             <SharingBanner />
             {children}
           </div>
