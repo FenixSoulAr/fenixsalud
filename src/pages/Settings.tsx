@@ -43,7 +43,7 @@ interface SettingsData {
 export default function Settings() {
   const { user, signOut } = useAuth();
   const { canManageSharing } = useSharing();
-  const { isPlus, hasPromoOverride, promoExpiresAt, maxProfiles, maxAttachments, canExportPdf, canExportBackup, loading: entitlementsLoading } = useEntitlementsContext();
+  const { isPlus, isAdmin, hasPromoOverride, promoExpiresAt, maxProfiles, maxAttachments, canExportPdf, canExportBackup, loading: entitlementsLoading } = useEntitlementsContext();
   const { checkProfileLimit, gatedMessages } = useEntitlementGate();
   const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const navigate = useNavigate();
@@ -467,17 +467,19 @@ export default function Settings() {
           </form>
         </section>
 
-        {/* Plan & Subscription Section */}
-        <PlanSubscriptionSection 
-          t={t}
-          isPlus={isPlus}
-          hasPromoOverride={hasPromoOverride}
-          promoExpiresAt={promoExpiresAt}
-          maxProfiles={maxProfiles}
-          maxAttachments={maxAttachments}
-          checkoutLoading={checkoutLoading}
-          startCheckout={startCheckout}
-        />
+        {/* Plan & Subscription Section - Only show for non-admins */}
+        {!isAdmin && (
+          <PlanSubscriptionSection 
+            t={t}
+            isPlus={isPlus}
+            hasPromoOverride={hasPromoOverride}
+            promoExpiresAt={promoExpiresAt}
+            maxProfiles={maxProfiles}
+            maxAttachments={maxAttachments}
+            checkoutLoading={checkoutLoading}
+            startCheckout={startCheckout}
+          />
+        )}
 
         {/* Family Profiles Section */}
         <section className="health-card">
