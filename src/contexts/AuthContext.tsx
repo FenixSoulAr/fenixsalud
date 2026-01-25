@@ -18,33 +18,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
+        if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Ensure subscription row exists after login
+        // Fire-and-forget: ensure subscription row exists (don't block)
         if (session?.user) {
-          await ensureSubscriptionRow();
+          ensureSubscriptionRow().catch(err => 
+            console.warn("Background subscription check failed:", err)
+          );
         }
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       
-      // Ensure subscription row exists on app mount
+      // Fire-and-forget: ensure subscription row exists (don't block)
       if (session?.user) {
-        await ensureSubscriptionRow();
+        ensureSubscriptionRow().catch(err => 
+          console.warn("Background subscription check failed:", err)
+        );
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Safety watchdog: force loading to false after 3 seconds
+    const watchdog = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn("[AuthContext] Watchdog triggered - forcing loading=false");
+        setLoading(false);
+      }
+    }, 3000);
+
+    return () => {
+      mounted = false;
+      clearTimeout(watchdog);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

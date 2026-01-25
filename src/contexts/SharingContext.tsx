@@ -86,7 +86,8 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [myShares, setMyShares] = useState<ProfileShare[]>([]);
   const [sharedWithMe, setSharedWithMe] = useState<SharedProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Start with loading=false to prevent blocking - data loads in background
+  const [loading, setLoading] = useState(false);
   const [activeProfileOwnerId, setActiveProfileOwnerIdState] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [needsProfileSelection, setNeedsProfileSelection] = useState(false);
@@ -222,74 +223,101 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    let mounted = true;
+
     async function linkAndInitialize() {
-      // STEP 1: Link any pending invitations for this user's email
-      if (user.email) {
-        const normalizedEmail = user.email.toLowerCase();
-        
-        // Find any shares matching this email that are pending and not linked
-        const { data: pendingShares, error: pendingError } = await supabase
-          .from("profile_shares")
-          .select("id")
-          .ilike("shared_with_email", normalizedEmail)
-          .eq("status", "pending")
-          .is("shared_with_user_id", null);
-        
-        if (!pendingError && pendingShares && pendingShares.length > 0) {
-          console.log("[SharingContext] Found pending shares to link:", pendingShares.length);
+      try {
+        // STEP 1: Link any pending invitations for this user's email
+        if (user.email) {
+          const normalizedEmail = user.email.toLowerCase();
           
-          // Link them to this user and set status to active
-          const { error: updateError } = await supabase
+          // Find any shares matching this email that are pending and not linked
+          const { data: pendingShares, error: pendingError } = await supabase
             .from("profile_shares")
-            .update({ 
-              shared_with_user_id: user.id,
-              status: "active"
-            })
-            .in("id", pendingShares.map(s => s.id));
+            .select("id")
+            .ilike("shared_with_email", normalizedEmail)
+            .eq("status", "pending")
+            .is("shared_with_user_id", null);
           
-          if (updateError) {
-            console.error("[SharingContext] Error linking pending shares:", updateError);
-          } else {
-            console.log("[SharingContext] Successfully linked pending shares");
+          if (!pendingError && pendingShares && pendingShares.length > 0) {
+            console.log("[SharingContext] Found pending shares to link:", pendingShares.length);
+            
+            // Link them to this user and set status to active
+            const { error: updateError } = await supabase
+              .from("profile_shares")
+              .update({ 
+                shared_with_user_id: user.id,
+                status: "active"
+              })
+              .in("id", pendingShares.map(s => s.id));
+            
+            if (updateError) {
+              console.error("[SharingContext] Error linking pending shares:", updateError);
+            } else {
+              console.log("[SharingContext] Successfully linked pending shares");
+            }
           }
         }
-      }
 
-      // STEP 2: Now fetch all shares (including newly linked ones)
-      const profiles = await fetchShares();
-      
-      if (!profiles) return;
+        if (!mounted) return;
 
-      // STEP 3: Check for stored preference
-      const storedProfile = getStoredActiveProfile(user.id);
-      
-      if (storedProfile) {
-        // Validate stored profile is still accessible
-        const isOwnProfile = storedProfile === user.id;
-        const hasAccess = profiles.some(p => p.owner_id === storedProfile);
+        // STEP 2: Now fetch all shares (including newly linked ones)
+        const profiles = await fetchShares();
         
-        if (isOwnProfile || hasAccess) {
-          setActiveProfileOwnerIdState(isOwnProfile ? null : storedProfile);
+        if (!mounted || !profiles) return;
+
+        // STEP 3: Check for stored preference
+        const storedProfile = getStoredActiveProfile(user.id);
+        
+        if (storedProfile) {
+          // Validate stored profile is still accessible
+          const isOwnProfile = storedProfile === user.id;
+          const hasAccess = profiles.some(p => p.owner_id === storedProfile);
+          
+          if (isOwnProfile || hasAccess) {
+            setActiveProfileOwnerIdState(isOwnProfile ? null : storedProfile);
+            setInitialized(true);
+            return;
+          }
+        }
+
+        // STEP 4: No valid stored preference - ALWAYS default to own profile
+        // User must explicitly select a shared profile from the switcher
+        setActiveProfileOwnerIdState(null);
+        storeActiveProfile(user.id, null);
+        
+        // Flag for profile selection only if there are shared profiles available
+        if (profiles.length > 0) {
+          setNeedsProfileSelection(true);
+        }
+        
+        setInitialized(true);
+      } catch (err) {
+        console.error("[SharingContext] Error in linkAndInitialize:", err);
+        if (mounted) {
+          setLoading(false);
           setInitialized(true);
-          return;
         }
       }
-
-      // STEP 4: No valid stored preference - ALWAYS default to own profile
-      // User must explicitly select a shared profile from the switcher
-      setActiveProfileOwnerIdState(null);
-      storeActiveProfile(user.id, null);
-      
-      // Flag for profile selection only if there are shared profiles available
-      if (profiles.length > 0) {
-        setNeedsProfileSelection(true);
-      }
-      
-      setInitialized(true);
     }
 
+    // Start initialization but don't block
     linkAndInitialize();
-  }, [user, fetchShares]);
+
+    // Watchdog: force initialization after 5 seconds
+    const watchdog = setTimeout(() => {
+      if (mounted && !initialized) {
+        console.warn("[SharingContext] Watchdog triggered - forcing initialization");
+        setLoading(false);
+        setInitialized(true);
+      }
+    }, 5000);
+
+    return () => {
+      mounted = false;
+      clearTimeout(watchdog);
+    };
+  }, [user, fetchShares, initialized]);
 
   async function inviteUser(email: string, role: "viewer" | "contributor"): Promise<{ error?: string }> {
     if (!user) return { error: "Not authenticated" };
