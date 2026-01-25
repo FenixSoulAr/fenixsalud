@@ -396,6 +396,7 @@ export const es: Translations = {
     currentPlan: "Plan actual",
     freePlan: "Gratis",
     plusPlan: "Plus",
+    plusPromo: "Plus (Promo)",
     profile: "Perfil",
     profiles: "Perfiles",
     attachments: "Adjuntos",

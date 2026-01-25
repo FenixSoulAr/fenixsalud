@@ -368,6 +368,7 @@ export interface Translations {
     currentPlan: string;
     freePlan: string;
     plusPlan: string;
+    plusPromo: string;
     profile: string;
     profiles: string;
     attachments: string;
@@ -860,6 +861,7 @@ export const en: Translations = {
     currentPlan: "Current plan",
     freePlan: "Free",
     plusPlan: "Plus",
+    plusPromo: "Plus (Promo)",
     profile: "Profile",
     profiles: "Profiles",
     attachments: "Attachments",

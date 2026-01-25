@@ -332,7 +332,12 @@ serve(async (req) => {
         if (result.discount_type === "internal_override") {
           // Calculate expiration based on duration
           let expiresAt: string | null = null;
-          if (result.duration_type === "once") {
+          if (result.duration_type === "days" && result.duration_value) {
+            // Duration in days (e.g., TESTER30 = 30 days, PRENSA = 90 days)
+            const expDate = new Date();
+            expDate.setDate(expDate.getDate() + result.duration_value);
+            expiresAt = expDate.toISOString();
+          } else if (result.duration_type === "once") {
             // 30 days default for "once"
             const expDate = new Date();
             expDate.setDate(expDate.getDate() + 30);
@@ -342,7 +347,7 @@ serve(async (req) => {
             expDate.setMonth(expDate.getMonth() + result.duration_value);
             expiresAt = expDate.toISOString();
           }
-          // "forever" = null expires_at
+          // "forever" = null expires_at (e.g., FAMILIA)
 
           const { data: override, error: overrideError } = await serviceClient
             .from("plan_overrides")
