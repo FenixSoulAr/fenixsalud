@@ -11,17 +11,27 @@ import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+
 export function SharingSection() {
-  const { myShares, inviteUser, revokeAccess, updateRole, canManageSharing, refreshShares, loading } = useSharing();
-  const { canShare, canUseRoles } = useEntitlementGate();
+  const { myShares, myProfiles, inviteUser, revokeAccess, updateRole, canManageSharing, refreshShares, loading } = useSharing();
+  const { canShare } = useEntitlementGate();
   const navigate = useNavigate();
   const lang = getLanguage();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"viewer" | "contributor">("viewer");
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [inviting, setInviting] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
+
+  // Set default selected profile when profiles load
+  useEffect(() => {
+    if (myProfiles.length > 0 && !selectedProfileId) {
+      const primaryProfile = myProfiles.find(p => p.is_primary);
+      setSelectedProfileId(primaryProfile?.id || myProfiles[0].id);
+    }
+  }, [myProfiles, selectedProfileId]);
 
   // Force refresh shares on mount to ensure list is up-to-date
   useEffect(() => {
@@ -48,7 +58,7 @@ export function SharingSection() {
     return () => {
       mounted = false;
     };
-  }, []); // Only run on mount
+  }, []);
 
   if (!canManageSharing) {
     return null;
@@ -80,9 +90,20 @@ export function SharingSection() {
     );
   }
 
+  // Get shares for selected profile
+  const profileShares = myShares.filter(s => s.profile_id === selectedProfileId);
+  const selectedProfile = myProfiles.find(p => p.id === selectedProfileId);
+
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setInlineError(null);
+    
+    if (!selectedProfileId) {
+      const msg = lang === "es" ? "Seleccioná un perfil" : "Select a profile";
+      setInlineError(msg);
+      toast.error(msg);
+      return;
+    }
     
     if (!email.trim()) {
       const msg = lang === "es" ? "El email es obligatorio" : "Email is required";
@@ -101,24 +122,25 @@ export function SharingSection() {
     }
 
     setInviting(true);
-    const { error } = await inviteUser(email.trim(), role);
+    const { error } = await inviteUser(selectedProfileId, email.trim(), role);
     setInviting(false);
 
     if (error) {
-      // Known error translations
       const knownErrors: Record<string, string> = {
-        "Maximum 2 shared people allowed": lang === "es" 
-          ? "Máximo 2 personas compartidas permitidas" 
-          : "Maximum 2 shared people allowed",
+        "Maximum 2 shared people per profile": lang === "es" 
+          ? "Máximo 2 personas compartidas por perfil" 
+          : "Maximum 2 shared people per profile",
         "Already shared with this email": lang === "es"
           ? "Ya compartido con este email"
           : "Already shared with this email",
         "Cannot share with yourself": lang === "es"
           ? "No podés compartir contigo mismo"
           : "Cannot share with yourself",
+        "Profile not found": lang === "es"
+          ? "Perfil no encontrado"
+          : "Profile not found",
       };
       
-      // Check for duplicate constraint error from database
       const isDuplicateError = error.includes("duplicate key") || error.includes("unique constraint");
       
       let displayError: string;
@@ -129,17 +151,11 @@ export function SharingSection() {
           ? "Ya compartido con este email" 
           : "Already shared with this email";
       } else {
-        // Show the real backend error
         displayError = error;
       }
       
-      // Log for debugging in dev/preview
       console.error("Invite failed:", error);
-      
-      // Show inline error
       setInlineError(displayError);
-      
-      // Show toast with full context
       toast.error(
         lang === "es" 
           ? `Invitación fallida: ${displayError}` 
@@ -195,9 +211,31 @@ export function SharingSection() {
       
       <p className="text-sm text-muted-foreground mb-4">
         {lang === "es"
-          ? "Compartí tu información de salud con familiares o cuidadores de confianza. Máximo 2 personas."
-          : "Share your health information with trusted family members or caregivers. Maximum 2 people."}
+          ? "Compartí tu información de salud con familiares o cuidadores de confianza. Máximo 2 personas por perfil."
+          : "Share your health information with trusted family members or caregivers. Maximum 2 people per profile."}
       </p>
+
+      {/* Profile selector (if multiple profiles) */}
+      {myProfiles.length > 1 && (
+        <div className="mb-4">
+          <Label className="mb-2 block">{lang === "es" ? "Perfil a compartir" : "Profile to share"}</Label>
+          <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={lang === "es" ? "Seleccionar perfil" : "Select profile"} />
+            </SelectTrigger>
+            <SelectContent>
+              {myProfiles.map((profile) => (
+                <SelectItem key={profile.id} value={profile.id}>
+                  {profile.full_name || (profile.is_primary 
+                    ? (lang === "es" ? "Mi perfil" : "My profile")
+                    : (lang === "es" ? "Sin nombre" : "Unnamed"))}
+                  {profile.is_primary && ` (${lang === "es" ? "Principal" : "Primary"})`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Fetch error display */}
       {fetchError && (
@@ -217,12 +255,15 @@ export function SharingSection() {
         </div>
       )}
 
-      {/* Current shares */}
-      {myShares.length > 0 && (
+      {/* Current shares for selected profile */}
+      {profileShares.length > 0 && (
         <div className="space-y-3 mb-6">
-          <Label>{lang === "es" ? "Personas con acceso" : "People with access"} ({myShares.length})</Label>
-          {myShares.map((share) => {
-            // Display name: prefer profile name, fallback to email
+          <Label>
+            {lang === "es" ? "Personas con acceso a" : "People with access to"}{" "}
+            <span className="font-medium">{selectedProfile?.full_name || (lang === "es" ? "este perfil" : "this profile")}</span>{" "}
+            ({profileShares.length})
+          </Label>
+          {profileShares.map((share) => {
             const displayName = share.shared_with_name || share.shared_with_email;
             const showEmailSeparately = share.shared_with_name && share.shared_with_name !== share.shared_with_email;
             
@@ -321,7 +362,7 @@ export function SharingSection() {
       )}
 
       {/* Invite form */}
-      {myShares.length < 2 && (
+      {profileShares.length < 2 && selectedProfileId && (
         <form onSubmit={handleInvite} className="space-y-4">
           <div className="form-field">
             <Label>{lang === "es" ? "Invitar persona" : "Invite person"}</Label>
@@ -367,11 +408,11 @@ export function SharingSection() {
         </form>
       )}
 
-      {myShares.length >= 2 && (
+      {profileShares.length >= 2 && (
         <p className="text-sm text-muted-foreground">
           {lang === "es"
-            ? "Has alcanzado el límite de 2 personas compartidas. Revocá el acceso a alguien para invitar a otra persona."
-            : "You've reached the limit of 2 shared people. Revoke someone's access to invite another person."}
+            ? "Has alcanzado el límite de 2 personas compartidas para este perfil. Revocá el acceso a alguien para invitar a otra persona."
+            : "You've reached the limit of 2 shared people for this profile. Revoke someone's access to invite another person."}
         </p>
       )}
     </section>

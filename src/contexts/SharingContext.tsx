@@ -6,45 +6,49 @@ export type SharingRole = "owner" | "viewer" | "contributor";
 
 interface ProfileShare {
   id: string;
+  profile_id: string;
   owner_id: string;
   shared_with_email: string;
   shared_with_user_id: string | null;
-  shared_with_name: string | null; // Name of the person shared with (from their profile)
+  shared_with_name: string | null;
   role: "viewer" | "contributor";
   created_at: string;
   status: "pending" | "active";
 }
 
 interface SharedProfile {
+  profile_id: string;
+  profile_name: string | null;
   owner_id: string;
   owner_name: string | null;
   owner_email: string | null;
   role: "viewer" | "contributor";
 }
 
+interface OwnedProfile {
+  id: string;
+  full_name: string | null;
+  user_id: string | null;
+  is_primary: boolean;
+}
+
 interface SharingContextType {
-  // Current user's role when viewing data (never null when authenticated)
   currentRole: SharingRole | null;
-  // The profile owner ID whose data is being viewed
+  activeProfileId: string | null;
   activeProfileOwnerId: string | null;
-  // The name of the profile owner being viewed (for display)
   activeProfileOwnerName: string | null;
-  // Shares where current user is the owner
   myShares: ProfileShare[];
-  // Shares where current user has been given access
   sharedWithMe: SharedProfile[];
-  // Loading state
+  myProfiles: OwnedProfile[];
   loading: boolean;
-  // Whether initial profile selection is needed
   needsProfileSelection: boolean;
-  // Actions
-  inviteUser: (email: string, role: "viewer" | "contributor") => Promise<{ error?: string }>;
+  inviteUser: (profileId: string, email: string, role: "viewer" | "contributor") => Promise<{ error?: string }>;
   revokeAccess: (shareId: string) => Promise<{ error?: string }>;
   updateRole: (shareId: string, role: "viewer" | "contributor") => Promise<{ error?: string }>;
-  switchToProfile: (ownerId: string) => void;
+  switchToProfile: (profileId: string) => void;
   switchToOwnProfile: () => void;
-  refreshShares: () => Promise<SharedProfile[] | undefined>;
-  // Helpers
+  refreshShares: () => Promise<void>;
+  refreshProfiles: () => Promise<void>;
   canEdit: boolean;
   canDelete: boolean;
   canManageSharing: boolean;
@@ -53,16 +57,15 @@ interface SharingContextType {
 
 const SharingContext = createContext<SharingContextType | undefined>(undefined);
 
-const ACTIVE_PROFILE_KEY = "fenix_active_profile";
+const ACTIVE_PROFILE_KEY = "fenix_active_profile_v2";
 
 function getStoredActiveProfile(userId: string): string | null {
   try {
     const stored = localStorage.getItem(ACTIVE_PROFILE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Validate the stored data belongs to current user
       if (parsed.userId === userId) {
-        return parsed.activeProfileOwnerId;
+        return parsed.activeProfileId;
       }
     }
   } catch {
@@ -71,11 +74,11 @@ function getStoredActiveProfile(userId: string): string | null {
   return null;
 }
 
-function storeActiveProfile(userId: string, activeProfileOwnerId: string | null) {
+function storeActiveProfile(userId: string, activeProfileId: string | null) {
   try {
     localStorage.setItem(
       ACTIVE_PROFILE_KEY,
-      JSON.stringify({ userId, activeProfileOwnerId })
+      JSON.stringify({ userId, activeProfileId })
     );
   } catch {
     // Storage unavailable
@@ -86,28 +89,28 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [myShares, setMyShares] = useState<ProfileShare[]>([]);
   const [sharedWithMe, setSharedWithMe] = useState<SharedProfile[]>([]);
-  // Start with loading=false to prevent blocking - data loads in background
+  const [myProfiles, setMyProfiles] = useState<OwnedProfile[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeProfileOwnerId, setActiveProfileOwnerIdState] = useState<string | null>(null);
+  const [activeProfileId, setActiveProfileIdState] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [needsProfileSelection, setNeedsProfileSelection] = useState(false);
 
-  // Wrapper to also persist to localStorage
-  const setActiveProfileOwnerId = useCallback((ownerId: string | null) => {
-    setActiveProfileOwnerIdState(ownerId);
+  const setActiveProfileId = useCallback((profileId: string | null) => {
+    setActiveProfileIdState(profileId);
     if (user?.id) {
-      storeActiveProfile(user.id, ownerId);
+      storeActiveProfile(user.id, profileId);
     }
     setNeedsProfileSelection(false);
   }, [user?.id]);
 
-  // Determine current role based on active profile
-  const isViewingOwnProfile = !activeProfileOwnerId || activeProfileOwnerId === user?.id;
+  // Determine if viewing own profile
+  const isViewingOwnProfile = myProfiles.some(p => p.id === activeProfileId);
   
+  // Determine current role
   const currentRole: SharingRole | null = (() => {
     if (!user) return null;
     if (isViewingOwnProfile) return "owner";
-    const share = sharedWithMe.find(s => s.owner_id === activeProfileOwnerId);
+    const share = sharedWithMe.find(s => s.profile_id === activeProfileId);
     return share?.role ?? null;
   })();
 
@@ -115,12 +118,41 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   const canDelete = currentRole === "owner";
   const canManageSharing = currentRole === "owner";
 
-  const fetchShares = useCallback(async (): Promise<SharedProfile[] | undefined> => {
+  // Fetch all profiles owned by current user
+  const fetchProfiles = useCallback(async () => {
+    if (!user) {
+      setMyProfiles([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, user_id")
+      .eq("owner_user_id", user.id)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("[SharingContext] Error fetching profiles:", error);
+      return;
+    }
+
+    const profiles: OwnedProfile[] = (data || []).map((p, index) => ({
+      id: p.id,
+      full_name: p.full_name,
+      user_id: p.user_id,
+      is_primary: p.user_id === user.id, // Primary profile has user_id = owner_user_id
+    }));
+
+    console.log("[SharingContext] Fetched myProfiles:", profiles.length);
+    setMyProfiles(profiles);
+  }, [user]);
+
+  const fetchShares = useCallback(async () => {
     if (!user) {
       setMyShares([]);
       setSharedWithMe([]);
       setLoading(false);
-      return undefined;
+      return;
     }
 
     setLoading(true);
@@ -135,7 +167,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     if (ownerError) {
       console.error("[SharingContext] Error fetching owner shares:", ownerError);
       setLoading(false);
-      throw new Error(ownerError.message);
+      return;
     }
 
     // Map owner shares and fetch names for linked users
@@ -143,7 +175,6 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     for (const share of ownerShares || []) {
       let sharedWithName: string | null = null;
       
-      // If the share is active and has a linked user, fetch their profile name
       if (share.shared_with_user_id && share.status === "active") {
         const { data: sharedProfile } = await supabase
           .from("profiles")
@@ -159,6 +190,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       
       mappedOwnerShares.push({
         id: share.id,
+        profile_id: share.profile_id || "",
         owner_id: share.owner_id,
         shared_with_email: share.shared_with_email,
         shared_with_user_id: share.shared_with_user_id,
@@ -169,13 +201,13 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    console.log("[SharingContext] Fetched myShares for owner", user.id, ":", mappedOwnerShares.length, "shares", mappedOwnerShares);
+    console.log("[SharingContext] Fetched myShares:", mappedOwnerShares.length);
     setMyShares(mappedOwnerShares);
 
     // Fetch shares where I have been given access (active only)
     const { data: receivedShares, error: receivedError } = await supabase
       .from("profile_shares")
-      .select("*")
+      .select("*, profiles!profile_shares_profile_id_fkey(id, full_name, owner_user_id)")
       .eq("shared_with_user_id", user.id)
       .eq("status", "active");
 
@@ -186,18 +218,26 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     // For received shares, fetch owner profile names
     const sharedProfiles: SharedProfile[] = [];
     for (const share of receivedShares || []) {
-      const { data: ownerProfile } = await supabase
-        .from("profiles")
-        .select("full_name, first_name, last_name")
-        .eq("user_id", share.owner_id)
-        .maybeSingle();
+      const profile = share.profiles as { id: string; full_name: string | null; owner_user_id: string } | null;
       
-      const ownerName = ownerProfile?.full_name || 
-        (ownerProfile?.first_name && ownerProfile?.last_name 
-          ? `${ownerProfile.first_name} ${ownerProfile.last_name}` 
-          : ownerProfile?.first_name || null);
+      // Get owner's primary profile name
+      let ownerName: string | null = null;
+      if (profile?.owner_user_id) {
+        const { data: ownerProfile } = await supabase
+          .from("profiles")
+          .select("full_name, first_name, last_name")
+          .eq("user_id", profile.owner_user_id)
+          .maybeSingle();
+        
+        ownerName = ownerProfile?.full_name || 
+          (ownerProfile?.first_name && ownerProfile?.last_name 
+            ? `${ownerProfile.first_name} ${ownerProfile.last_name}` 
+            : ownerProfile?.first_name || null);
+      }
       
       sharedProfiles.push({
+        profile_id: profile?.id || share.profile_id || "",
+        profile_name: profile?.full_name || null,
         owner_id: share.owner_id,
         owner_name: ownerName,
         owner_email: null,
@@ -205,21 +245,20 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       });
     }
     
-    console.log("[SharingContext] Fetched sharedWithMe:", sharedProfiles.length, "profiles", sharedProfiles);
+    console.log("[SharingContext] Fetched sharedWithMe:", sharedProfiles.length);
     setSharedWithMe(sharedProfiles);
     setLoading(false);
-    
-    return sharedProfiles;
   }, [user]);
 
-  // Link pending invites and then initialize sharing
+  // Link pending invites and initialize
   useEffect(() => {
     if (!user) {
       setMyShares([]);
       setSharedWithMe([]);
+      setMyProfiles([]);
       setLoading(false);
       setInitialized(false);
-      setActiveProfileOwnerIdState(null);
+      setActiveProfileIdState(null);
       return;
     }
 
@@ -231,7 +270,6 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         if (user.email) {
           const normalizedEmail = user.email.toLowerCase();
           
-          // Find any shares matching this email that are pending and not linked
           const { data: pendingShares, error: pendingError } = await supabase
             .from("profile_shares")
             .select("id")
@@ -242,7 +280,6 @@ export function SharingProvider({ children }: { children: ReactNode }) {
           if (!pendingError && pendingShares && pendingShares.length > 0) {
             console.log("[SharingContext] Found pending shares to link:", pendingShares.length);
             
-            // Link them to this user and set status to active
             const { error: updateError } = await supabase
               .from("profile_shares")
               .update({ 
@@ -253,42 +290,37 @@ export function SharingProvider({ children }: { children: ReactNode }) {
             
             if (updateError) {
               console.error("[SharingContext] Error linking pending shares:", updateError);
-            } else {
-              console.log("[SharingContext] Successfully linked pending shares");
             }
           }
         }
 
         if (!mounted) return;
 
-        // STEP 2: Now fetch all shares (including newly linked ones)
-        const profiles = await fetchShares();
+        // STEP 2: Fetch all profiles and shares
+        await Promise.all([fetchProfiles(), fetchShares()]);
         
-        if (!mounted || !profiles) return;
+        if (!mounted) return;
 
-        // STEP 3: Check for stored preference
-        const storedProfile = getStoredActiveProfile(user.id);
+        // STEP 3: Determine active profile
+        const storedProfileId = getStoredActiveProfile(user.id);
         
-        if (storedProfile) {
+        // Get primary profile (user_id = owner_user_id)
+        const { data: primaryProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("owner_user_id", user.id)
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        const primaryProfileId = primaryProfile?.id || null;
+
+        if (storedProfileId) {
           // Validate stored profile is still accessible
-          const isOwnProfile = storedProfile === user.id;
-          const hasAccess = profiles.some(p => p.owner_id === storedProfile);
-          
-          if (isOwnProfile || hasAccess) {
-            setActiveProfileOwnerIdState(isOwnProfile ? null : storedProfile);
-            setInitialized(true);
-            return;
-          }
-        }
-
-        // STEP 4: No valid stored preference - ALWAYS default to own profile
-        // User must explicitly select a shared profile from the switcher
-        setActiveProfileOwnerIdState(null);
-        storeActiveProfile(user.id, null);
-        
-        // Flag for profile selection only if there are shared profiles available
-        if (profiles.length > 0) {
-          setNeedsProfileSelection(true);
+          setActiveProfileIdState(storedProfileId);
+        } else if (primaryProfileId) {
+          // Default to primary profile
+          setActiveProfileIdState(primaryProfileId);
+          storeActiveProfile(user.id, primaryProfileId);
         }
         
         setInitialized(true);
@@ -301,10 +333,8 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Start initialization but don't block
     linkAndInitialize();
 
-    // Watchdog: force initialization after 5 seconds
     const watchdog = setTimeout(() => {
       if (mounted && !initialized) {
         console.warn("[SharingContext] Watchdog triggered - forcing initialization");
@@ -317,23 +347,27 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       mounted = false;
       clearTimeout(watchdog);
     };
-  }, [user, fetchShares, initialized]);
+  }, [user, fetchProfiles, fetchShares, initialized]);
 
-  async function inviteUser(email: string, role: "viewer" | "contributor"): Promise<{ error?: string }> {
+  async function inviteUser(profileId: string, email: string, role: "viewer" | "contributor"): Promise<{ error?: string }> {
     if (!user) return { error: "Not authenticated" };
     
     const normalizedEmail = email.toLowerCase().trim();
     
-    // Refresh shares first to get current state
-    await fetchShares();
+    // Verify the profile belongs to the user
+    const profile = myProfiles.find(p => p.id === profileId);
+    if (!profile) {
+      return { error: "Profile not found" };
+    }
     
-    // Check max 2 shares limit (re-check after refresh)
-    if (myShares.length >= 2) {
-      return { error: "Maximum 2 shared people allowed" };
+    // Check max 2 shares limit per profile
+    const profileShares = myShares.filter(s => s.profile_id === profileId);
+    if (profileShares.length >= 2) {
+      return { error: "Maximum 2 shared people per profile" };
     }
 
-    // Check if already shared with this email (case-insensitive)
-    if (myShares.some(s => s.shared_with_email.toLowerCase() === normalizedEmail)) {
+    // Check if already shared with this email
+    if (profileShares.some(s => s.shared_with_email.toLowerCase() === normalizedEmail)) {
       return { error: "Already shared with this email" };
     }
 
@@ -345,6 +379,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase
       .from("profile_shares")
       .insert({
+        profile_id: profileId,
         owner_id: user.id,
         shared_with_email: normalizedEmail,
         role,
@@ -352,15 +387,11 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       });
 
     if (error) {
-      console.error("[SharingContext] Error inviting user:", JSON.stringify(error, null, 2));
-      
-      // Check for duplicate constraint violation
-      if (error.code === "23505" || error.message?.includes("unique") || error.message?.includes("duplicate")) {
-        await fetchShares();
+      console.error("[SharingContext] Error inviting user:", error);
+      if (error.code === "23505") {
         return { error: "Already shared with this email" };
       }
-      
-      return { error: error.message || error.code || "Failed to invite user" };
+      return { error: error.message || "Failed to invite user" };
     }
 
     await fetchShares();
@@ -370,7 +401,6 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   async function revokeAccess(shareId: string): Promise<{ error?: string }> {
     if (!user) return { error: "Not authenticated" };
 
-    // Set status to 'revoked' instead of deleting
     const { error } = await supabase
       .from("profile_shares")
       .update({ status: "revoked" })
@@ -396,7 +426,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       .eq("owner_id", user.id);
 
     if (error) {
-      console.error("Error updating role:", error);
+      console.error("[SharingContext] Error updating role:", error);
       return { error: "Failed to update role" };
     }
 
@@ -404,36 +434,46 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     return {};
   }
 
-  function switchToProfile(ownerId: string) {
-    setActiveProfileOwnerId(ownerId);
+  function switchToProfile(profileId: string) {
+    setActiveProfileId(profileId);
   }
 
   function switchToOwnProfile() {
-    setActiveProfileOwnerId(null);
+    const primaryProfile = myProfiles.find(p => p.is_primary);
+    if (primaryProfile) {
+      setActiveProfileId(primaryProfile.id);
+    }
   }
 
-  // Get the active profile owner's name for display
-  const activeProfileOwnerName: string | null = (() => {
-    if (isViewingOwnProfile) return null;
-    const share = sharedWithMe.find(s => s.owner_id === activeProfileOwnerId);
-    if (share?.owner_name) return share.owner_name;
-    if (share?.owner_email) return share.owner_email;
-    // Fallback: show truncated owner_id
-    if (activeProfileOwnerId) return `User ${activeProfileOwnerId.slice(0, 8)}...`;
-    return null;
+  // Get active profile's owner ID for data operations
+  const activeProfileOwnerId: string | null = (() => {
+    if (isViewingOwnProfile) {
+      return user?.id ?? null;
+    }
+    const share = sharedWithMe.find(s => s.profile_id === activeProfileId);
+    return share?.owner_id ?? null;
   })();
 
-  // Compute the effective active profile owner ID
-  const effectiveActiveProfileOwnerId = isViewingOwnProfile ? user?.id ?? null : activeProfileOwnerId;
+  // Get active profile's display name
+  const activeProfileOwnerName: string | null = (() => {
+    const ownProfile = myProfiles.find(p => p.id === activeProfileId);
+    if (ownProfile) {
+      return ownProfile.full_name;
+    }
+    const share = sharedWithMe.find(s => s.profile_id === activeProfileId);
+    return share?.profile_name || share?.owner_name || null;
+  })();
 
   return (
     <SharingContext.Provider
       value={{
         currentRole,
-        activeProfileOwnerId: effectiveActiveProfileOwnerId,
+        activeProfileId,
+        activeProfileOwnerId,
         activeProfileOwnerName,
         myShares,
         sharedWithMe,
+        myProfiles,
         loading,
         needsProfileSelection,
         inviteUser,
@@ -442,6 +482,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         switchToProfile,
         switchToOwnProfile,
         refreshShares: fetchShares,
+        refreshProfiles: fetchProfiles,
         canEdit,
         canDelete,
         canManageSharing,
@@ -453,13 +494,14 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Default fallback for when context is not available (prevents crashes)
 const defaultSharingContext: SharingContextType = {
   currentRole: null,
+  activeProfileId: null,
   activeProfileOwnerId: null,
   activeProfileOwnerName: null,
   myShares: [],
   sharedWithMe: [],
+  myProfiles: [],
   loading: true,
   needsProfileSelection: false,
   inviteUser: async () => ({ error: "Context not available" }),
@@ -467,7 +509,8 @@ const defaultSharingContext: SharingContextType = {
   updateRole: async () => ({ error: "Context not available" }),
   switchToProfile: () => {},
   switchToOwnProfile: () => {},
-  refreshShares: async () => undefined,
+  refreshShares: async () => {},
+  refreshProfiles: async () => {},
   canEdit: false,
   canDelete: false,
   canManageSharing: false,
@@ -477,7 +520,6 @@ const defaultSharingContext: SharingContextType = {
 export function useSharing(): SharingContextType {
   const context = useContext(SharingContext);
   if (context === undefined) {
-    // Return safe fallback instead of throwing - prevents blank screen crashes
     console.warn("useSharing called outside SharingProvider, returning fallback state");
     return defaultSharingContext;
   }
