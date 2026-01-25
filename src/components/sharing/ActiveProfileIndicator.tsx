@@ -1,5 +1,6 @@
-import { User, UserCircle, Users, ChevronDown, Check } from "lucide-react";
+import { User, UserCircle, Users, ChevronDown, Check, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSharing } from "@/contexts/SharingContext";
 import { useProfileTypeLabel } from "@/hooks/useProfileTypeLabel";
+import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { getLanguage } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +25,33 @@ export function ActiveProfileIndicator() {
     needsProfileSelection,
   } = useSharing();
   const { label: roleLabel } = useProfileTypeLabel();
+  const { isPlus, hasPromoOverride } = useEntitlementsContext();
   const lang = getLanguage();
+
+  // Plan badge configuration
+  const getPlanBadgeConfig = () => {
+    if (hasPromoOverride) {
+      return {
+        label: "Plus",
+        className: "bg-primary/15 text-primary border-primary/30",
+        showIcon: true,
+      };
+    }
+    if (isPlus) {
+      return {
+        label: "Plus",
+        className: "bg-primary/15 text-primary border-primary/30",
+        showIcon: false,
+      };
+    }
+    return {
+      label: "Free",
+      className: "bg-muted text-muted-foreground border-muted-foreground/20",
+      showIcon: false,
+    };
+  };
+
+  const planBadge = getPlanBadgeConfig();
 
   if (loading) {
     return (
@@ -57,7 +85,7 @@ export function ActiveProfileIndicator() {
         ) : (
           <User className="h-4 w-4 text-primary flex-shrink-0" />
         )}
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-muted-foreground">
             {lang === "es" ? "Perfil" : "Profile"}
           </span>
@@ -65,6 +93,16 @@ export function ActiveProfileIndicator() {
             {profileName} <span className="text-muted-foreground font-normal">({roleLabel})</span>
           </span>
         </div>
+        <Badge 
+          variant="outline" 
+          className={cn(
+            "text-[10px] px-1.5 py-0 h-4 font-semibold border flex items-center gap-0.5 flex-shrink-0",
+            planBadge.className
+          )}
+        >
+          {planBadge.showIcon && <Gift className="h-2.5 w-2.5" />}
+          {planBadge.label}
+        </Badge>
       </div>
     );
   }
@@ -81,7 +119,7 @@ export function ActiveProfileIndicator() {
             needsProfileSelection && "ring-2 ring-primary animate-pulse"
           )}
         >
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             {isOwnProfile ? (
               isFamilyProfile ? (
                 <UserCircle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
@@ -91,7 +129,7 @@ export function ActiveProfileIndicator() {
             ) : (
               <Users className="h-4 w-4 flex-shrink-0 text-primary" />
             )}
-            <div className="flex flex-col items-start min-w-0">
+            <div className="flex flex-col items-start min-w-0 flex-1">
               <span className="text-xs text-muted-foreground">
                 {lang === "es" ? "Perfil" : "Profile"}
               </span>
@@ -100,6 +138,16 @@ export function ActiveProfileIndicator() {
               </span>
             </div>
           </div>
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "text-[10px] px-1.5 py-0 h-4 font-semibold border flex items-center gap-0.5 flex-shrink-0",
+              planBadge.className
+            )}
+          >
+            {planBadge.showIcon && <Gift className="h-2.5 w-2.5" />}
+            {planBadge.label}
+          </Badge>
           <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
