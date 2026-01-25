@@ -31,8 +31,10 @@ serve(async (req) => {
   }
 
   const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-  // deno-lint-ignore no-explicit-any
-  const supabase = createClient(supabaseUrl, supabaseServiceKey) as any;
+  // Service role client bypasses RLS for admin operations
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
 
   try {
     const body = await req.text();
