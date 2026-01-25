@@ -236,7 +236,7 @@ export default function Medications() {
           )}
           <div className="form-field">
             <Label>{t.medications.diagnosis}</Label>
-            <Select value={form.diagnosis_id} onValueChange={(v) => setForm({ ...form, diagnosis_id: v === "none" ? "" : v })}>
+            <Select value={form.diagnosis_id || undefined} onValueChange={(v) => setForm({ ...form, diagnosis_id: v === "none" ? "" : v })}>
               <SelectTrigger><SelectValue placeholder={t.medications.selectDiagnosis} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">—</SelectItem>
