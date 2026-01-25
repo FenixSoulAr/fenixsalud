@@ -265,6 +265,81 @@ serve(async (req) => {
         );
       }
 
+      case "update_promo_code": {
+        const { codeId, durationType, durationValue, isActive, maxRedemptions } = params;
+        
+        if (!codeId) {
+          return new Response(
+            JSON.stringify({ error: "codeId is required" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const updateData: Record<string, unknown> = {};
+        
+        if (durationType !== undefined) {
+          updateData.duration_type = durationType;
+          updateData.duration_value = durationType === "forever" ? null : (durationValue || null);
+        }
+        
+        if (isActive !== undefined) {
+          updateData.is_active = isActive;
+        }
+        
+        if (maxRedemptions !== undefined) {
+          updateData.max_redemptions = maxRedemptions || null;
+        }
+
+        const { error } = await serviceClient
+          .from("discounts")
+          .update(updateData)
+          .eq("id", codeId);
+
+        if (error) {
+          logStep("Error updating promo code", { error: error.message });
+          return new Response(
+            JSON.stringify({ error: "Failed to update promo code" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        logStep("Promo code updated", { codeId, ...updateData, updatedBy: userEmail });
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "delete_promo_code": {
+        const { codeId } = params;
+        
+        if (!codeId) {
+          return new Response(
+            JSON.stringify({ error: "codeId is required" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const { error } = await serviceClient
+          .from("discounts")
+          .delete()
+          .eq("id", codeId);
+
+        if (error) {
+          logStep("Error deleting promo code", { error: error.message });
+          return new Response(
+            JSON.stringify({ error: "Failed to delete promo code" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        logStep("Promo code deleted", { codeId, deletedBy: userEmail });
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       case "deactivate_promo_code": {
         const { codeId } = params;
         

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Tag, Plus, Loader2, Check, X, Percent, Gift } from "lucide-react";
+import { Tag, Plus, Loader2, Check, X, Percent, Gift, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,37 +53,64 @@ interface PromoCodesSectionProps {
   onRefresh: () => void;
 }
 
+type DurationType = "days" | "forever";
+
 export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodesSectionProps) {
   const lang = getLanguage();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [deactivateDialog, setDeactivateDialog] = useState<{ open: boolean; code: PromoCode | null }>({
+  const [editDialog, setEditDialog] = useState<{ open: boolean; code: PromoCode | null }>({
+    open: false,
+    code: null,
+  });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; code: PromoCode | null }>({
     open: false,
     code: null,
   });
 
-  // Form state
+  // Form state for create
   const [formCode, setFormCode] = useState("");
-  const [formType, setFormType] = useState<"stripe_coupon" | "internal_override">("stripe_coupon");
+  const [formType, setFormType] = useState<"stripe_coupon" | "internal_override">("internal_override");
   const [formValue, setFormValue] = useState("10");
-  const [formDuration, setFormDuration] = useState<"once" | "3_months" | "forever">("once");
+  const [formDurationType, setFormDurationType] = useState<DurationType>("days");
+  const [formDurationDays, setFormDurationDays] = useState("30");
   const [formMaxRedemptions, setFormMaxRedemptions] = useState("");
   const [formExpiresAt, setFormExpiresAt] = useState("");
   const [formStripeCouponId, setFormStripeCouponId] = useState("");
 
+  // Form state for edit
+  const [editDurationType, setEditDurationType] = useState<DurationType>("days");
+  const [editDurationDays, setEditDurationDays] = useState("30");
+  const [editIsActive, setEditIsActive] = useState(true);
+  const [editMaxRedemptions, setEditMaxRedemptions] = useState("");
+
   const resetForm = () => {
     setFormCode("");
-    setFormType("stripe_coupon");
+    setFormType("internal_override");
     setFormValue("10");
-    setFormDuration("once");
+    setFormDurationType("days");
+    setFormDurationDays("30");
     setFormMaxRedemptions("");
     setFormExpiresAt("");
     setFormStripeCouponId("");
   };
 
+  const openEditDialog = (code: PromoCode) => {
+    setEditDurationType(code.duration_type === "forever" ? "forever" : "days");
+    setEditDurationDays(code.duration_value?.toString() || "30");
+    setEditIsActive(code.is_active);
+    setEditMaxRedemptions(code.max_redemptions?.toString() || "");
+    setEditDialog({ open: true, code });
+  };
+
   const handleCreateCode = async () => {
     if (!formCode.trim()) {
       toast.error(lang === "es" ? "El código es requerido" : "Code is required");
+      return;
+    }
+
+    if (formDurationType === "days" && (!formDurationDays || parseInt(formDurationDays) < 1)) {
+      toast.error(lang === "es" ? "Duración en días es requerida" : "Duration in days is required");
       return;
     }
 
@@ -95,8 +122,8 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
           code: formCode.trim().toUpperCase(),
           type: formType,
           value: parseInt(formValue),
-          durationValue: formDuration === "3_months" ? 3 : null,
-          durationType: formDuration === "3_months" ? "repeating" : formDuration,
+          durationType: formDurationType,
+          durationValue: formDurationType === "days" ? parseInt(formDurationDays) : null,
           maxRedemptions: formMaxRedemptions ? parseInt(formMaxRedemptions) : null,
           expiresAt: formExpiresAt || null,
           stripeCouponId: formType === "stripe_coupon" && formStripeCouponId ? formStripeCouponId : null,
@@ -118,27 +145,62 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
     }
   };
 
-  const handleDeactivate = async () => {
-    if (!deactivateDialog.code) return;
+  const handleEditCode = async () => {
+    if (!editDialog.code) return;
 
-    setActionLoading(deactivateDialog.code.id);
+    if (editDurationType === "days" && (!editDurationDays || parseInt(editDurationDays) < 1)) {
+      toast.error(lang === "es" ? "Duración en días es requerida" : "Duration in days is required");
+      return;
+    }
+
+    setActionLoading(editDialog.code.id);
     try {
       const { data, error } = await supabase.functions.invoke("admin-actions", {
         body: {
-          action: "deactivate_promo_code",
-          codeId: deactivateDialog.code.id,
+          action: "update_promo_code",
+          codeId: editDialog.code.id,
+          durationType: editDurationType,
+          durationValue: editDurationType === "days" ? parseInt(editDurationDays) : null,
+          isActive: editIsActive,
+          maxRedemptions: editMaxRedemptions ? parseInt(editMaxRedemptions) : null,
         },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success(lang === "es" ? "Código desactivado" : "Code deactivated");
-      setDeactivateDialog({ open: false, code: null });
+      toast.success(lang === "es" ? "Código actualizado" : "Code updated");
+      setEditDialog({ open: false, code: null });
       onRefresh();
     } catch (err) {
-      console.error("Failed to deactivate promo code:", err);
-      toast.error(lang === "es" ? "Error al desactivar código" : "Failed to deactivate code");
+      console.error("Failed to update promo code:", err);
+      toast.error(lang === "es" ? "Error al actualizar código" : "Failed to update code");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteCode = async () => {
+    if (!deleteDialog.code) return;
+
+    setActionLoading(deleteDialog.code.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-actions", {
+        body: {
+          action: "delete_promo_code",
+          codeId: deleteDialog.code.id,
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast.success(lang === "es" ? "Código eliminado" : "Code deleted");
+      setDeleteDialog({ open: false, code: null });
+      onRefresh();
+    } catch (err) {
+      console.error("Failed to delete promo code:", err);
+      toast.error(lang === "es" ? "Error al eliminar código" : "Failed to delete code");
     } finally {
       setActionLoading(null);
     }
@@ -163,7 +225,10 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
 
   const formatDuration = (code: PromoCode) => {
     if (code.duration_type === "forever") return lang === "es" ? "Siempre" : "Forever";
-    if (code.duration_type === "once") return lang === "es" ? "Una vez" : "Once";
+    if (code.duration_type === "days" && code.duration_value) {
+      return `${code.duration_value} ${lang === "es" ? "días" : "days"}`;
+    }
+    if (code.duration_type === "once") return lang === "es" ? "Una vez (30d)" : "Once (30d)";
     if (code.duration_type === "repeating" && code.duration_value) {
       return `${code.duration_value} ${lang === "es" ? "meses" : "months"}`;
     }
@@ -269,21 +334,29 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {code.is_active && (
+                          <div className="flex items-center justify-end gap-1">
                             <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setDeactivateDialog({ open: true, code })}
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(code)}
+                              disabled={actionLoading === code.id}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteDialog({ open: true, code })}
                               disabled={actionLoading === code.id}
                               className="text-destructive hover:text-destructive"
                             >
                               {actionLoading === code.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
-                                <>{lang === "es" ? "Desactivar" : "Deactivate"}</>
+                                <Trash2 className="h-4 w-4" />
                               )}
                             </Button>
-                          )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -302,8 +375,8 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
             <DialogTitle>{lang === "es" ? "Crear Código Promocional" : "Create Promo Code"}</DialogTitle>
             <DialogDescription>
               {lang === "es"
-                ? "Los códigos de Stripe se aplican en checkout. Los overrides otorgan Plus directamente."
-                : "Stripe codes apply at checkout. Overrides grant Plus directly."}
+                ? "Los overrides otorgan Plus directamente por la duración especificada."
+                : "Overrides grant Plus directly for the specified duration."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -324,11 +397,11 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="stripe_coupon">
-                    {lang === "es" ? "Cupón Stripe (descuento %)" : "Stripe Coupon (% discount)"}
-                  </SelectItem>
                   <SelectItem value="internal_override">
                     {lang === "es" ? "Override Interno (100% Plus)" : "Internal Override (100% Plus)"}
+                  </SelectItem>
+                  <SelectItem value="stripe_coupon">
+                    {lang === "es" ? "Cupón Stripe (descuento %)" : "Stripe Coupon (% discount)"}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -353,28 +426,39 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
                     value={formStripeCouponId}
                     onChange={(e) => setFormStripeCouponId(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {lang === "es"
-                      ? "Si ya existe en Stripe, ingresa el ID. Si no, crea uno en Stripe primero."
-                      : "If it exists in Stripe, enter the ID. Otherwise, create it in Stripe first."}
-                  </p>
                 </div>
               </>
             )}
 
             <div className="space-y-2">
               <Label>{lang === "es" ? "Duración" : "Duration"}</Label>
-              <Select value={formDuration} onValueChange={(v) => setFormDuration(v as typeof formDuration)}>
+              <Select value={formDurationType} onValueChange={(v) => setFormDurationType(v as DurationType)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="once">{lang === "es" ? "Una vez" : "Once"}</SelectItem>
-                  <SelectItem value="3_months">{lang === "es" ? "3 meses" : "3 months"}</SelectItem>
+                  <SelectItem value="days">{lang === "es" ? "Días específicos" : "Specific days"}</SelectItem>
                   <SelectItem value="forever">{lang === "es" ? "Siempre" : "Forever"}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {formDurationType === "days" && (
+              <div className="space-y-2">
+                <Label>{lang === "es" ? "Cantidad de días" : "Number of days"}</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="3650"
+                  placeholder="30"
+                  value={formDurationDays}
+                  onChange={(e) => setFormDurationDays(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {lang === "es" ? "Ej: 30 para 1 mes, 90 para 3 meses, 365 para 1 año" : "E.g: 30 for 1 month, 90 for 3 months, 365 for 1 year"}
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -411,24 +495,102 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
         </DialogContent>
       </Dialog>
 
-      {/* Deactivate Confirmation */}
+      {/* Edit Code Dialog */}
+      <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ open, code: open ? editDialog.code : null })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {lang === "es" ? "Editar Código" : "Edit Code"}: {editDialog.code?.code}
+            </DialogTitle>
+            <DialogDescription>
+              {lang === "es"
+                ? "Modifica la duración y estado del código."
+                : "Modify the duration and status of the code."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{lang === "es" ? "Duración" : "Duration"}</Label>
+              <Select value={editDurationType} onValueChange={(v) => setEditDurationType(v as DurationType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="days">{lang === "es" ? "Días específicos" : "Specific days"}</SelectItem>
+                  <SelectItem value="forever">{lang === "es" ? "Siempre" : "Forever"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {editDurationType === "days" && (
+              <div className="space-y-2">
+                <Label>{lang === "es" ? "Cantidad de días" : "Number of days"}</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="3650"
+                  value={editDurationDays}
+                  onChange={(e) => setEditDurationDays(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>{lang === "es" ? "Máximo usos" : "Max uses"}</Label>
+              <Input
+                type="number"
+                min="1"
+                placeholder={lang === "es" ? "Sin límite" : "Unlimited"}
+                value={editMaxRedemptions}
+                onChange={(e) => setEditMaxRedemptions(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <Label>{lang === "es" ? "Código activo" : "Code active"}</Label>
+              <Select value={editIsActive ? "active" : "inactive"} onValueChange={(v) => setEditIsActive(v === "active")}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">{lang === "es" ? "Activo" : "Active"}</SelectItem>
+                  <SelectItem value="inactive">{lang === "es" ? "Inactivo" : "Inactive"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialog({ open: false, code: null })}>
+              {lang === "es" ? "Cancelar" : "Cancel"}
+            </Button>
+            <Button onClick={handleEditCode} disabled={actionLoading === editDialog.code?.id}>
+              {actionLoading === editDialog.code?.id ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              {lang === "es" ? "Guardar" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
       <AlertDialog
-        open={deactivateDialog.open}
-        onOpenChange={(open) => setDeactivateDialog({ open, code: open ? deactivateDialog.code : null })}
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, code: open ? deleteDialog.code : null })}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{lang === "es" ? "Desactivar Código" : "Deactivate Code"}</AlertDialogTitle>
+            <AlertDialogTitle>{lang === "es" ? "Eliminar Código" : "Delete Code"}</AlertDialogTitle>
             <AlertDialogDescription>
               {lang === "es"
-                ? `¿Desactivar el código "${deactivateDialog.code?.code}"? Los usuarios no podrán usarlo más.`
-                : `Deactivate code "${deactivateDialog.code?.code}"? Users won't be able to use it anymore.`}
+                ? `¿Eliminar el código "${deleteDialog.code?.code}"? Esta acción no se puede deshacer.`
+                : `Delete code "${deleteDialog.code?.code}"? This action cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{lang === "es" ? "Cancelar" : "Cancel"}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeactivate} className="bg-destructive hover:bg-destructive/90">
-              {lang === "es" ? "Desactivar" : "Deactivate"}
+            <AlertDialogAction onClick={handleDeleteCode} className="bg-destructive hover:bg-destructive/90">
+              {lang === "es" ? "Eliminar" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
