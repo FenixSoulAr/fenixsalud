@@ -147,12 +147,19 @@ export function useEntitlements(): UseEntitlementsReturn {
       }
       
       // Get user's subscription and plan
+      console.log("[useEntitlements] Fetching subscription for user_id:", user.id);
+      
       const { data: subscription, error: subError } = await supabase
         .from("subscriptions")
         .select("plan_id, status, plans(id, code, name)")
         .eq("user_id", user.id)
         .in("status", ["active", "trialing"])
         .maybeSingle();
+
+      console.log("[useEntitlements] Subscription query result:", { 
+        subscription, 
+        subError: subError?.message 
+      });
 
       if (subError) {
         console.error("Error fetching subscription:", subError);
@@ -161,17 +168,30 @@ export function useEntitlements(): UseEntitlementsReturn {
 
       // Check for active plan override and get expiration date
       let overrideExpiresAt: string | null = null;
-      const { data: overrideData } = await supabase
+      console.log("[useEntitlements] Checking plan_overrides for user_id:", user.id);
+      
+      const { data: overrideData, error: overrideError } = await supabase
         .from("plan_overrides")
         .select("expires_at")
         .eq("user_id", user.id)
         .is("revoked_at", null)
         .maybeSingle();
 
+      console.log("[useEntitlements] Override query result:", { 
+        overrideData, 
+        overrideError: overrideError?.message,
+        userId: user.id 
+      });
+
       // Check if override is active (not expired)
       const hasActiveOverride = overrideData && (
         !overrideData.expires_at || new Date(overrideData.expires_at) > new Date()
       );
+      
+      console.log("[useEntitlements] Override active check:", { 
+        hasActiveOverride, 
+        expiresAt: overrideData?.expires_at 
+      });
       
       if (hasActiveOverride && overrideData) {
         overrideExpiresAt = overrideData.expires_at;
@@ -223,6 +243,14 @@ export function useEntitlements(): UseEntitlementsReturn {
         }
       }
 
+      console.log("[useEntitlements] Final plan resolution:", {
+        planCode: currentPlanCode,
+        planName: currentPlanName,
+        hasPromoOverride: currentHasPromoOverride,
+        promoExpiresAt: currentPromoExpiresAt,
+        userId: user.id,
+      });
+      
       setPlanCode(currentPlanCode);
       setPlanName(currentPlanName);
       setHasPromoOverride(currentHasPromoOverride);
