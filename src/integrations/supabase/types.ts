@@ -545,6 +545,7 @@ export type Database = {
           created_at: string
           id: string
           owner_id: string
+          profile_id: string | null
           role: Database["public"]["Enums"]["sharing_role"]
           shared_with_email: string
           shared_with_user_id: string | null
@@ -555,6 +556,7 @@ export type Database = {
           created_at?: string
           id?: string
           owner_id: string
+          profile_id?: string | null
           role?: Database["public"]["Enums"]["sharing_role"]
           shared_with_email: string
           shared_with_user_id?: string | null
@@ -565,13 +567,22 @@ export type Database = {
           created_at?: string
           id?: string
           owner_id?: string
+          profile_id?: string | null
           role?: Database["public"]["Enums"]["sharing_role"]
           shared_with_email?: string
           shared_with_user_id?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profile_shares_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
