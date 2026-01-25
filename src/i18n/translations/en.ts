@@ -466,6 +466,8 @@ export interface Translations {
     testCreated: string;
     familyProfileCreated: string;
     exportSuccess: string;
+    // Profile switch message
+    profileSwitched: string;
   };
   misc: {
     noLocation: string;
@@ -1002,6 +1004,8 @@ export const en: Translations = {
     testCreated: "Study registered successfully.",
     familyProfileCreated: "Profile created successfully.",
     exportSuccess: "File generated successfully.",
+    // Profile switch message
+    profileSwitched: "You are now viewing {{name}}'s profile.",
   },
   
   // Misc

@@ -502,6 +502,8 @@ export const es: Translations = {
     testCreated: "Estudio registrado correctamente.",
     familyProfileCreated: "Perfil creado correctamente.",
     exportSuccess: "Archivo generado correctamente.",
+    // Profile switch message
+    profileSwitched: "Ahora estás viendo el perfil de {{name}}.",
   },
   
   // Misc

@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { getLanguage } from "@/i18n";
 
 export type SharingRole = "owner" | "viewer" | "contributor";
 
@@ -445,6 +447,9 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   }
 
   function switchToProfile(profileId: string) {
+    // Don't show toast if profile didn't actually change
+    if (profileId === activeProfileId) return;
+    
     console.log("[SharingContext] Switching to profile:", profileId);
     const ownProfile = myProfiles.find(p => p.id === profileId);
     const sharedProfile = sharedWithMe.find(s => s.profile_id === profileId);
@@ -452,7 +457,16 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       ownProfile: ownProfile ? { id: ownProfile.id, name: ownProfile.full_name, isPrimary: ownProfile.is_primary } : null,
       sharedProfile: sharedProfile ? { id: sharedProfile.profile_id, name: sharedProfile.profile_name } : null
     });
+    
+    // Get profile name for toast
+    const profileName = ownProfile?.full_name || sharedProfile?.profile_name || "Unknown";
+    const lang = getLanguage();
+    const message = lang === "es" 
+      ? `Ahora estás viendo el perfil de ${profileName}.`
+      : `You are now viewing ${profileName}'s profile.`;
+    
     setActiveProfileId(profileId);
+    toast.info(message);
   }
 
   function switchToOwnProfile() {
