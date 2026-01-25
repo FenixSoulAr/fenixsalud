@@ -115,45 +115,56 @@ async function handleCheckoutCompleted(stripe: Stripe, supabase: any, session: S
     return;
   }
 
-  const customerEmail = session.customer_details?.email;
-  if (!customerEmail) {
-    logStep("ERROR: No customer email in session");
+  // Get user_id from client_reference_id or session metadata
+  const userId = session.client_reference_id || session.metadata?.user_id;
+  if (!userId) {
+    logStep("ERROR: No user_id in client_reference_id or metadata");
     return;
   }
 
-  // Find user by email
-  const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-  if (authError) {
-    logStep("ERROR: Failed to list users", { error: authError.message });
+  // Get plan_code from session metadata
+  const planCode = session.metadata?.plan_code;
+  if (!planCode) {
+    logStep("ERROR: No plan_code in session metadata");
     return;
   }
 
-  // deno-lint-ignore no-explicit-any
-  const user = authUsers.users.find((u: any) => u.email?.toLowerCase() === customerEmail.toLowerCase());
-  if (!user) {
-    logStep("ERROR: No user found for email", { email: customerEmail });
+  logStep("Found user and plan from session", { userId, planCode });
+
+  // Check if subscription already exists and is active (idempotency)
+  const { data: existingSub } = await supabase
+    .from("subscriptions")
+    .select("id, status, stripe_subscription_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (existingSub?.stripe_subscription_id === session.subscription && existingSub?.status === "active") {
+    logStep("Subscription already active, skipping (idempotent)", { 
+      userId, 
+      stripeSubId: session.subscription 
+    });
+    return;
+  }
+
+  // Find plan by code
+  const { data: plan, error: planError } = await supabase
+    .from("plans")
+    .select("id, code")
+    .eq("code", planCode)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (planError || !plan) {
+    logStep("ERROR: Plan not found for code", { planCode, error: planError?.message });
     return;
   }
 
   // Get subscription details from Stripe
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-  const priceId = subscription.items.data[0]?.price.id;
-
-  // Find plan by stripe_price_id
-  const { data: plan, error: planError } = await supabase
-    .from("plans")
-    .select("id, code")
-    .eq("stripe_price_id", priceId)
-    .maybeSingle();
-
-  if (planError || !plan) {
-    logStep("ERROR: Plan not found for price", { priceId, error: planError?.message });
-    return;
-  }
 
   // Update or insert subscription
   const subscriptionData = {
-    user_id: user.id,
+    user_id: userId,
     plan_id: plan.id,
     status: mapStripeStatus(subscription.status),
     provider: "stripe",
@@ -172,7 +183,7 @@ async function handleCheckoutCompleted(stripe: Stripe, supabase: any, session: S
   if (upsertError) {
     logStep("ERROR: Failed to upsert subscription", { error: upsertError.message });
   } else {
-    logStep("Subscription created/updated", { userId: user.id, planCode: plan.code });
+    logStep("Subscription created/updated", { userId, planCode: plan.code, status: subscriptionData.status });
   }
 }
 
