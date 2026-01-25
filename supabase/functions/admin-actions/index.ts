@@ -122,6 +122,15 @@ serve(async (req) => {
           );
         }
 
+        // Check if target user is an admin - admins don't need overrides
+        const { data: targetUser } = await serviceClient.auth.admin.getUserById(userId);
+        if (targetUser?.user && isAdminEmail(targetUser.user.email)) {
+          return new Response(
+            JSON.stringify({ error: "Cannot grant override to admin users - they have full access by role" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
         // Calculate expiration date (null = indefinite)
         let expiresAt: string | null = null;
         if (expiresInDays && expiresInDays > 0) {

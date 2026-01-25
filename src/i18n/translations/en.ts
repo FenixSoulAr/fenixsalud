@@ -490,6 +490,8 @@ export interface Translations {
     goToDashboard: string;
     noCode: string;
     viewPlans: string;
+    adminAccess: string;
+    adminAccessMessage: string;
   };
 }
 
@@ -1023,5 +1025,7 @@ export const en: Translations = {
     goToDashboard: "Go to Dashboard",
     noCode: "Don't have a code?",
     viewPlans: "View Plans",
+    adminAccess: "Admin Access",
+    adminAccessMessage: "As an admin, you have full access to all features without needing a promo code.",
   },
 };

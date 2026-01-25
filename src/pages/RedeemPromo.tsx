@@ -12,6 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { isAdminEmail } from "@/lib/adminAllowlist";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslations, getLanguage } from "@/i18n";
 import { format } from "date-fns";
@@ -31,7 +33,11 @@ export default function RedeemPromo() {
   const language = getLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isPlus, hasPromoOverride, refetch } = useEntitlementsContext();
+  const { user } = useAuth();
+  const { isPlus, hasPromoOverride, isAdmin, refetch } = useEntitlementsContext();
+  
+  // Admins don't need promos - they have full access
+  const userIsAdmin = isAdmin || isAdminEmail(user?.email);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState<{
@@ -95,6 +101,36 @@ export default function RedeemPromo() {
     const date = new Date(dateStr);
     return format(date, "PPP", { locale: language === "es" ? esLocale : undefined });
   };
+
+  // Admins have full access - no promos needed
+  if (userIsAdmin) {
+    return (
+      <div className="container max-w-lg py-8">
+        <PageHeader
+          title={t.redeemPromo.title}
+          description={t.redeemPromo.description}
+        />
+        
+        <Card className="mt-6">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center text-center gap-4">
+              <CheckCircle2 className="h-12 w-12 text-primary" />
+              <div>
+                <h3 className="text-lg font-semibold">{t.redeemPromo.adminAccess}</h3>
+                <p className="text-muted-foreground mt-1">
+                  {t.redeemPromo.adminAccessMessage}
+                </p>
+              </div>
+              <Button onClick={() => navigate("/")} variant="outline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                {t.redeemPromo.goToDashboard}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // If already Plus, show a message
   if (isPlus || hasPromoOverride) {
