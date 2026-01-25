@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +8,9 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SharingProvider } from "@/contexts/SharingContext";
 import { EntitlementsProvider } from "@/contexts/EntitlementsContext";
 import { AppShell } from "@/components/layout/AppShell";
-import { LoadingPage } from "@/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AlertTriangle } from "lucide-react";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
@@ -30,22 +33,89 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Syncing banner shown when loading exceeds timeout
+function SyncingBanner() {
+  return (
+    <div className="bg-warning/10 border-b border-warning/30 px-4 py-2 flex items-center gap-2 text-sm text-warning-foreground">
+      <AlertTriangle className="h-4 w-4 text-warning" />
+      <span>Still syncing data…</span>
+      <LoadingSpinner size="sm" className="ml-auto" />
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const [showSyncBanner, setShowSyncBanner] = useState(false);
+  const [forceRender, setForceRender] = useState(false);
   
-  if (loading) return <LoadingPage />;
-  if (!user) return <Navigate to="/auth/sign-in" replace />;
+  // Watchdog: after 5 seconds of loading, force render with warning banner
+  useEffect(() => {
+    if (!loading) {
+      setShowSyncBanner(false);
+      setForceRender(false);
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      console.warn("[ProtectedRoute] Watchdog triggered - forcing render");
+      setShowSyncBanner(true);
+      setForceRender(true);
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [loading]);
   
-  return <AppShell>{children}</AppShell>;
+  // Still loading but within timeout - show brief spinner
+  if (loading && !forceRender) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+  
+  // Not authenticated - redirect to sign in
+  if (!user && !loading) {
+    return <Navigate to="/auth/sign-in" replace />;
+  }
+  
+  // Render the app shell (even if still loading after timeout)
+  return (
+    <AppShell>
+      {showSyncBanner && <SyncingBanner />}
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </AppShell>
+  );
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const [forceRender, setForceRender] = useState(false);
   
-  if (loading) return <LoadingPage />;
+  // Watchdog: after 5 seconds, stop blocking
+  useEffect(() => {
+    if (!loading) return;
+    
+    const timer = setTimeout(() => {
+      console.warn("[AuthRoute] Watchdog triggered - forcing render");
+      setForceRender(true);
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [loading]);
+  
+  if (loading && !forceRender) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+  
   if (user) return <Navigate to="/" replace />;
   
-  return <>{children}</>;
+  return <ErrorBoundary>{children}</ErrorBoundary>;
 }
 
 function AppRoutes() {
