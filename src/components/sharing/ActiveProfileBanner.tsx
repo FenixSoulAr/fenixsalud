@@ -1,7 +1,8 @@
 import { useSharing } from "@/contexts/SharingContext";
 import { useProfileTypeLabel } from "@/hooks/useProfileTypeLabel";
-import { User, Users } from "lucide-react";
+import { User, UserCircle, Users } from "lucide-react";
 import { getLanguage } from "@/i18n";
+import { Badge } from "@/components/ui/badge";
 
 export function ActiveProfileBanner() {
   const { 
@@ -49,9 +50,15 @@ export function ActiveProfileBanner() {
       `}
     >
       {isOwnProfile ? (
-        <div className={`h-9 w-9 rounded-full flex items-center justify-center ${isFamily ? "bg-muted" : "bg-primary/10"}`}>
-          <User className={`h-5 w-5 ${isFamily ? "text-muted-foreground" : "text-primary"}`} />
-        </div>
+        isFamily ? (
+          <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center">
+            <UserCircle className="h-5 w-5 text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+            <User className="h-5 w-5 text-primary" />
+          </div>
+        )
       ) : (
         <div className="h-9 w-9 rounded-full bg-accent/20 flex items-center justify-center">
           <Users className="h-5 w-5 text-accent-foreground" />
@@ -62,12 +69,19 @@ export function ActiveProfileBanner() {
         <p className="text-xs text-muted-foreground">
           {lang === "es" ? "Perfil activo" : "Active Profile"}
         </p>
-        <p className="text-sm font-semibold text-foreground truncate">
-          {profileName}
-          <span className="ml-2 text-xs font-normal text-muted-foreground">
-            ({roleLabel})
-          </span>
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-semibold text-foreground truncate">
+            {profileName}
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              ({roleLabel})
+            </span>
+          </p>
+          {isFamily && (
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
+              {lang === "es" ? "Familiar" : "Family"}
+            </Badge>
+          )}
+        </div>
       </div>
     </div>
   );
