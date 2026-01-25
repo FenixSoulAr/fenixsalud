@@ -546,16 +546,16 @@ export default function Settings() {
             ) : (
               /* Free plan - show upgrade prompt */
               <div className="text-center py-4 space-y-3">
-                <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                  <Lock className="h-4 w-4" />
-                  <span className="text-sm">{t.settings.multipleProfPlusOnly}</span>
+                <Crown className="h-10 w-10 mx-auto text-amber-500" />
+                <div className="space-y-1">
+                  <p className="font-medium">{t.settings.multipleProfPlusOnly}</p>
+                  <p className="text-sm text-muted-foreground">{t.settings.noFamilyProfilesDescFree}</p>
                 </div>
                 <Button 
                   variant="default" 
                   size="sm"
                   onClick={() => navigate("/pricing")}
                 >
-                  <Crown className="h-4 w-4 mr-2" />
                   {t.settings.upgradePlus}
                 </Button>
               </div>

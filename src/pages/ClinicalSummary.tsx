@@ -117,12 +117,12 @@ export default function ClinicalSummary() {
         <div className="max-w-lg mx-auto text-center py-12">
           <Crown className="h-16 w-16 mx-auto mb-4 text-amber-500" />
           <h2 className="text-xl font-semibold mb-2">
-            {lang === "es" ? "Función Plus" : "Plus Feature"}
+            {lang === "es" ? "Esta función está disponible en Plus" : "This feature is available in Plus"}
           </h2>
           <p className="text-muted-foreground mb-6">
             {lang === "es" 
-              ? "El resumen clínico y la exportación PDF son funciones exclusivas de Plus. Actualizá tu plan para generar y descargar tu resumen clínico."
-              : "Clinical summary and PDF export are Plus-exclusive features. Upgrade your plan to generate and download your clinical summary."}
+              ? "Free es para organizar tu propia salud. Plus te permite compartir, exportar y cuidar a otros."
+              : "Free is for organizing your own health. Plus lets you share, export, and care for others."}
           </p>
           <Button onClick={() => navigate("/pricing")}>
             {lang === "es" ? "Ver planes" : "View Plans"}

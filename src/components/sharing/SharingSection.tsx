@@ -65,12 +65,12 @@ export function SharingSection() {
         <div className="text-center py-6">
           <Crown className="h-12 w-12 mx-auto mb-3 text-amber-500" />
           <h3 className="font-medium mb-2">
-            {lang === "es" ? "Función Plus" : "Plus Feature"}
+            {lang === "es" ? "Esta función está disponible en Plus" : "This feature is available in Plus"}
           </h3>
           <p className="text-sm text-muted-foreground mb-4">
             {lang === "es"
-              ? "Compartí tu información de salud con familiares o cuidadores de confianza. Actualizá a Plus para habilitar esta función."
-              : "Share your health information with trusted family members or caregivers. Upgrade to Plus to enable this feature."}
+              ? "Free es para organizar tu propia salud. Plus te permite compartir, exportar y cuidar a otros."
+              : "Free is for organizing your own health. Plus lets you share, export, and care for others."}
           </p>
           <Button onClick={() => navigate("/pricing")} size="sm">
             {lang === "es" ? "Ver planes" : "View Plans"}

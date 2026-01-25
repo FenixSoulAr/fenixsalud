@@ -31,26 +31,38 @@ export function useEntitlementGate() {
 
   const lang = getLanguage();
 
+  // Primary message shown for gated features
+  const primaryMessage = {
+    en: "This feature is available in Plus",
+    es: "Esta función está disponible en Plus",
+  };
+  
+  // Secondary message explaining Free vs Plus
+  const secondaryMessage = {
+    en: "Free is for organizing your own health. Plus lets you share, export, and care for others.",
+    es: "Free es para organizar tu propia salud. Plus te permite compartir, exportar y cuidar a otros.",
+  };
+
   const messages: Record<GatedFeature, { en: string; es: string }> = {
     sharing: {
-      en: "Sharing is a Plus feature. Upgrade to share your health data with family and caregivers.",
-      es: "Compartir es una función Plus. Actualizá para compartir tus datos de salud con familia y cuidadores.",
+      en: `${primaryMessage.en}. ${secondaryMessage.en}`,
+      es: `${primaryMessage.es}. ${secondaryMessage.es}`,
     },
     roles: {
-      en: "Assigning roles is a Plus feature. Upgrade to set viewer or contributor access.",
-      es: "Asignar roles es una función Plus. Actualizá para configurar acceso de lectura o colaborador.",
+      en: `${primaryMessage.en}. ${secondaryMessage.en}`,
+      es: `${primaryMessage.es}. ${secondaryMessage.es}`,
     },
     pdf_export: {
-      en: "PDF export is a Plus feature. Upgrade to export your clinical summary.",
-      es: "Exportar PDF es una función Plus. Actualizá para exportar tu resumen clínico.",
+      en: `${primaryMessage.en}. ${secondaryMessage.en}`,
+      es: `${primaryMessage.es}. ${secondaryMessage.es}`,
     },
     export_backup: {
-      en: "Full backup export is a Plus feature. Upgrade to export all your health data.",
-      es: "Exportar backup es una función Plus. Actualizá para exportar todos tus datos de salud.",
+      en: `${primaryMessage.en}. ${secondaryMessage.en}`,
+      es: `${primaryMessage.es}. ${secondaryMessage.es}`,
     },
     procedures: {
-      en: "Procedures (surgeries, hospitalizations, vaccines) are a Plus feature. Upgrade to track your procedures.",
-      es: "Procedimientos (cirugías, hospitalizaciones, vacunas) son una función Plus. Actualizá para registrar tus procedimientos.",
+      en: `${primaryMessage.en}. ${secondaryMessage.en}`,
+      es: `${primaryMessage.es}. ${secondaryMessage.es}`,
     },
     profiles: {
       en: "Free plan allows only 1 personal profile. Upgrade to Plus to manage family profiles.",
