@@ -391,6 +391,12 @@ export interface Translations {
     exportHealthData: string;
     downloadFullBackup: string;
     exportComingSoon: string;
+    promoExpiringSoon: string;
+    promoExpiresOn: string;
+    dayLeft: string;
+    daysLeft: string;
+    subscribeNow: string;
+    promoUnlimited: string;
   };
   auth: {
     signIn: string;
@@ -906,6 +912,12 @@ export const en: Translations = {
     exportHealthData: "Export my health data",
     downloadFullBackup: "Download full backup",
     exportComingSoon: "Export will be available soon",
+    promoExpiringSoon: "Promo expiring soon!",
+    promoExpiresOn: "Promo expires on",
+    dayLeft: "day left",
+    daysLeft: "days left",
+    subscribeNow: "Subscribe now",
+    promoUnlimited: "Unlimited promo access",
   },
   
   // Auth
