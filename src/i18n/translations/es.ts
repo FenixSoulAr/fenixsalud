@@ -501,4 +501,28 @@ export const es: Translations = {
     patient: "Paciente",
     fileUploadNotAvailable: "Carga de archivos no disponible en móvil",
   },
+  
+  // Promo Code Redemption
+  redeemPromo: {
+    title: "Canjear Código Promo",
+    description: "Ingresá un código promocional para desbloquear Plus",
+    enterCode: "Ingresá tu Código",
+    enterCodeDescription: "Escribí tu código promocional para activar las funciones Plus.",
+    codeLabel: "Código Promo",
+    codePlaceholder: "ej., FAMILIA",
+    redeemButton: "Canjear Código",
+    redeeming: "Canjeando...",
+    success: "¡Código Canjeado!",
+    successMessage: "Tus funciones Plus ya están activas.",
+    successTitle: "¡Bienvenido a Plus!",
+    unlimitedAccess: "Tenés acceso Plus ilimitado.",
+    accessUntil: "Tu acceso Plus está activo hasta",
+    error: "Error",
+    alreadyPlus: "Ya tenés Plus",
+    alreadyPlusMessage: "Tu cuenta ya tiene las funciones Plus activas.",
+    goToSettings: "Ir a Configuración",
+    goToDashboard: "Ir al Inicio",
+    noCode: "¿No tenés un código?",
+    viewPlans: "Ver Planes",
+  },
 };
