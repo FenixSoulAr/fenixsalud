@@ -92,8 +92,8 @@ export default function Dashboard() {
         }
       />
 
-      {/* Orientation banner for new users */}
-      {canEdit && <OrientationBanner />}
+      {/* Orientation banner for new users - auto-dismisses when first appointment exists */}
+      {canEdit && <OrientationBanner hasAppointments={appointments.length > 0} />}
 
       {!hasData ? (
         <EmptyState
