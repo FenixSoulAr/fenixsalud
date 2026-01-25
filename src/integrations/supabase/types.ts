@@ -134,6 +134,7 @@ export type Database = {
           duration_value: number | null
           id: string
           is_active: boolean
+          last_used_at: string | null
           max_redemptions: number | null
           redeemed_count: number
           stackable: boolean
@@ -151,6 +152,7 @@ export type Database = {
           duration_value?: number | null
           id?: string
           is_active?: boolean
+          last_used_at?: string | null
           max_redemptions?: number | null
           redeemed_count?: number
           stackable?: boolean
@@ -168,6 +170,7 @@ export type Database = {
           duration_value?: number | null
           id?: string
           is_active?: boolean
+          last_used_at?: string | null
           max_redemptions?: number | null
           redeemed_count?: number
           stackable?: boolean
@@ -761,6 +764,48 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_code_redemptions: {
+        Row: {
+          discount_id: string
+          id: string
+          override_id: string | null
+          redeemed_at: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          discount_id: string
+          id?: string
+          override_id?: string | null
+          redeemed_at?: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          discount_id?: string
+          id?: string
+          override_id?: string | null
+          redeemed_at?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_redemptions_discount_id_fkey"
+            columns: ["discount_id"]
+            isOneToOne: false
+            referencedRelation: "discounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_code_redemptions_override_id_fkey"
+            columns: ["override_id"]
+            isOneToOne: false
+            referencedRelation: "plan_overrides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_codes: {
         Row: {
           code: string
@@ -1065,6 +1110,25 @@ export type Database = {
         Args: { _profile_id: string; _user_id: string }
         Returns: boolean
       }
+      get_admin_promo_codes: {
+        Args: never
+        Returns: {
+          code: string
+          created_at: string
+          duration_type: string
+          duration_value: number
+          id: string
+          is_active: boolean
+          last_used_at: string
+          max_redemptions: number
+          redeemed_count: number
+          stripe_coupon_id: string
+          type: string
+          valid_from: string
+          valid_to: string
+          value: number
+        }[]
+      }
       get_admin_user_list: {
         Args: never
         Returns: {
@@ -1096,6 +1160,19 @@ export type Database = {
       is_profile_owner: {
         Args: { _profile_id: string; _user_id: string }
         Returns: boolean
+      }
+      validate_promo_code: {
+        Args: { _code: string; _user_id: string }
+        Returns: {
+          discount_id: string
+          discount_type: string
+          discount_value: number
+          duration_type: string
+          duration_value: number
+          error_message: string
+          stripe_coupon_id: string
+          valid: boolean
+        }[]
       }
     }
     Enums: {
