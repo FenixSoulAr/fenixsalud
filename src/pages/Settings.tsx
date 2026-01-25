@@ -676,8 +676,7 @@ export default function Settings() {
                 if (isPlus) {
                   toast.info(t.settings.exportComingSoon);
                 } else {
-                  toast(gatedMessages.plusFeature.primary, {
-                    description: gatedMessages.plusFeature.secondary,
+                  toast(gatedMessages.plusFeature, {
                     action: {
                       label: t.settings.upgradePlus,
                       onClick: () => navigate("/pricing"),
@@ -700,8 +699,7 @@ export default function Settings() {
                 if (isPlus) {
                   toast.info(t.settings.exportComingSoon);
                 } else {
-                  toast(gatedMessages.plusFeature.primary, {
-                    description: gatedMessages.plusFeature.secondary,
+                  toast(gatedMessages.plusFeature, {
                     action: {
                       label: t.settings.upgradePlus,
                       onClick: () => navigate("/pricing"),
@@ -715,10 +713,9 @@ export default function Settings() {
               {!isPlus && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
             </Button>
             
-            {/* Free user upsell info */}
             {!isPlus && (
               <div className="text-center py-3 space-y-2">
-                <p className="text-sm text-muted-foreground">{gatedMessages.plusFeature.secondary}</p>
+                <p className="text-sm text-muted-foreground">{gatedMessages.plusFeature}</p>
                 <Button 
                   variant="default" 
                   size="sm"
