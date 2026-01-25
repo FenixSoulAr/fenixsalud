@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { SharingSection } from "@/components/sharing/SharingSection";
+import { BillingIntervalToggle, type BillingInterval } from "@/components/billing/BillingIntervalToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSharing } from "@/contexts/SharingContext";
@@ -43,7 +44,7 @@ interface SettingsData {
 export default function Settings() {
   const { user, signOut } = useAuth();
   const { canManageSharing } = useSharing();
-  const { isPlus, isAdmin, hasPromoOverride, promoExpiresAt, maxProfiles, maxAttachments, canExportPdf, canExportBackup, loading: entitlementsLoading } = useEntitlementsContext();
+  const { isPlus, isAdmin, hasPromoOverride, promoExpiresAt, maxProfiles, maxAttachments, canExportPdf, canExportBackup, planName, loading: entitlementsLoading } = useEntitlementsContext();
   const { checkProfileLimit, gatedMessages } = useEntitlementGate();
   const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const navigate = useNavigate();
@@ -478,6 +479,7 @@ export default function Settings() {
             maxAttachments={maxAttachments}
             checkoutLoading={checkoutLoading}
             startCheckout={startCheckout}
+            planName={planName}
           />
         )}
 
@@ -855,6 +857,7 @@ interface PlanSubscriptionSectionProps {
   maxAttachments: number;
   checkoutLoading: boolean;
   startCheckout: (planCode: string) => void;
+  planName: string;
 }
 
 function PlanSubscriptionSection({
@@ -866,7 +869,9 @@ function PlanSubscriptionSection({
   maxAttachments,
   checkoutLoading,
   startCheckout,
+  planName,
 }: PlanSubscriptionSectionProps) {
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
   // Calculate days until expiration
   const expirationInfo = useMemo(() => {
     if (!hasPromoOverride || !promoExpiresAt) {
@@ -915,7 +920,7 @@ function PlanSubscriptionSection({
                 {isPlus 
                   ? (hasPromoOverride 
                       ? (t.settings.plusPromo || "Plus (Promo)")
-                      : (t.settings.plusPlan || "Plus"))
+                      : planName || (t.settings.plusPlan || "Plus"))
                   : (t.settings.freePlan || "Free")}
               </p>
               <p className="text-xs text-muted-foreground">
@@ -956,19 +961,24 @@ function PlanSubscriptionSection({
                     )}
                   </p>
                   {expirationInfo.isExpiringSoon && (
-                    <Button 
-                      onClick={() => startCheckout("plus_monthly")} 
-                      size="sm"
-                      className="mt-2"
-                      disabled={checkoutLoading}
-                    >
-                      {checkoutLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Crown className="h-4 w-4 mr-2" />
-                      )}
-                      {t.settings.subscribeNow || "Subscribe now"}
-                    </Button>
+                    <div className="mt-3 space-y-2">
+                      <BillingIntervalToggle 
+                        value={billingInterval} 
+                        onChange={setBillingInterval}
+                      />
+                      <Button 
+                        onClick={() => startCheckout(billingInterval === "monthly" ? "plus_monthly" : "plus_yearly")} 
+                        size="sm"
+                        disabled={checkoutLoading}
+                      >
+                        {checkoutLoading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Crown className="h-4 w-4 mr-2" />
+                        )}
+                        {t.settings.subscribeNow || "Subscribe now"}
+                      </Button>
+                    </div>
                   )}
                 </>
               ) : (
@@ -1002,19 +1012,26 @@ function PlanSubscriptionSection({
         
         {/* Upgrade CTA */}
         {!isPlus && (
-          <Button 
-            onClick={() => startCheckout("plus_monthly")} 
-            className="w-full"
-            variant="default"
-            disabled={checkoutLoading}
-          >
-            {checkoutLoading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Crown className="h-4 w-4 mr-2" />
-            )}
-            {t.settings.upgradePlus || "Upgrade to Plus"}
-          </Button>
+          <div className="space-y-3">
+            <BillingIntervalToggle 
+              value={billingInterval} 
+              onChange={setBillingInterval} 
+              className="w-full justify-center"
+            />
+            <Button 
+              onClick={() => startCheckout(billingInterval === "monthly" ? "plus_monthly" : "plus_yearly")} 
+              className="w-full"
+              variant="default"
+              disabled={checkoutLoading}
+            >
+              {checkoutLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Crown className="h-4 w-4 mr-2" />
+              )}
+              {t.settings.upgradePlus || "Upgrade to Plus"}
+            </Button>
+          </div>
         )}
         
         {isPlus && !hasPromoOverride && (
