@@ -9,6 +9,8 @@ import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
+import { useOnboarding } from "@/hooks/useOnboarding";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -20,6 +22,7 @@ export default function Dashboard() {
   const { canEdit, activeProfileId } = useActiveProfile();
   const navigate = useNavigate();
   const t = useTranslations();
+  const { showOnboarding, completeOnboarding } = useOnboarding();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
@@ -62,6 +65,11 @@ export default function Dashboard() {
   const medicationGroups = groupMedicationsByDiagnosis(medications, diagnoses);
 
   if (loading) return <LoadingPage />;
+
+  // Show onboarding on first visit
+  if (showOnboarding) {
+    return <OnboardingFlow onComplete={completeOnboarding} />;
+  }
 
   return (
     <div className="animate-fade-in">
