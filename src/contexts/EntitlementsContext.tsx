@@ -8,6 +8,7 @@ interface EntitlementsContextValue {
   planName: string | null;
   isPlus: boolean;
   hasPromoOverride: boolean;
+  promoExpiresAt: string | null;
   maxProfiles: number;
   maxAttachments: number;
   canExportPdf: boolean;

@@ -20,6 +20,7 @@ interface UseEntitlementsReturn extends EntitlementValues {
   planName: string | null;
   isPlus: boolean;
   hasPromoOverride: boolean;
+  promoExpiresAt: string | null;
   refetch: () => Promise<void>;
 }
 
@@ -39,6 +40,7 @@ const entitlementCache = new Map<string, {
   planCode: string;
   planName: string;
   hasPromoOverride: boolean;
+  promoExpiresAt: string | null;
   timestamp: number;
 }>();
 
@@ -52,6 +54,7 @@ export function useEntitlements(): UseEntitlementsReturn {
   const [planCode, setPlanCode] = useState<string | null>("free");
   const [planName, setPlanName] = useState<string | null>("Free");
   const [hasPromoOverride, setHasPromoOverride] = useState(false);
+  const [promoExpiresAt, setPromoExpiresAt] = useState<string | null>(null);
   const [entitlements, setEntitlements] = useState<EntitlementValues>(FREE_DEFAULTS);
   const fetchingRef = useRef(false);
   const hasFetchedRef = useRef(false);
@@ -70,6 +73,7 @@ export function useEntitlements(): UseEntitlementsReturn {
         setPlanCode(cached.planCode);
         setPlanName(cached.planName);
         setHasPromoOverride(cached.hasPromoOverride);
+        setPromoExpiresAt(cached.promoExpiresAt);
         setError(null);
         return;
       }
@@ -112,19 +116,35 @@ export function useEntitlements(): UseEntitlementsReturn {
         throw new Error("Failed to load subscription");
       }
 
-      // Check for active plan override using the RPC function
-      const { data: hasOverride } = await supabase
-        .rpc("has_active_override", { _user_id: user.id });
+      // Check for active plan override and get expiration date
+      let overrideExpiresAt: string | null = null;
+      const { data: overrideData } = await supabase
+        .from("plan_overrides")
+        .select("expires_at")
+        .eq("user_id", user.id)
+        .is("revoked_at", null)
+        .maybeSingle();
+
+      // Check if override is active (not expired)
+      const hasActiveOverride = overrideData && (
+        !overrideData.expires_at || new Date(overrideData.expires_at) > new Date()
+      );
+      
+      if (hasActiveOverride && overrideData) {
+        overrideExpiresAt = overrideData.expires_at;
+      }
 
       // Determine current plan
       let currentPlanId: string | null = null;
       let currentPlanCode = "free";
       let currentPlanName = "Free";
       let currentHasPromoOverride = false;
+      let currentPromoExpiresAt: string | null = null;
 
       // If user has an override, treat them as Plus
-      if (hasOverride) {
+      if (hasActiveOverride) {
         currentHasPromoOverride = true;
+        currentPromoExpiresAt = overrideExpiresAt;
         // Get plus_monthly plan for entitlements (both plus plans have same entitlements)
         const { data: plusPlan } = await supabase
           .from("plans")
@@ -163,6 +183,7 @@ export function useEntitlements(): UseEntitlementsReturn {
       setPlanCode(currentPlanCode);
       setPlanName(currentPlanName);
       setHasPromoOverride(currentHasPromoOverride);
+      setPromoExpiresAt(currentPromoExpiresAt);
 
       // Get entitlements for the plan
       let resolvedEntitlements = FREE_DEFAULTS;
@@ -204,6 +225,7 @@ export function useEntitlements(): UseEntitlementsReturn {
         planCode: currentPlanCode,
         planName: currentPlanName,
         hasPromoOverride: currentHasPromoOverride,
+        promoExpiresAt: currentPromoExpiresAt,
         timestamp: Date.now(),
       });
 
@@ -245,6 +267,7 @@ export function useEntitlements(): UseEntitlementsReturn {
     planName,
     isPlus,
     hasPromoOverride,
+    promoExpiresAt,
     ...entitlements,
     refetch: () => fetchEntitlements(true),
   };

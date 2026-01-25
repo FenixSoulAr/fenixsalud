@@ -419,6 +419,12 @@ export const es: Translations = {
     exportHealthData: "Exportar mis datos de salud",
     downloadFullBackup: "Descargar backup completo",
     exportComingSoon: "La exportación estará disponible pronto",
+    promoExpiringSoon: "¡La promo expira pronto!",
+    promoExpiresOn: "La promo expira el",
+    dayLeft: "día restante",
+    daysLeft: "días restantes",
+    subscribeNow: "Suscribirse ahora",
+    promoUnlimited: "Acceso promo ilimitado",
   },
   
   // Auth
