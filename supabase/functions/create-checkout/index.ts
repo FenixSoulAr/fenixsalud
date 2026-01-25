@@ -109,6 +109,9 @@ serve(async (req) => {
       console.log("[create-checkout] No existing customer, will create new one during checkout");
     }
 
+    // Production domain for redirects
+    const productionDomain = "https://salud.fenixsoular.com.ar";
+    
     // Create Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -118,8 +121,8 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      success_url: successUrl || `${req.headers.get("origin")}/settings?upgrade=success`,
-      cancel_url: cancelUrl || `${req.headers.get("origin")}/pricing`,
+      success_url: successUrl || `${productionDomain}/settings?upgrade=success`,
+      cancel_url: cancelUrl || `${productionDomain}/pricing`,
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
       client_reference_id: userId,
