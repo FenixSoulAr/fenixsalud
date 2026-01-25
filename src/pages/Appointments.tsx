@@ -171,7 +171,7 @@ export default function Appointments() {
         toast.error(msg); 
         return; 
       }
-      toast.success(t.toast.savedSuccess);
+      toast.success(t.toast.appointmentCreated);
     }
     
     setDialogOpen(false);

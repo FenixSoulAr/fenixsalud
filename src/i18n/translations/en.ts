@@ -461,6 +461,11 @@ export interface Translations {
     couldNotSaveProfile: string;
     couldNotDeleteProfile: string;
     couldNotUpdatePassword: string;
+    // Standardized success messages
+    appointmentCreated: string;
+    testCreated: string;
+    familyProfileCreated: string;
+    exportSuccess: string;
   };
   misc: {
     noLocation: string;
@@ -968,7 +973,7 @@ export const en: Translations = {
     savedSuccess: "Saved successfully.",
     changesUpdated: "Changes updated.",
     deletedSuccess: "Deleted successfully.",
-    error: "Something went wrong. Please try again.",
+    error: "An unexpected error occurred. Please try again.",
     settingsSaved: "Settings saved.",
     profileSaved: "Profile saved.",
     profileDeleted: "Profile data deleted.",
@@ -992,6 +997,11 @@ export const en: Translations = {
     couldNotSaveProfile: "We couldn't save your profile. Please try again.",
     couldNotDeleteProfile: "We couldn't delete your profile data. Please try again.",
     couldNotUpdatePassword: "We couldn't update your password. Please try again.",
+    // Standardized success messages
+    appointmentCreated: "Appointment created successfully.",
+    testCreated: "Study registered successfully.",
+    familyProfileCreated: "Profile created successfully.",
+    exportSuccess: "File generated successfully.",
   },
   
   // Misc

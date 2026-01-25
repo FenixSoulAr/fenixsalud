@@ -219,7 +219,7 @@ export default function Settings() {
       return;
     }
     
-    toast.success(t.toast.profileSaved);
+    toast.success(t.toast.familyProfileCreated);
     setNewProfileName("");
     setShowAddProfileForm(false);
     // Refresh sharing context to update profile switcher
