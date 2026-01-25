@@ -191,6 +191,222 @@ serve(async (req) => {
         );
       }
 
+      case "list_promo_codes": {
+        const { data, error } = await serviceClient.rpc("get_admin_promo_codes");
+        
+        if (error) {
+          logStep("Error fetching promo codes", { error: error.message });
+          return new Response(
+            JSON.stringify({ error: "Failed to fetch promo codes" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        logStep("Promo codes fetched", { count: data?.length });
+        return new Response(
+          JSON.stringify({ promoCodes: data }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "create_promo_code": {
+        const { code, type, value, durationType, durationValue, maxRedemptions, expiresAt, stripeCouponId } = params;
+        
+        if (!code || !type) {
+          return new Response(
+            JSON.stringify({ error: "code and type are required" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Check if code already exists (case-insensitive)
+        const { data: existing } = await serviceClient
+          .from("discounts")
+          .select("id")
+          .ilike("code", code)
+          .maybeSingle();
+
+        if (existing) {
+          return new Response(
+            JSON.stringify({ error: "A promo code with this name already exists" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const { data, error } = await serviceClient
+          .from("discounts")
+          .insert({
+            code: code.toUpperCase(),
+            type,
+            value: type === "internal_override" ? 100 : (value || 10),
+            duration_type: durationType || "once",
+            duration_value: durationValue || null,
+            max_redemptions: maxRedemptions || null,
+            valid_to: expiresAt ? new Date(expiresAt).toISOString() : null,
+            stripe_coupon_id: stripeCouponId || null,
+            is_active: true,
+            redeemed_count: 0,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          logStep("Error creating promo code", { error: error.message });
+          return new Response(
+            JSON.stringify({ error: "Failed to create promo code" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        logStep("Promo code created", { code, type, createdBy: userEmail });
+        return new Response(
+          JSON.stringify({ success: true, promoCode: data }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "deactivate_promo_code": {
+        const { codeId } = params;
+        
+        if (!codeId) {
+          return new Response(
+            JSON.stringify({ error: "codeId is required" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const { error } = await serviceClient
+          .from("discounts")
+          .update({ is_active: false })
+          .eq("id", codeId);
+
+        if (error) {
+          logStep("Error deactivating promo code", { error: error.message });
+          return new Response(
+            JSON.stringify({ error: "Failed to deactivate promo code" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        logStep("Promo code deactivated", { codeId, deactivatedBy: userEmail });
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "redeem_promo_code": {
+        // This action can be called by any authenticated user for themselves
+        // But we're in the admin function, so this is for admin-granted redemptions
+        const { userId, code } = params;
+        
+        if (!userId || !code) {
+          return new Response(
+            JSON.stringify({ error: "userId and code are required" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Validate the promo code
+        const { data: validation, error: validationError } = await serviceClient
+          .rpc("validate_promo_code", { _code: code, _user_id: userId });
+
+        if (validationError || !validation || validation.length === 0) {
+          logStep("Promo code validation failed", { error: validationError?.message });
+          return new Response(
+            JSON.stringify({ error: "Failed to validate promo code" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const result = validation[0];
+        if (!result.valid) {
+          return new Response(
+            JSON.stringify({ error: result.error_message }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Handle internal_override type - create plan_override
+        let overrideId: string | null = null;
+        if (result.discount_type === "internal_override") {
+          // Calculate expiration based on duration
+          let expiresAt: string | null = null;
+          if (result.duration_type === "once") {
+            // 30 days default for "once"
+            const expDate = new Date();
+            expDate.setDate(expDate.getDate() + 30);
+            expiresAt = expDate.toISOString();
+          } else if (result.duration_type === "repeating" && result.duration_value) {
+            const expDate = new Date();
+            expDate.setMonth(expDate.getMonth() + result.duration_value);
+            expiresAt = expDate.toISOString();
+          }
+          // "forever" = null expires_at
+
+          const { data: override, error: overrideError } = await serviceClient
+            .from("plan_overrides")
+            .upsert({
+              user_id: userId,
+              granted_by_email: userEmail,
+              expires_at: expiresAt,
+              notes: `Promo code: ${code}`,
+              revoked_at: null,
+            }, {
+              onConflict: "user_id",
+            })
+            .select()
+            .single();
+
+          if (overrideError) {
+            logStep("Error creating override from promo", { error: overrideError.message });
+            return new Response(
+              JSON.stringify({ error: "Failed to apply promo code" }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          overrideId = override.id;
+        }
+
+        // Record the redemption
+        const { error: redemptionError } = await serviceClient
+          .from("promo_code_redemptions")
+          .insert({
+            discount_id: result.discount_id,
+            user_id: userId,
+            source: "admin_grant",
+            override_id: overrideId,
+          });
+
+        if (redemptionError) {
+          logStep("Error recording redemption", { error: redemptionError.message });
+          // Don't fail - the override was created
+        }
+
+        // Update usage counters
+        await serviceClient
+          .from("discounts")
+          .update({ 
+            redeemed_count: (await serviceClient
+              .from("promo_code_redemptions")
+              .select("id", { count: "exact" })
+              .eq("discount_id", result.discount_id)).count || 1,
+            last_used_at: new Date().toISOString()
+          })
+          .eq("id", result.discount_id);
+
+        logStep("Promo code redeemed", { code, userId, type: result.discount_type, overrideId });
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            type: result.discount_type,
+            overrideId,
+            stripeCouponId: result.stripe_coupon_id
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: `Unknown action: ${action}` }),
