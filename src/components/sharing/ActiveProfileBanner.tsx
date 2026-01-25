@@ -72,19 +72,21 @@ export function ActiveProfileBanner() {
 
   const planBadge = getPlanBadgeConfig();
 
-  // Generate tooltip content
+  // Generate tooltip content - standardized promo messages
   const getTooltipContent = () => {
     if (hasPromoOverride && promoExpiresAt) {
       const expirationDate = new Date(promoExpiresAt);
-      const formattedDate = format(expirationDate, "dd/MM/yyyy", { 
+      const formattedDate = format(expirationDate, "dd/MM", { 
         locale: lang === "es" ? es : undefined 
       });
       return lang === "es" 
-        ? `Plan Plus promocional — vence el ${formattedDate}`
-        : `Promotional Plus plan — expires ${formattedDate}`;
+        ? `Tu acceso Plus promocional vence el ${formattedDate}.`
+        : `Your promotional Plus access expires on ${formattedDate}.`;
     }
     if (hasPromoOverride) {
-      return lang === "es" ? "Plan Plus promocional" : "Promotional Plus plan";
+      return lang === "es" 
+        ? "Tenés acceso Plus promocional activo." 
+        : "You have active promotional Plus access.";
     }
     if (isPlus) {
       return lang === "es" ? "Plan Plus activo" : "Plus plan active";

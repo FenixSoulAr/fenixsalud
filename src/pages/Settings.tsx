@@ -945,18 +945,15 @@ function PlanSubscriptionSection({
                   <p className="text-sm font-medium">
                     {expirationInfo.isExpiringSoon 
                       ? (t.settings.promoExpiringSoon || "Promo expiring soon!")
-                      : (t.settings.promoExpiresOn || "Promo expires on")}
+                      : `Tu acceso Plus promocional vence el ${formatExpiryDate(expirationInfo.date)}.`}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatExpiryDate(expirationInfo.date)}
-                    {expirationInfo.daysLeft > 0 && (
-                      <span className="ml-1">
-                        ({expirationInfo.daysLeft} {expirationInfo.daysLeft === 1 
-                          ? (t.settings.dayLeft || "day left") 
-                          : (t.settings.daysLeft || "days left")})
-                      </span>
-                    )}
-                  </p>
+                  {expirationInfo.daysLeft > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      {expirationInfo.daysLeft} {expirationInfo.daysLeft === 1 
+                        ? (t.settings.dayLeft || "day left") 
+                        : (t.settings.daysLeft || "days left")}
+                    </p>
+                  )}
                   {expirationInfo.isExpiringSoon && (
                     <div className="mt-3 space-y-2">
                       <BillingIntervalToggle 
@@ -979,8 +976,8 @@ function PlanSubscriptionSection({
                   )}
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  {t.settings.promoUnlimited || "Unlimited promo access"}
+                <p className="text-sm font-medium">
+                  Tenés acceso Plus promocional activo.
                 </p>
               )}
             </div>
