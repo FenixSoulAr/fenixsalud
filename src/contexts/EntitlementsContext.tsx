@@ -7,6 +7,7 @@ interface EntitlementsContextValue {
   planCode: string | null;
   planName: string | null;
   isPlus: boolean;
+  isAdmin: boolean;
   hasPromoOverride: boolean;
   promoExpiresAt: string | null;
   maxProfiles: number;

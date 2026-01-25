@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ensureSubscriptionRow } from "@/lib/subscriptions";
+import { isAdminEmail } from "@/lib/adminAllowlist";
 
 interface EntitlementValues {
   maxProfiles: number;
@@ -19,6 +20,7 @@ interface UseEntitlementsReturn extends EntitlementValues {
   planCode: string | null;
   planName: string | null;
   isPlus: boolean;
+  isAdmin: boolean;
   hasPromoOverride: boolean;
   promoExpiresAt: string | null;
   refetch: () => Promise<void>;
@@ -34,11 +36,23 @@ const FREE_DEFAULTS: EntitlementValues = {
   canExportBackup: false,
 };
 
+// Admin entitlements - full access
+const ADMIN_ENTITLEMENTS: EntitlementValues = {
+  maxProfiles: 99,
+  maxAttachments: 9999,
+  canExportPdf: true,
+  canShareProfiles: true,
+  canUseRoles: true,
+  canUseProcedures: true,
+  canExportBackup: true,
+};
+
 // In-memory cache for entitlements per user
 const entitlementCache = new Map<string, {
   entitlements: EntitlementValues;
   planCode: string;
   planName: string;
+  isAdmin: boolean;
   hasPromoOverride: boolean;
   promoExpiresAt: string | null;
   timestamp: number;
@@ -53,6 +67,7 @@ export function useEntitlements(): UseEntitlementsReturn {
   const [error, setError] = useState<string | null>(null);
   const [planCode, setPlanCode] = useState<string | null>("free");
   const [planName, setPlanName] = useState<string | null>("Free");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [hasPromoOverride, setHasPromoOverride] = useState(false);
   const [promoExpiresAt, setPromoExpiresAt] = useState<string | null>(null);
   const [entitlements, setEntitlements] = useState<EntitlementValues>(FREE_DEFAULTS);
@@ -65,6 +80,32 @@ export function useEntitlements(): UseEntitlementsReturn {
       return;
     }
 
+    // Check if user is admin - admins get full Plus access without plan restrictions
+    const userIsAdmin = isAdminEmail(user.email);
+    
+    if (userIsAdmin) {
+      // Set admin state with full entitlements immediately
+      setIsAdmin(true);
+      setPlanCode(null); // Admins don't have a commercial plan
+      setPlanName(null);
+      setHasPromoOverride(false);
+      setPromoExpiresAt(null);
+      setEntitlements(ADMIN_ENTITLEMENTS);
+      setError(null);
+      
+      // Update cache for admins
+      entitlementCache.set(user.id, {
+        entitlements: ADMIN_ENTITLEMENTS,
+        planCode: "admin",
+        planName: "Admin",
+        isAdmin: true,
+        hasPromoOverride: false,
+        promoExpiresAt: null,
+        timestamp: Date.now(),
+      });
+      return;
+    }
+
     // Check cache first (unless force refresh)
     if (!forceRefresh) {
       const cached = entitlementCache.get(user.id);
@@ -72,6 +113,7 @@ export function useEntitlements(): UseEntitlementsReturn {
         setEntitlements(cached.entitlements);
         setPlanCode(cached.planCode);
         setPlanName(cached.planName);
+        setIsAdmin(cached.isAdmin);
         setHasPromoOverride(cached.hasPromoOverride);
         setPromoExpiresAt(cached.promoExpiresAt);
         setError(null);
@@ -88,6 +130,7 @@ export function useEntitlements(): UseEntitlementsReturn {
       setLoading(true);
     }
     setError(null);
+    setIsAdmin(false);
 
     try {
       // Ensure subscription row exists (fire and forget with timeout)
@@ -224,6 +267,7 @@ export function useEntitlements(): UseEntitlementsReturn {
         entitlements: resolvedEntitlements,
         planCode: currentPlanCode,
         planName: currentPlanName,
+        isAdmin: false,
         hasPromoOverride: currentHasPromoOverride,
         promoExpiresAt: currentPromoExpiresAt,
         timestamp: Date.now(),
@@ -258,7 +302,7 @@ export function useEntitlements(): UseEntitlementsReturn {
     }
   }, [user]);
 
-  const isPlus = planCode === "plus_monthly" || planCode === "plus_yearly";
+  const isPlus = planCode === "plus_monthly" || planCode === "plus_yearly" || isAdmin;
 
   return {
     loading,
@@ -266,6 +310,7 @@ export function useEntitlements(): UseEntitlementsReturn {
     planCode,
     planName,
     isPlus,
+    isAdmin,
     hasPromoOverride,
     promoExpiresAt,
     ...entitlements,

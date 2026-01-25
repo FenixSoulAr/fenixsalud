@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Gift, Loader2, Check, X, Clock, CreditCard } from "lucide-react";
+import { Users, Gift, Loader2, Check, X, Clock, CreditCard, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
 import { format } from "date-fns";
+import { isAdminEmail } from "@/lib/adminAllowlist";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -119,8 +120,17 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
     }
   };
 
-  const getEffectivePlanBadge = (plan: string) => {
-    switch (plan) {
+  const getEffectivePlanBadge = (user: AdminUser) => {
+    // Check if user is admin - admins don't have a commercial plan
+    if (isAdminEmail(user.email)) {
+      return (
+        <Badge variant="outline" className="border-primary text-primary">
+          <Shield className="h-3 w-3 mr-1" /> Admin
+        </Badge>
+      );
+    }
+    
+    switch (user.effective_plan) {
       case "override_plus":
         return (
           <Badge className="bg-primary hover:bg-primary/90">
@@ -208,7 +218,7 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
                             ? format(new Date(user.user_created_at), "dd/MM/yyyy")
                             : "-"}
                         </TableCell>
-                        <TableCell>{getEffectivePlanBadge(user.effective_plan)}</TableCell>
+                        <TableCell>{getEffectivePlanBadge(user)}</TableCell>
                         <TableCell>
                           {user.override_id ? (
                             <div className="text-xs space-y-1">
@@ -238,44 +248,51 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {user.override_id ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setRevokeDialog({ open: true, user })}
-                                disabled={actionLoading === user.user_id}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                {actionLoading === user.user_id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <X className="h-4 w-4 mr-1" />{" "}
-                                    {lang === "es" ? "Revocar" : "Revoke"}
-                                  </>
-                                )}
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setGrantDialog({ open: true, user })}
-                                disabled={
-                                  actionLoading === user.user_id || user.effective_plan === "stripe_plus"
-                                }
-                              >
-                                {actionLoading === user.user_id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Gift className="h-4 w-4 mr-1" />{" "}
-                                    {lang === "es" ? "Otorgar Plus" : "Grant Plus"}
-                                  </>
-                                )}
-                              </Button>
-                            )}
-                          </div>
+                          {/* Don't show actions for admin users - they have full access by role */}
+                          {isAdminEmail(user.email) ? (
+                            <span className="text-xs text-muted-foreground">
+                              {lang === "es" ? "Acceso Admin" : "Admin Access"}
+                            </span>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2">
+                              {user.override_id ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setRevokeDialog({ open: true, user })}
+                                  disabled={actionLoading === user.user_id}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  {actionLoading === user.user_id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <X className="h-4 w-4 mr-1" />{" "}
+                                      {lang === "es" ? "Revocar" : "Revoke"}
+                                    </>
+                                  )}
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setGrantDialog({ open: true, user })}
+                                  disabled={
+                                    actionLoading === user.user_id || user.effective_plan === "stripe_plus"
+                                  }
+                                >
+                                  {actionLoading === user.user_id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Gift className="h-4 w-4 mr-1" />{" "}
+                                      {lang === "es" ? "Otorgar Plus" : "Grant Plus"}
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
