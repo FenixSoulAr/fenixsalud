@@ -1,4 +1,5 @@
 import { useSharing } from "@/contexts/SharingContext";
+import { useProfileTypeLabel } from "@/hooks/useProfileTypeLabel";
 import { User, Users } from "lucide-react";
 import { getLanguage } from "@/i18n";
 
@@ -7,9 +8,9 @@ export function ActiveProfileBanner() {
     myProfiles, 
     sharedWithMe, 
     activeProfileId, 
-    currentRole, 
     loading 
   } = useSharing();
+  const { label: roleLabel, type: profileType } = useProfileTypeLabel();
   const lang = getLanguage();
 
   // Don't show while loading or if no profile selected
@@ -28,17 +29,10 @@ export function ActiveProfileBanner() {
     || activeSharedProfile?.owner_name
     || (lang === "es" ? "Perfil sin nombre" : "Unnamed Profile");
 
-  // Role label
-  const roleLabel = 
-    currentRole === "owner" 
-      ? lang === "es" ? "Propietario" : "Owner"
-      : currentRole === "contributor"
-      ? lang === "es" ? "Colaborador" : "Contributor"
-      : lang === "es" ? "Solo lectura" : "Viewer";
-
-  // Determine visual style based on role
-  const isViewer = currentRole === "viewer";
-  const isContributor = currentRole === "contributor";
+  // Determine visual style based on profile type
+  const isViewer = profileType === "viewer";
+  const isContributor = profileType === "contributor";
+  const isFamily = profileType === "family";
 
   return (
     <div 
@@ -48,13 +42,15 @@ export function ActiveProfileBanner() {
           ? "bg-secondary/50 border-secondary" 
           : isContributor 
             ? "bg-accent/30 border-accent" 
-            : "bg-primary/5 border-primary/20"
+            : isFamily
+              ? "bg-muted/50 border-muted-foreground/20"
+              : "bg-primary/5 border-primary/20"
         }
       `}
     >
       {isOwnProfile ? (
-        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-          <User className="h-5 w-5 text-primary" />
+        <div className={`h-9 w-9 rounded-full flex items-center justify-center ${isFamily ? "bg-muted" : "bg-primary/10"}`}>
+          <User className={`h-5 w-5 ${isFamily ? "text-muted-foreground" : "text-primary"}`} />
         </div>
       ) : (
         <div className="h-9 w-9 rounded-full bg-accent/20 flex items-center justify-center">

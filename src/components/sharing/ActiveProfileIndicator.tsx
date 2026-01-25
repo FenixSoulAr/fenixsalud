@@ -9,6 +9,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useSharing } from "@/contexts/SharingContext";
+import { useProfileTypeLabel } from "@/hooks/useProfileTypeLabel";
 import { getLanguage } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -17,12 +18,11 @@ export function ActiveProfileIndicator() {
     myProfiles,
     sharedWithMe,
     activeProfileId,
-    activeProfileOwnerName,
-    currentRole,
     switchToProfile,
     loading,
     needsProfileSelection,
   } = useSharing();
+  const { label: roleLabel } = useProfileTypeLabel();
   const lang = getLanguage();
 
   if (loading) {
@@ -39,26 +39,11 @@ export function ActiveProfileIndicator() {
   const activeSharedProfile = sharedWithMe.find(s => s.profile_id === activeProfileId);
   const isOwnProfile = !!activeOwnProfile;
 
-  // Debug log to track profile resolution
-  console.log("[ActiveProfileIndicator] Rendering:", {
-    activeProfileId,
-    activeOwnProfile: activeOwnProfile ? { id: activeOwnProfile.id, name: activeOwnProfile.full_name } : null,
-    activeSharedProfile: activeSharedProfile ? { id: activeSharedProfile.profile_id, name: activeSharedProfile.profile_name } : null,
-    myProfilesCount: myProfiles.length,
-  });
-
   // Determine display name with proper fallbacks
   const profileName = activeOwnProfile?.full_name 
     || activeSharedProfile?.profile_name 
     || activeSharedProfile?.owner_name
     || (lang === "es" ? "Perfil sin nombre" : "Unnamed Profile");
-
-  const roleLabel = 
-    currentRole === "owner" 
-      ? lang === "es" ? "Propietario" : "Owner"
-      : currentRole === "contributor"
-      ? lang === "es" ? "Colaborador" : "Contributor"
-      : lang === "es" ? "Solo lectura" : "Viewer";
 
   const hasMultipleProfiles = myProfiles.length > 1 || sharedWithMe.length > 0;
 
@@ -121,6 +106,11 @@ export function ActiveProfileIndicator() {
             ? (lang === "es" ? "Mi Salud" : "My Health")
             : (lang === "es" ? "Sin nombre" : "Unnamed"));
           
+          // Compute the sub-label for each profile in the list
+          const profileSubLabel = profile.user_id === null
+            ? (lang === "es" ? "Familiar" : "Family")
+            : (lang === "es" ? "Principal" : "Primary");
+          
           return (
             <DropdownMenuItem
               key={profile.id}
@@ -133,9 +123,7 @@ export function ActiveProfileIndicator() {
                   {displayName}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {profile.is_primary 
-                    ? (lang === "es" ? "Principal" : "Primary")
-                    : (lang === "es" ? "Familiar" : "Family")}
+                  {profileSubLabel}
                 </span>
               </div>
               {isSelected && <Check className="h-4 w-4 text-primary flex-shrink-0" />}

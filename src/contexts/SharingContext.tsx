@@ -32,6 +32,8 @@ interface OwnedProfile {
   is_primary: boolean;
 }
 
+export type { OwnedProfile, SharedProfile };
+
 interface SharingContextType {
   currentRole: SharingRole | null;
   activeProfileId: string | null;
