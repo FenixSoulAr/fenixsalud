@@ -383,6 +383,11 @@ export interface Translations {
     profileName: string;
     relationship: string;
     creatingProfile: string;
+    dataExportBackup: string;
+    dataExportBackupDesc: string;
+    exportHealthData: string;
+    downloadFullBackup: string;
+    exportComingSoon: string;
   };
   auth: {
     signIn: string;
@@ -868,6 +873,11 @@ export const en: Translations = {
     profileName: "Profile name",
     relationship: "Relationship",
     creatingProfile: "Creating...",
+    dataExportBackup: "Data export & backup",
+    dataExportBackupDesc: "Download your health records or a full backup",
+    exportHealthData: "Export my health data",
+    downloadFullBackup: "Download full backup",
+    exportComingSoon: "Export will be available soon",
   },
   
   // Auth

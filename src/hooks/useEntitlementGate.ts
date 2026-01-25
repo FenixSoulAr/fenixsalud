@@ -162,6 +162,16 @@ export function useEntitlementGate() {
     return true;
   }, [loading, user, maxAttachments, navigate, lang]);
 
+  // Exposed messages for UI display
+  const gatedMessages = {
+    plusFeature: {
+      primary: lang === "es" ? primaryMessage.es : primaryMessage.en,
+      secondary: lang === "es" ? secondaryMessage.es : secondaryMessage.en,
+    },
+    profiles: lang === "es" ? messages.profiles.es : messages.profiles.en,
+    attachments: lang === "es" ? messages.attachments.es : messages.attachments.en,
+  };
+
   return {
     loading,
     checkFeature,
@@ -175,5 +185,6 @@ export function useEntitlementGate() {
     canUseProcedures,
     maxProfiles,
     maxAttachments,
+    gatedMessages,
   };
 }

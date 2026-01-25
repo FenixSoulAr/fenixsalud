@@ -411,6 +411,11 @@ export const es: Translations = {
     profileName: "Nombre del perfil",
     relationship: "Relación",
     creatingProfile: "Creando...",
+    dataExportBackup: "Exportar datos y backup",
+    dataExportBackupDesc: "Descargá tus registros de salud o un backup completo",
+    exportHealthData: "Exportar mis datos de salud",
+    downloadFullBackup: "Descargar backup completo",
+    exportComingSoon: "La exportación estará disponible pronto",
   },
   
   // Auth
