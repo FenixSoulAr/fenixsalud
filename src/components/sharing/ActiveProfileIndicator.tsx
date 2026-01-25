@@ -9,11 +9,19 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useSharing } from "@/contexts/SharingContext";
 import { useProfileTypeLabel } from "@/hooks/useProfileTypeLabel";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
+import { useNavigate } from "react-router-dom";
 import { getLanguage } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 export function ActiveProfileIndicator() {
   const {
@@ -25,33 +33,60 @@ export function ActiveProfileIndicator() {
     needsProfileSelection,
   } = useSharing();
   const { label: roleLabel } = useProfileTypeLabel();
-  const { isPlus, hasPromoOverride } = useEntitlementsContext();
+  const { isPlus, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
   const lang = getLanguage();
+  const navigate = useNavigate();
 
   // Plan badge configuration
   const getPlanBadgeConfig = () => {
     if (hasPromoOverride) {
       return {
         label: "Plus",
-        className: "bg-primary/15 text-primary border-primary/30",
+        className: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25 cursor-pointer",
         showIcon: true,
       };
     }
     if (isPlus) {
       return {
         label: "Plus",
-        className: "bg-primary/15 text-primary border-primary/30",
+        className: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25 cursor-pointer",
         showIcon: false,
       };
     }
     return {
       label: "Free",
-      className: "bg-muted text-muted-foreground border-muted-foreground/20",
+      className: "bg-muted text-muted-foreground border-muted-foreground/20 hover:bg-muted/80 cursor-pointer",
       showIcon: false,
     };
   };
 
   const planBadge = getPlanBadgeConfig();
+
+  // Generate tooltip content
+  const getTooltipContent = () => {
+    if (hasPromoOverride && promoExpiresAt) {
+      const expirationDate = new Date(promoExpiresAt);
+      const formattedDate = format(expirationDate, "dd/MM/yyyy", { 
+        locale: lang === "es" ? es : undefined 
+      });
+      return lang === "es" 
+        ? `Plan Plus promocional — vence el ${formattedDate}`
+        : `Promotional Plus plan — expires ${formattedDate}`;
+    }
+    if (hasPromoOverride) {
+      return lang === "es" ? "Plan Plus promocional" : "Promotional Plus plan";
+    }
+    if (isPlus) {
+      return lang === "es" ? "Plan Plus activo" : "Plus plan active";
+    }
+    return lang === "es" ? "Plan Free" : "Free plan";
+  };
+
+  const handleBadgeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    navigate("/settings");
+  };
 
   if (loading) {
     return (
@@ -76,6 +111,28 @@ export function ActiveProfileIndicator() {
 
   const hasMultipleProfiles = myProfiles.length > 1 || sharedWithMe.length > 0;
 
+  // Plan badge component with tooltip
+  const PlanBadgeWithTooltip = () => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge 
+          variant="outline" 
+          onClick={handleBadgeClick}
+          className={cn(
+            "text-[10px] px-1.5 py-0 h-4 font-semibold border flex items-center gap-0.5 flex-shrink-0 transition-colors",
+            planBadge.className
+          )}
+        >
+          {planBadge.showIcon && <Gift className="h-2.5 w-2.5" />}
+          {planBadge.label}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="text-xs">
+        {getTooltipContent()}
+      </TooltipContent>
+    </Tooltip>
+  );
+
   // If no multiple profiles, just show static indicator
   if (!hasMultipleProfiles) {
     return (
@@ -93,16 +150,7 @@ export function ActiveProfileIndicator() {
             {profileName} <span className="text-muted-foreground font-normal">({roleLabel})</span>
           </span>
         </div>
-        <Badge 
-          variant="outline" 
-          className={cn(
-            "text-[10px] px-1.5 py-0 h-4 font-semibold border flex items-center gap-0.5 flex-shrink-0",
-            planBadge.className
-          )}
-        >
-          {planBadge.showIcon && <Gift className="h-2.5 w-2.5" />}
-          {planBadge.label}
-        </Badge>
+        <PlanBadgeWithTooltip />
       </div>
     );
   }
@@ -138,16 +186,7 @@ export function ActiveProfileIndicator() {
               </span>
             </div>
           </div>
-          <Badge 
-            variant="outline" 
-            className={cn(
-              "text-[10px] px-1.5 py-0 h-4 font-semibold border flex items-center gap-0.5 flex-shrink-0",
-              planBadge.className
-            )}
-          >
-            {planBadge.showIcon && <Gift className="h-2.5 w-2.5" />}
-            {planBadge.label}
-          </Badge>
+          <PlanBadgeWithTooltip />
           <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>

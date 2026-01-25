@@ -5,6 +5,14 @@ import { User, UserCircle, Users, Gift } from "lucide-react";
 import { getLanguage } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 export function ActiveProfileBanner() {
   const { 
@@ -14,8 +22,9 @@ export function ActiveProfileBanner() {
     loading 
   } = useSharing();
   const { label: roleLabel, type: profileType } = useProfileTypeLabel();
-  const { isPlus, hasPromoOverride, planName } = useEntitlementsContext();
+  const { isPlus, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
   const lang = getLanguage();
+  const navigate = useNavigate();
 
   // Don't show while loading or if no profile selected
   if (loading || !activeProfileId) {
@@ -43,25 +52,50 @@ export function ActiveProfileBanner() {
     if (hasPromoOverride) {
       return {
         label: lang === "es" ? "Plus (Promo)" : "Plus (Promo)",
-        className: "bg-primary/15 text-primary border-primary/30",
+        className: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25 cursor-pointer",
         showIcon: true,
       };
     }
     if (isPlus) {
       return {
         label: "Plus",
-        className: "bg-primary/15 text-primary border-primary/30",
+        className: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25 cursor-pointer",
         showIcon: false,
       };
     }
     return {
       label: "Free",
-      className: "bg-muted text-muted-foreground border-muted-foreground/20",
+      className: "bg-muted text-muted-foreground border-muted-foreground/20 hover:bg-muted/80 cursor-pointer",
       showIcon: false,
     };
   };
 
   const planBadge = getPlanBadgeConfig();
+
+  // Generate tooltip content
+  const getTooltipContent = () => {
+    if (hasPromoOverride && promoExpiresAt) {
+      const expirationDate = new Date(promoExpiresAt);
+      const formattedDate = format(expirationDate, "dd/MM/yyyy", { 
+        locale: lang === "es" ? es : undefined 
+      });
+      return lang === "es" 
+        ? `Plan Plus promocional — vence el ${formattedDate}`
+        : `Promotional Plus plan — expires ${formattedDate}`;
+    }
+    if (hasPromoOverride) {
+      return lang === "es" ? "Plan Plus promocional" : "Promotional Plus plan";
+    }
+    if (isPlus) {
+      return lang === "es" ? "Plan Plus activo" : "Plus plan active";
+    }
+    return lang === "es" ? "Plan Free" : "Free plan";
+  };
+
+  const handleBadgeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate("/settings");
+  };
 
   return (
     <div 
@@ -112,19 +146,26 @@ export function ActiveProfileBanner() {
         </div>
       </div>
       
-      {/* Plan Badge */}
-      <div className="flex-shrink-0">
-        <Badge 
-          variant="outline" 
-          className={cn(
-            "text-[10px] px-2 py-0.5 h-5 font-semibold border flex items-center gap-1",
-            planBadge.className
-          )}
-        >
-          {planBadge.showIcon && <Gift className="h-3 w-3" />}
-          {planBadge.label}
-        </Badge>
-      </div>
+      {/* Plan Badge with Tooltip */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex-shrink-0" onClick={handleBadgeClick}>
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "text-[10px] px-2 py-0.5 h-5 font-semibold border flex items-center gap-1 transition-colors",
+                planBadge.className
+              )}
+            >
+              {planBadge.showIcon && <Gift className="h-3 w-3" />}
+              {planBadge.label}
+            </Badge>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">
+          {getTooltipContent()}
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }
