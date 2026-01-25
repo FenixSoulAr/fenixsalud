@@ -603,7 +603,7 @@ export type Database = {
           phone: string | null
           timezone: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           allergies?: string | null
@@ -623,7 +623,7 @@ export type Database = {
           phone?: string | null
           timezone?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           allergies?: string | null
@@ -643,7 +643,7 @@ export type Database = {
           phone?: string | null
           timezone?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
