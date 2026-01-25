@@ -1,15 +1,18 @@
+import { useState } from "react";
 import { Check, X, Crown, Heart, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
-import { useTranslations, getLanguage } from "@/i18n";
-import { Badge } from "@/components/ui/badge";
+import { getLanguage } from "@/i18n";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { BillingIntervalToggle, type BillingInterval } from "@/components/billing/BillingIntervalToggle";
 
 export default function Pricing() {
   const { planCode, isPlus } = useEntitlementsContext();
   const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const lang = getLanguage();
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
 
   const t = {
     title: lang === "es" ? "Planes y Precios" : "Plans & Pricing",
@@ -39,9 +42,11 @@ export default function Pricing() {
     },
     plus: {
       name: "Plus",
-      price: "$5",
-      period: lang === "es" ? "/mes" : "/month",
-      yearlyNote: lang === "es" ? "o $50/año (2 meses gratis)" : "or $50/year (2 months free)",
+      monthlyPrice: "$5",
+      monthlyPeriod: lang === "es" ? "/mes" : "/month",
+      yearlyPrice: "$50",
+      yearlyPeriod: lang === "es" ? "/año" : "/year",
+      yearlySavings: lang === "es" ? "2 meses gratis" : "2 months free",
       description: lang === "es" 
         ? "Compartí, exportá y cuidá la salud de tu familia" 
         : "Share, export, and care for your family's health",
@@ -58,9 +63,14 @@ export default function Pricing() {
     },
     upgradeToPlusMonthly: lang === "es" ? "Upgrade a Plus Mensual" : "Upgrade to Plus Monthly",
     upgradeToPlusYearly: lang === "es" ? "Upgrade a Plus Anual" : "Upgrade to Plus Yearly",
-    comingSoon: lang === "es" ? "Próximamente" : "Coming soon",
+    upgradeToPlus: lang === "es" ? "Upgrade a Plus" : "Upgrade to Plus",
     youreOnThisPlan: lang === "es" ? "Estás en este plan" : "You're on this plan",
   };
+
+  // Calculate displayed price based on billing interval
+  const displayPrice = billingInterval === "monthly" ? t.plus.monthlyPrice : t.plus.yearlyPrice;
+  const displayPeriod = billingInterval === "monthly" ? t.plus.monthlyPeriod : t.plus.yearlyPeriod;
+  const planCodeToUse = billingInterval === "monthly" ? "plus_monthly" : "plus_yearly";
 
   return (
     <div className="animate-fade-in">
@@ -69,6 +79,16 @@ export default function Pricing() {
         title={t.title}
         description={t.subtitle}
       />
+
+      {/* Billing Interval Toggle - shown only for non-Plus users */}
+      {!isPlus && (
+        <div className="flex justify-center mb-6">
+          <BillingIntervalToggle 
+            value={billingInterval} 
+            onChange={setBillingInterval} 
+          />
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
         {/* Free Plan */}
@@ -92,7 +112,7 @@ export default function Pricing() {
             {t.free.features.map((feature, idx) => (
               <li key={idx} className="flex items-start gap-2">
                 {feature.included ? (
-                  <Check className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 ) : (
                   <X className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                 )}
@@ -118,20 +138,24 @@ export default function Pricing() {
             </Badge>
           )}
           <div className="flex items-center gap-2 mb-2">
-            <Crown className="h-6 w-6 text-amber-500" />
+            <Crown className="h-6 w-6 text-primary" />
             <h2 className="text-2xl font-bold">{t.plus.name}</h2>
           </div>
           <div className="flex items-baseline gap-1 mb-1">
-            <span className="text-3xl font-bold">{t.plus.price}</span>
-            <span className="text-muted-foreground">{t.plus.period}</span>
+            <span className="text-3xl font-bold">{displayPrice}</span>
+            <span className="text-muted-foreground">{displayPeriod}</span>
           </div>
-          <p className="text-xs text-muted-foreground mb-2">{t.plus.yearlyNote}</p>
+          {billingInterval === "yearly" && (
+            <p className="text-xs text-primary font-medium mb-2">
+              ✨ {t.plus.yearlySavings}
+            </p>
+          )}
           <p className="text-muted-foreground mb-6">{t.plus.description}</p>
           
           <ul className="space-y-3 mb-6">
             {t.plus.features.map((feature, idx) => (
               <li key={idx} className="flex items-start gap-2">
-                <Check className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span>{feature.text}</span>
               </li>
             ))}
@@ -142,20 +166,14 @@ export default function Pricing() {
               {t.youreOnThisPlan}
             </Button>
           ) : (
-            <div className="space-y-2">
-              <Button 
-                className="w-full" 
-                onClick={() => startCheckout("plus_monthly")}
-                disabled={checkoutLoading}
-              >
-                {checkoutLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {t.upgradeToPlusMonthly}
-              </Button>
-              <Button variant="outline" className="w-full" disabled>
-                {t.upgradeToPlusYearly}
-                <Badge variant="secondary" className="ml-2 text-xs">{t.comingSoon}</Badge>
-              </Button>
-            </div>
+            <Button 
+              className="w-full" 
+              onClick={() => startCheckout(planCodeToUse)}
+              disabled={checkoutLoading}
+            >
+              {checkoutLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {t.upgradeToPlus}
+            </Button>
           )}
         </div>
       </div>
