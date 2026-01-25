@@ -411,6 +411,8 @@ export const es: Translations = {
     profileName: "Nombre del perfil",
     relationship: "Relación",
     creatingProfile: "Creando...",
+    deleteFamilyProfile: "Eliminar perfil familiar",
+    deleteFamilyProfileDesc: "Esto eliminará permanentemente este perfil familiar y todos los datos de salud asociados. Esta acción no se puede deshacer.",
     dataExportBackup: "Exportar datos y backup",
     dataExportBackupDesc: "Descargá tus registros de salud o un backup completo",
     exportHealthData: "Exportar mis datos de salud",

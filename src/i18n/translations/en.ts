@@ -383,6 +383,8 @@ export interface Translations {
     profileName: string;
     relationship: string;
     creatingProfile: string;
+    deleteFamilyProfile: string;
+    deleteFamilyProfileDesc: string;
     dataExportBackup: string;
     dataExportBackupDesc: string;
     exportHealthData: string;
@@ -873,6 +875,8 @@ export const en: Translations = {
     profileName: "Profile name",
     relationship: "Relationship",
     creatingProfile: "Creating...",
+    deleteFamilyProfile: "Delete Family Profile",
+    deleteFamilyProfileDesc: "This will permanently delete this family profile and all associated health data. This action cannot be undone.",
     dataExportBackup: "Data export & backup",
     dataExportBackupDesc: "Download your health records or a full backup",
     exportHealthData: "Export my health data",

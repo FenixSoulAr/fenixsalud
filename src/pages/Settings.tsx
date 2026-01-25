@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trash2, User, Shield, Bell, CreditCard, Crown, Users, Plus, Lock, Download, FileDown, Loader2 } from "lucide-react";
+import { Trash2, User, Shield, Bell, CreditCard, Crown, Users, Plus, Lock, Download, FileDown, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,6 +59,10 @@ export default function Settings() {
   const [creatingFamilyProfile, setCreatingFamilyProfile] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
   const [showAddProfileForm, setShowAddProfileForm] = useState(false);
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+  const [editProfileName, setEditProfileName] = useState("");
+  const [savingFamilyProfile, setSavingFamilyProfile] = useState(false);
+  const [deletingFamilyProfileId, setDeletingFamilyProfileId] = useState<string | null>(null);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
@@ -217,7 +221,61 @@ export default function Settings() {
     toast.success(t.toast.profileSaved);
     setNewProfileName("");
     setShowAddProfileForm(false);
+    // Refresh sharing context to update profile switcher
+    if (window.location.pathname === "/settings") {
+      // Force refresh of data
+    }
     fetchData(); // Refresh profiles list
+  }
+
+  async function handleEditFamilyProfile(e: React.FormEvent) {
+    e.preventDefault();
+    
+    if (!editingProfileId || !editProfileName.trim()) {
+      toast.error(t.settings.profileName + " " + t.settings.required);
+      return;
+    }
+    
+    setSavingFamilyProfile(true);
+    
+    const { error } = await supabase.from("profiles").update({
+      full_name: editProfileName.trim(),
+    }).eq("id", editingProfileId).eq("owner_user_id", user!.id);
+    
+    setSavingFamilyProfile(false);
+    
+    if (error) {
+      console.error("Error updating family profile:", error);
+      toast.error(t.toast.error);
+      return;
+    }
+    
+    toast.success(t.toast.profileSaved);
+    setEditingProfileId(null);
+    setEditProfileName("");
+    fetchData();
+  }
+
+  async function handleDeleteFamilyProfile(profileId: string) {
+    setDeletingFamilyProfileId(profileId);
+    
+    const { error } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", profileId)
+      .eq("owner_user_id", user!.id)
+      .is("user_id", null); // Only delete family profiles (not primary)
+    
+    setDeletingFamilyProfileId(null);
+    
+    if (error) {
+      console.error("Error deleting family profile:", error);
+      toast.error(t.toast.error);
+      return;
+    }
+    
+    toast.success(t.toast.profileDeleted);
+    fetchData();
   }
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -506,7 +564,83 @@ export default function Settings() {
               <div className="space-y-2">
                 {familyProfiles.map((fp) => (
                   <div key={fp.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                    <span className="font-medium">{fp.full_name || "Unnamed"}</span>
+                    {editingProfileId === fp.id ? (
+                      <form onSubmit={handleEditFamilyProfile} className="flex-1 flex items-center gap-2">
+                        <Input
+                          value={editProfileName}
+                          onChange={(e) => setEditProfileName(e.target.value)}
+                          placeholder={t.settings.profileName}
+                          className="flex-1"
+                          autoFocus
+                          disabled={savingFamilyProfile}
+                        />
+                        <Button type="submit" size="sm" disabled={savingFamilyProfile}>
+                          {savingFamilyProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : t.actions.save}
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingProfileId(null);
+                            setEditProfileName("");
+                          }}
+                        >
+                          {t.actions.cancel}
+                        </Button>
+                      </form>
+                    ) : (
+                      <>
+                        <span className="font-medium">{fp.full_name || "Unnamed"}</span>
+                        {isPlus && (
+                          <div className="flex items-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                setEditingProfileId(fp.id);
+                                setEditProfileName(fp.full_name || "");
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  disabled={deletingFamilyProfileId === fp.id}
+                                >
+                                  {deletingFamilyProfileId === fp.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>{t.settings.deleteFamilyProfile || "Delete Family Profile"}</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {t.settings.deleteFamilyProfileDesc || "This will permanently delete this family profile and all associated health data. This action cannot be undone."}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteFamilyProfile(fp.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    {t.actions.delete}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
