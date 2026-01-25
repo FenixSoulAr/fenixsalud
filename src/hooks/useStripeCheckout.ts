@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
+import { isAdminEmail } from "@/lib/adminAllowlist";
 
 export function useStripeCheckout() {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export function useStripeCheckout() {
     notLoggedIn: lang === "es" ? "Debes iniciar sesión para continuar" : "You must be logged in to continue",
     checkoutError: lang === "es" ? "Error al iniciar el pago" : "Failed to start checkout",
     redirecting: lang === "es" ? "Redirigiendo a Stripe..." : "Redirecting to Stripe...",
+    adminNoCheckout: lang === "es" ? "Los administradores tienen acceso completo sin suscripción" : "Admins have full access without subscription",
   };
 
   async function startCheckout(planCode: string = "plus_monthly") {
@@ -22,6 +24,12 @@ export function useStripeCheckout() {
     if (!user) {
       toast.error(messages.notLoggedIn);
       navigate("/auth");
+      return;
+    }
+
+    // Admins don't need Stripe - they have full access
+    if (isAdminEmail(user.email)) {
+      toast.info(messages.adminNoCheckout);
       return;
     }
 

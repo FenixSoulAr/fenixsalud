@@ -530,5 +530,7 @@ export const es: Translations = {
     goToDashboard: "Ir al Inicio",
     noCode: "¿No tenés un código?",
     viewPlans: "Ver Planes",
+    adminAccess: "Acceso Admin",
+    adminAccessMessage: "Como administrador, tenés acceso completo a todas las funciones sin necesidad de código promo.",
   },
 };

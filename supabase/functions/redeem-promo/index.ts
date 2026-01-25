@@ -6,6 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Admin allowlist - admins have full access, no promos needed
+const ADMIN_EMAILS = [
+  "jorge.perez.ar@gmail.com",
+  "leandro.perez.ar@gmail.com",
+  "agustina.laterza@gmail.com",
+];
+
+function isAdminEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.some(
+    (adminEmail) => adminEmail.toLowerCase() === email.toLowerCase()
+  );
+}
+
 const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[REDEEM-PROMO] ${step}`, details ? JSON.stringify(details) : "");
 };
@@ -55,6 +69,15 @@ serve(async (req) => {
     const userId = userData.user.id;
     const userEmail = userData.user.email;
     logStep("User authenticated", { userId, email: userEmail });
+
+    // Admins don't need promos - they have full access by role
+    if (isAdminEmail(userEmail)) {
+      logStep("Admin user - no promo needed", { email: userEmail });
+      return new Response(
+        JSON.stringify({ error: "Admins have full access without promo codes" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Parse the request body
     const { code } = await req.json();
