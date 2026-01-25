@@ -127,7 +127,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, full_name, user_id")
+      .select("id, full_name, first_name, last_name, user_id")
       .eq("owner_user_id", user.id)
       .order("created_at", { ascending: true });
 
@@ -136,14 +136,22 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const profiles: OwnedProfile[] = (data || []).map((p, index) => ({
-      id: p.id,
-      full_name: p.full_name,
-      user_id: p.user_id,
-      is_primary: p.user_id === user.id, // Primary profile has user_id = owner_user_id
-    }));
+    const profiles: OwnedProfile[] = (data || []).map((p) => {
+      // Build display name with fallbacks: full_name > first + last > first > null
+      const displayName = p.full_name 
+        || (p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : null)
+        || p.first_name 
+        || null;
+      
+      return {
+        id: p.id,
+        full_name: displayName,
+        user_id: p.user_id,
+        is_primary: p.user_id === user.id,
+      };
+    });
 
-    console.log("[SharingContext] Fetched myProfiles:", profiles.length);
+    console.log("[SharingContext] Fetched myProfiles:", profiles.length, profiles.map(p => ({ id: p.id, name: p.full_name })));
     setMyProfiles(profiles);
   }, [user]);
 
@@ -435,6 +443,13 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   }
 
   function switchToProfile(profileId: string) {
+    console.log("[SharingContext] Switching to profile:", profileId);
+    const ownProfile = myProfiles.find(p => p.id === profileId);
+    const sharedProfile = sharedWithMe.find(s => s.profile_id === profileId);
+    console.log("[SharingContext] Profile details:", { 
+      ownProfile: ownProfile ? { id: ownProfile.id, name: ownProfile.full_name, isPrimary: ownProfile.is_primary } : null,
+      sharedProfile: sharedProfile ? { id: sharedProfile.profile_id, name: sharedProfile.profile_name } : null
+    });
     setActiveProfileId(profileId);
   }
 

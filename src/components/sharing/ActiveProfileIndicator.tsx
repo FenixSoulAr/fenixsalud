@@ -39,11 +39,19 @@ export function ActiveProfileIndicator() {
   const activeSharedProfile = sharedWithMe.find(s => s.profile_id === activeProfileId);
   const isOwnProfile = !!activeOwnProfile;
 
-  // Determine display name and role label
+  // Debug log to track profile resolution
+  console.log("[ActiveProfileIndicator] Rendering:", {
+    activeProfileId,
+    activeOwnProfile: activeOwnProfile ? { id: activeOwnProfile.id, name: activeOwnProfile.full_name } : null,
+    activeSharedProfile: activeSharedProfile ? { id: activeSharedProfile.profile_id, name: activeSharedProfile.profile_name } : null,
+    myProfilesCount: myProfiles.length,
+  });
+
+  // Determine display name with proper fallbacks
   const profileName = activeOwnProfile?.full_name 
     || activeSharedProfile?.profile_name 
     || activeSharedProfile?.owner_name
-    || (lang === "es" ? "Mi Salud" : "My Health");
+    || (lang === "es" ? "Perfil sin nombre" : "Unnamed Profile");
 
   const roleLabel = 
     currentRole === "owner" 

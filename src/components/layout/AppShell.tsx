@@ -98,8 +98,8 @@ export function AppShell({ children }: AppShellProps) {
             </Button>
           </div>
 
-          {/* Active Profile Indicator */}
-          <div className="px-4 py-3 border-b border-sidebar-border">
+          {/* Active Profile Indicator - Always visible */}
+          <div className="px-4 py-3 border-b border-sidebar-border bg-sidebar-accent/30">
             <ActiveProfileIndicator />
           </div>
 
