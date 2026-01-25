@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trash2, User, Shield, Bell, CreditCard, Crown, Users, Plus, Lock } from "lucide-react";
+import { Trash2, User, Shield, Bell, CreditCard, Crown, Users, Plus, Lock, Download, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,8 +42,8 @@ interface SettingsData {
 export default function Settings() {
   const { user, signOut } = useAuth();
   const { canManageSharing } = useSharing();
-  const { isPlus, maxProfiles, maxAttachments, loading: entitlementsLoading } = useEntitlementsContext();
-  const { checkProfileLimit } = useEntitlementGate();
+  const { isPlus, maxProfiles, maxAttachments, canExportPdf, canExportBackup, loading: entitlementsLoading } = useEntitlementsContext();
+  const { checkProfileLimit, gatedMessages } = useEntitlementGate();
   const navigate = useNavigate();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
@@ -556,6 +556,82 @@ export default function Settings() {
                   size="sm"
                   onClick={() => navigate("/pricing")}
                 >
+                  {t.settings.upgradePlus}
+                </Button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Data Export & Backup Section */}
+        <section className="health-card">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Download className="h-5 w-5" />
+            {t.settings.dataExportBackup}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            {t.settings.dataExportBackupDesc}
+          </p>
+          
+          <div className="space-y-3">
+            {/* Export Health Data Button */}
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              disabled={!isPlus}
+              onClick={() => {
+                if (isPlus) {
+                  toast.info(t.settings.exportComingSoon);
+                } else {
+                  toast(gatedMessages.plusFeature.primary, {
+                    description: gatedMessages.plusFeature.secondary,
+                    action: {
+                      label: t.settings.upgradePlus,
+                      onClick: () => navigate("/pricing"),
+                    },
+                  });
+                }
+              }}
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              {t.settings.exportHealthData}
+              {!isPlus && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </Button>
+            
+            {/* Download Full Backup Button */}
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              disabled={!isPlus}
+              onClick={() => {
+                if (isPlus) {
+                  toast.info(t.settings.exportComingSoon);
+                } else {
+                  toast(gatedMessages.plusFeature.primary, {
+                    description: gatedMessages.plusFeature.secondary,
+                    action: {
+                      label: t.settings.upgradePlus,
+                      onClick: () => navigate("/pricing"),
+                    },
+                  });
+                }
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {t.settings.downloadFullBackup}
+              {!isPlus && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </Button>
+            
+            {/* Free user upsell info */}
+            {!isPlus && (
+              <div className="text-center py-3 space-y-2">
+                <p className="text-sm text-muted-foreground">{gatedMessages.plusFeature.secondary}</p>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => navigate("/pricing")}
+                >
+                  <Crown className="h-4 w-4 mr-2" />
                   {t.settings.upgradePlus}
                 </Button>
               </div>
