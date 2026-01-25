@@ -159,18 +159,14 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
     } catch (error: unknown) {
       console.error("Unexpected error:", error);
       // Handle cases where error might be a Response object or have non-JSON body
-      let errorMsg = "Upload failed. Please check your connection and try again.";
+      let errorMsg = "Ocurrió un error inesperado. Por favor, intentá nuevamente.";
       if (error instanceof Error) {
-        // Check for permission-related errors
+        // Check for permission-related errors - keep specific message
         const msg = error.message.toLowerCase();
         if (msg.includes("policy") || msg.includes("permission") || msg.includes("403") || msg.includes("unauthorized")) {
           errorMsg = "You don't have permission to upload files.";
-        } else if (msg.includes("unexpected token") || msg.includes("not valid json")) {
-          // Server returned HTML instead of JSON - usually means 403/401
-          errorMsg = "Upload failed. You may not have permission to upload files.";
-        } else {
-          errorMsg = `Upload failed: ${error.message}`;
         }
+        // For all other errors, use the standardized message (already set above)
       }
       toast.error(errorMsg);
       return { success: false, error: errorMsg };
@@ -201,7 +197,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
 
       if (dbError) {
         console.error("DB delete error:", dbError);
-        toast.error("Failed to delete file. Please try again.");
+        toast.error("Ocurrió un error inesperado. Por favor, intentá nuevamente.");
         return false;
       }
 
@@ -210,7 +206,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       return true;
     } catch (error) {
       console.error("Unexpected error:", error);
-      toast.error("Failed to delete file. Please try again.");
+      toast.error("Ocurrió un error inesperado. Por favor, intentá nuevamente.");
       return false;
     }
   };
@@ -222,7 +218,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
 
     if (error) {
       console.error("Signed URL error:", error);
-      toast.error("Failed to open file. Please try again.");
+      toast.error("Ocurrió un error inesperado. Por favor, intentá nuevamente.");
       return null;
     }
 

@@ -29,7 +29,8 @@ export default function SignIn() {
       if (error) throw error;
       navigate("/");
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in");
+      console.error("[SignIn] Error:", error);
+      toast.error(t.toast?.error || "Ocurrió un error inesperado. Por favor, intentá nuevamente.");
     } finally {
       setLoading(false);
     }
@@ -54,7 +55,8 @@ export default function SignIn() {
       setMagicLinkSent(true);
       toast.success("Check your email for the magic link!");
     } catch (error: any) {
-      toast.error(error.message || "Failed to send magic link");
+      console.error("[SignIn] Magic link error:", error);
+      toast.error(t.toast?.error || "Ocurrió un error inesperado. Por favor, intentá nuevamente.");
     } finally {
       setLoading(false);
     }

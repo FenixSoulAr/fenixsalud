@@ -55,7 +55,7 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     } catch (error) {
       console.error("Error opening PDF:", error);
-      toast.error("Failed to open file. Please try again.");
+      toast.error("Ocurrió un error inesperado. Por favor, intentá nuevamente.");
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
       toast.success("Download started.");
     } catch (error) {
       console.error("Error downloading PDF:", error);
-      toast.error("Failed to download file. Please try again.");
+      toast.error("Ocurrió un error inesperado. Por favor, intentá nuevamente.");
     } finally {
       setLoading(false);
     }
