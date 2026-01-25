@@ -43,7 +43,7 @@ export function SharingBanner() {
               : `You are helping manage ${ownerDisplay}'s health profile. Some actions are restricted.`}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Role: {currentRole}
+            {lang === "es" ? "Rol" : "Role"}: {currentRole}
           </p>
         </div>
       </div>

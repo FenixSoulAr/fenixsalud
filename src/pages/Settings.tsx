@@ -76,10 +76,11 @@ export default function Settings() {
   async function fetchData() {
     setLoading(true);
     
-    // Fetch user's own profile
+    // Fetch user's primary profile (where user_id = owner_user_id)
     const { data } = await supabase
       .from("profiles")
       .select("timezone, notification_in_app, notification_email, first_name, last_name, national_id, phone, insurance_provider, insurance_plan, insurance_member_id, allergies, notes")
+      .eq("owner_user_id", user!.id)
       .eq("user_id", user!.id)
       .maybeSingle();
     
@@ -102,23 +103,28 @@ export default function Settings() {
       });
     }
     
-    // Fetch all profiles for this user (for family profiles count)
+    // Fetch all profiles owned by this user (using owner_user_id)
     const { data: allProfiles } = await supabase
       .from("profiles")
-      .select("id, full_name")
-      .eq("user_id", user!.id);
+      .select("id, full_name, user_id")
+      .eq("owner_user_id", user!.id)
+      .order("created_at", { ascending: true });
     
-    // The first profile is the user's own, any additional are family profiles
-    // Note: Currently profiles table uses user_id as the owner, so additional profiles 
-    // would need a different structure. For now, we show the count-based limit.
-    setFamilyProfiles(allProfiles?.slice(1) || []);
+    // Family profiles are those where user_id is NULL (not the primary profile)
+    setFamilyProfiles(
+      (allProfiles || [])
+        .filter(p => p.user_id !== user!.id)
+        .map(p => ({ id: p.id, full_name: p.full_name }))
+    );
     
     setLoading(false);
   }
 
   async function handleSaveSettings() {
     setSavingSettings(true);
-    const { error } = await supabase.from("profiles").update(settings).eq("user_id", user!.id);
+    const { error } = await supabase.from("profiles").update(settings)
+      .eq("owner_user_id", user!.id)
+      .eq("user_id", user!.id);
     setSavingSettings(false);
     if (error) { toast.error(t.toast.couldNotSaveSettings); return; }
     toast.success(t.toast.settingsSaved);
@@ -131,7 +137,9 @@ export default function Settings() {
     if (!profile.last_name.trim()) { toast.error(t.toast.lastNameRequired); return; }
     
     setSavingProfile(true);
-    const { error } = await supabase.from("profiles").update(profile).eq("user_id", user!.id);
+    const { error } = await supabase.from("profiles").update(profile)
+      .eq("owner_user_id", user!.id)
+      .eq("user_id", user!.id);
     setSavingProfile(false);
     if (error) { toast.error(t.toast.couldNotSaveProfile); return; }
     toast.success(t.toast.profileSaved);
@@ -149,7 +157,7 @@ export default function Settings() {
       insurance_member_id: null,
       allergies: null,
       notes: null,
-    }).eq("user_id", user!.id);
+    }).eq("owner_user_id", user!.id).eq("user_id", user!.id);
     
     setDeletingProfile(false);
     if (error) { toast.error(t.toast.couldNotDeleteProfile); return; }
@@ -190,9 +198,11 @@ export default function Settings() {
     
     setCreatingFamilyProfile(true);
     
-    // Insert new family profile
+    // Insert new family profile with owner_user_id set to current user
+    // user_id is NULL for family profiles (only primary profile has user_id = owner_user_id)
     const { error } = await supabase.from("profiles").insert({
-      user_id: user!.id,
+      owner_user_id: user!.id,
+      user_id: null, // Family profiles don't have a linked auth user
       full_name: newProfileName.trim(),
     });
     

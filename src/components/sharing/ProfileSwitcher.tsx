@@ -14,32 +14,31 @@ import { cn } from "@/lib/utils";
 
 export function ProfileSwitcher() {
   const {
+    myProfiles,
     sharedWithMe,
-    isViewingOwnProfile,
-    activeProfileOwnerId,
-    activeProfileOwnerName,
-    currentRole,
+    activeProfileId,
     switchToProfile,
-    switchToOwnProfile,
     loading,
     needsProfileSelection,
   } = useSharing();
   const lang = getLanguage();
 
-  // Don't show if no shared profiles available
-  if (loading || sharedWithMe.length === 0) {
+  // Don't show if only one profile and no shared profiles
+  if (loading || (myProfiles.length <= 1 && sharedWithMe.length === 0)) {
     return null;
   }
 
-  const currentLabel = isViewingOwnProfile
-    ? lang === "es"
-      ? "Mi perfil"
-      : "My Profile"
-    : activeProfileOwnerName || (lang === "es" ? "Perfil compartido" : "Shared Profile");
+  const activeProfile = myProfiles.find(p => p.id === activeProfileId);
+  const activeShared = sharedWithMe.find(s => s.profile_id === activeProfileId);
+  
+  const currentLabel = activeProfile?.full_name 
+    || activeShared?.profile_name 
+    || activeShared?.owner_name
+    || (lang === "es" ? "Mi perfil" : "My Profile");
 
-  const roleLabel = currentRole === "viewer" 
+  const roleLabel = activeShared?.role === "viewer" 
     ? (lang === "es" ? "Solo lectura" : "View only")
-    : currentRole === "contributor"
+    : activeShared?.role === "contributor"
     ? (lang === "es" ? "Colaborador" : "Contributor")
     : null;
 
@@ -58,7 +57,7 @@ export function ProfileSwitcher() {
             <Users className="h-4 w-4 flex-shrink-0 text-primary" />
             <div className="flex flex-col items-start min-w-0">
               <span className="truncate text-sm">{currentLabel}</span>
-              {roleLabel && !isViewingOwnProfile && (
+              {roleLabel && !activeProfile && (
                 <span className="text-xs text-muted-foreground">{roleLabel}</span>
               )}
             </div>
@@ -72,22 +71,34 @@ export function ProfileSwitcher() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {/* My own profile */}
-        <DropdownMenuItem
-          onClick={switchToOwnProfile}
-          className="flex items-center gap-2 cursor-pointer"
-        >
-          <User className="h-4 w-4 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <span className="block truncate font-medium">
-              {lang === "es" ? "Mi perfil" : "My Profile"}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {lang === "es" ? "Propietario" : "Owner"}
-            </span>
-          </div>
-          {isViewingOwnProfile && <Check className="h-4 w-4 text-primary flex-shrink-0" />}
-        </DropdownMenuItem>
+        {/* My profiles */}
+        {myProfiles.map((profile) => {
+          const isSelected = profile.id === activeProfileId;
+          const displayName = profile.full_name || (profile.is_primary 
+            ? (lang === "es" ? "Mi perfil" : "My Profile")
+            : (lang === "es" ? "Sin nombre" : "Unnamed"));
+          
+          return (
+            <DropdownMenuItem
+              key={profile.id}
+              onClick={() => switchToProfile(profile.id)}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <User className="h-4 w-4 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="block truncate font-medium">
+                  {displayName}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {profile.is_primary 
+                    ? (lang === "es" ? "Principal" : "Primary")
+                    : (lang === "es" ? "Familiar" : "Family")}
+                </span>
+              </div>
+              {isSelected && <Check className="h-4 w-4 text-primary flex-shrink-0" />}
+            </DropdownMenuItem>
+          );
+        })}
 
         {sharedWithMe.length > 0 && (
           <>
@@ -99,15 +110,15 @@ export function ProfileSwitcher() {
         )}
 
         {/* Shared profiles */}
-        {sharedWithMe.map((profile) => {
-          const isSelected = !isViewingOwnProfile && profile.owner_id === activeProfileOwnerId;
-          const displayName = profile.owner_name || profile.owner_email || 
-            `User ${profile.owner_id.slice(0, 8)}...`;
+        {sharedWithMe.map((share) => {
+          const isSelected = share.profile_id === activeProfileId;
+          const displayName = share.profile_name || share.owner_name || 
+            `User ${share.owner_id.slice(0, 8)}...`;
           
           return (
             <DropdownMenuItem
-              key={profile.owner_id}
-              onClick={() => switchToProfile(profile.owner_id)}
+              key={share.profile_id}
+              onClick={() => switchToProfile(share.profile_id)}
               className="flex items-center gap-2 cursor-pointer"
             >
               <Users className="h-4 w-4 flex-shrink-0" />
@@ -116,7 +127,7 @@ export function ProfileSwitcher() {
                   {displayName}
                 </span>
                 <span className="text-xs text-muted-foreground capitalize">
-                  {profile.role === "viewer"
+                  {share.role === "viewer"
                     ? lang === "es"
                       ? "Solo lectura"
                       : "View only"

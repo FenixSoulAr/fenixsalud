@@ -599,6 +599,7 @@ export type Database = {
           notes: string | null
           notification_email: boolean | null
           notification_in_app: boolean | null
+          owner_user_id: string
           phone: string | null
           timezone: string | null
           updated_at: string | null
@@ -618,6 +619,7 @@ export type Database = {
           notes?: string | null
           notification_email?: boolean | null
           notification_in_app?: boolean | null
+          owner_user_id: string
           phone?: string | null
           timezone?: string | null
           updated_at?: string | null
@@ -637,6 +639,7 @@ export type Database = {
           notes?: string | null
           notification_email?: boolean | null
           notification_in_app?: boolean | null
+          owner_user_id?: string
           phone?: string | null
           timezone?: string | null
           updated_at?: string | null
