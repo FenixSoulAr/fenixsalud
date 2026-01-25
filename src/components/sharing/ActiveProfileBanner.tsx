@@ -1,8 +1,10 @@
 import { useSharing } from "@/contexts/SharingContext";
 import { useProfileTypeLabel } from "@/hooks/useProfileTypeLabel";
-import { User, UserCircle, Users } from "lucide-react";
+import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
+import { User, UserCircle, Users, Gift } from "lucide-react";
 import { getLanguage } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export function ActiveProfileBanner() {
   const { 
@@ -12,6 +14,7 @@ export function ActiveProfileBanner() {
     loading 
   } = useSharing();
   const { label: roleLabel, type: profileType } = useProfileTypeLabel();
+  const { isPlus, hasPromoOverride, planName } = useEntitlementsContext();
   const lang = getLanguage();
 
   // Don't show while loading or if no profile selected
@@ -34,6 +37,31 @@ export function ActiveProfileBanner() {
   const isViewer = profileType === "viewer";
   const isContributor = profileType === "contributor";
   const isFamily = profileType === "family";
+
+  // Plan badge configuration
+  const getPlanBadgeConfig = () => {
+    if (hasPromoOverride) {
+      return {
+        label: lang === "es" ? "Plus (Promo)" : "Plus (Promo)",
+        className: "bg-primary/15 text-primary border-primary/30",
+        showIcon: true,
+      };
+    }
+    if (isPlus) {
+      return {
+        label: "Plus",
+        className: "bg-primary/15 text-primary border-primary/30",
+        showIcon: false,
+      };
+    }
+    return {
+      label: "Free",
+      className: "bg-muted text-muted-foreground border-muted-foreground/20",
+      showIcon: false,
+    };
+  };
+
+  const planBadge = getPlanBadgeConfig();
 
   return (
     <div 
@@ -82,6 +110,20 @@ export function ActiveProfileBanner() {
             </Badge>
           )}
         </div>
+      </div>
+      
+      {/* Plan Badge */}
+      <div className="flex-shrink-0">
+        <Badge 
+          variant="outline" 
+          className={cn(
+            "text-[10px] px-2 py-0.5 h-5 font-semibold border flex items-center gap-1",
+            planBadge.className
+          )}
+        >
+          {planBadge.showIcon && <Gift className="h-3 w-3" />}
+          {planBadge.label}
+        </Badge>
       </div>
     </div>
   );
