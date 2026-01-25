@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trash2, User, Shield, Bell, CreditCard, Crown } from "lucide-react";
+import { Trash2, User, Shield, Bell, CreditCard, Crown, Users, Plus, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSharing } from "@/contexts/SharingContext";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
+import { useEntitlementGate } from "@/hooks/useEntitlementGate";
 import { toast } from "sonner";
 import { useTranslations } from "@/i18n";
 import { useNavigate } from "react-router-dom";
@@ -42,6 +43,7 @@ export default function Settings() {
   const { user, signOut } = useAuth();
   const { canManageSharing } = useSharing();
   const { isPlus, maxProfiles, maxAttachments, loading: entitlementsLoading } = useEntitlementsContext();
+  const { checkProfileLimit } = useEntitlementGate();
   const navigate = useNavigate();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,10 @@ export default function Settings() {
   const [settings, setSettings] = useState<SettingsData>({ timezone: "UTC", notification_in_app: true, notification_email: false });
   const [passwordForm, setPasswordForm] = useState({ current: "", newPassword: "", confirm: "" });
   const [savingPassword, setSavingPassword] = useState(false);
+  const [familyProfiles, setFamilyProfiles] = useState<{ id: string; full_name: string | null }[]>([]);
+  const [creatingFamilyProfile, setCreatingFamilyProfile] = useState(false);
+  const [newProfileName, setNewProfileName] = useState("");
+  const [showAddProfileForm, setShowAddProfileForm] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
@@ -67,6 +73,8 @@ export default function Settings() {
 
   async function fetchData() {
     setLoading(true);
+    
+    // Fetch user's own profile
     const { data } = await supabase
       .from("profiles")
       .select("timezone, notification_in_app, notification_email, first_name, last_name, national_id, phone, insurance_provider, insurance_plan, insurance_member_id, allergies, notes")
@@ -91,6 +99,18 @@ export default function Settings() {
         notes: data.notes || "",
       });
     }
+    
+    // Fetch all profiles for this user (for family profiles count)
+    const { data: allProfiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("user_id", user!.id);
+    
+    // The first profile is the user's own, any additional are family profiles
+    // Note: Currently profiles table uses user_id as the owner, so additional profiles 
+    // would need a different structure. For now, we show the count-based limit.
+    setFamilyProfiles(allProfiles?.slice(1) || []);
+    
     setLoading(false);
   }
 
@@ -149,6 +169,43 @@ export default function Settings() {
   async function handleDeleteAccount() {
     await signOut();
     toast.success(t.toast.accountDeleted);
+  }
+
+  async function handleAddFamilyProfile(e: React.FormEvent) {
+    e.preventDefault();
+    
+    if (!newProfileName.trim()) {
+      toast.error(t.settings.profileName + " " + t.settings.required);
+      return;
+    }
+    
+    // Check profile limit before creating
+    const canCreate = await checkProfileLimit();
+    if (!canCreate) {
+      // checkProfileLimit already shows toast and redirects
+      return;
+    }
+    
+    setCreatingFamilyProfile(true);
+    
+    // Insert new family profile
+    const { error } = await supabase.from("profiles").insert({
+      user_id: user!.id,
+      full_name: newProfileName.trim(),
+    });
+    
+    setCreatingFamilyProfile(false);
+    
+    if (error) {
+      console.error("Error creating family profile:", error);
+      toast.error(t.toast.error);
+      return;
+    }
+    
+    toast.success(t.toast.profileSaved);
+    setNewProfileName("");
+    setShowAddProfileForm(false);
+    fetchData(); // Refresh profiles list
   }
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -405,6 +462,103 @@ export default function Settings() {
               <p className="text-sm text-muted-foreground text-center">
                 {t.settings.plusActive || "You're on the Plus plan. Thank you for your support!"}
               </p>
+            )}
+          </div>
+        </section>
+
+        {/* Family Profiles Section */}
+        <section className="health-card">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            {t.settings.familyProfiles}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            {t.settings.familyProfilesDesc}
+          </p>
+          
+          <div className="space-y-4">
+            {/* Current profile count */}
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <span className="text-sm">
+                {t.settings.profiles}: {familyProfiles.length + 1} / {maxProfiles === 1 ? 1 : maxProfiles}
+              </span>
+            </div>
+            
+            {/* Family profiles list */}
+            {familyProfiles.length > 0 && (
+              <div className="space-y-2">
+                {familyProfiles.map((fp) => (
+                  <div key={fp.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                    <span className="font-medium">{fp.full_name || "Unnamed"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Add profile form (Plus only) */}
+            {isPlus ? (
+              <>
+                {showAddProfileForm ? (
+                  <form onSubmit={handleAddFamilyProfile} className="space-y-3 p-3 border border-border rounded-lg">
+                    <div className="form-field">
+                      <Label>{t.settings.profileName} *</Label>
+                      <Input
+                        value={newProfileName}
+                        onChange={(e) => setNewProfileName(e.target.value)}
+                        placeholder="e.g., Mom, Dad, Child"
+                        disabled={creatingFamilyProfile}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" size="sm" disabled={creatingFamilyProfile}>
+                        {creatingFamilyProfile ? t.settings.creatingProfile : t.actions.create}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setShowAddProfileForm(false);
+                          setNewProfileName("");
+                        }}
+                      >
+                        {t.actions.cancel}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAddProfileForm(true)}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t.settings.addFamilyProfile}
+                  </Button>
+                )}
+                
+                {familyProfiles.length === 0 && !showAddProfileForm && (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    {t.settings.noFamilyProfilesDescPlus}
+                  </p>
+                )}
+              </>
+            ) : (
+              /* Free plan - show upgrade prompt */
+              <div className="text-center py-4 space-y-3">
+                <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                  <Lock className="h-4 w-4" />
+                  <span className="text-sm">{t.settings.multipleProfPlusOnly}</span>
+                </div>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => navigate("/pricing")}
+                >
+                  <Crown className="h-4 w-4 mr-2" />
+                  {t.settings.upgradePlus}
+                </Button>
+              </div>
             )}
           </div>
         </section>

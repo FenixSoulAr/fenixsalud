@@ -401,6 +401,16 @@ export const es: Translations = {
     attachments: "Adjuntos",
     upgradePlus: "Actualizar a Plus",
     plusActive: "Estás en el plan Plus. ¡Gracias por tu apoyo!",
+    familyProfiles: "Perfiles familiares",
+    familyProfilesDesc: "Administra perfiles de salud para tu familia",
+    addFamilyProfile: "Agregar perfil familiar",
+    noFamilyProfiles: "Sin perfiles familiares",
+    noFamilyProfilesDescFree: "Los perfiles múltiples están disponibles en Plus. Actualizá para gestionar la salud de tu familia.",
+    noFamilyProfilesDescPlus: "Agregá perfiles para registrar la salud de familiares.",
+    multipleProfPlusOnly: "Los perfiles múltiples están disponibles en Plus",
+    profileName: "Nombre del perfil",
+    relationship: "Relación",
+    creatingProfile: "Creando...",
   },
   
   // Auth
