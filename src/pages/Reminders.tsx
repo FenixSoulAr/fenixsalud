@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 export default function Reminders() {
-  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [reminders, setReminders] = useState<any[]>([]);
@@ -30,7 +30,7 @@ export default function Reminders() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: "", type: "Custom", due_date: "", due_time: "", repeat_rule: "None", notes: "" });
 
-  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
+  useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
   
   // Handle URL params for auto-editing
   useEffect(() => {
@@ -42,9 +42,9 @@ export default function Reminders() {
   }, [searchParams, reminders]);
 
   async function fetchData() {
-    if (!activeProfileOwnerId) return;
+    if (!activeProfileId) return;
     setLoading(true);
-    const { data } = await supabase.from("reminders").select("*").eq("user_id", activeProfileOwnerId).order("due_date_time");
+    const { data } = await supabase.from("reminders").select("*").eq("profile_id", activeProfileId).order("due_date_time");
     setReminders(data || []);
     setLoading(false);
   }
@@ -100,8 +100,8 @@ export default function Reminders() {
       if (error) { toast.error("Something went wrong. Please try again."); return; }
       toast.success("Changes updated.");
     } else {
-      if (!dataOwnerId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("reminders").insert({ user_id: dataOwnerId, ...payload });
+      if (!dataProfileId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("reminders").insert({ profile_id: dataProfileId, user_id: dataProfileId, ...payload });
       if (error) { toast.error("Something went wrong. Please try again."); return; }
       toast.success("Saved successfully.");
     }

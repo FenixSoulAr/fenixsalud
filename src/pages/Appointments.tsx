@@ -35,7 +35,7 @@ function getDisplayStatus(apt: any): "Upcoming" | "Past" | "Completed" | "Cancel
 }
 
 export default function Appointments() {
-  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
   const { localToISO, isoToLocal, formatDateTime, formatTime } = useTimezone();
   const t = useTranslations();
   const [searchParams] = useSearchParams();
@@ -59,7 +59,7 @@ export default function Appointments() {
   const [doctorOpen, setDoctorOpen] = useState(false);
   const [institutionOpen, setInstitutionOpen] = useState(false);
 
-  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
+  useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
   
   // Handle URL params for opening view
   useEffect(() => {
@@ -73,12 +73,12 @@ export default function Appointments() {
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
   async function fetchData() {
-    if (!activeProfileOwnerId) return;
+    if (!activeProfileId) return;
     setLoading(true);
     const [apptRes, docRes, instRes] = await Promise.all([
-      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("user_id", activeProfileOwnerId).order("datetime_start", { ascending: true }),
-      supabase.from("doctors").select("id, full_name").eq("user_id", activeProfileOwnerId),
-      supabase.from("institutions").select("id, name").eq("user_id", activeProfileOwnerId),
+      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", activeProfileId).order("datetime_start", { ascending: true }),
+      supabase.from("doctors").select("id, full_name").eq("profile_id", activeProfileId),
+      supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId),
     ]);
     const appts = apptRes.data || [];
     setAppointments(appts);
@@ -153,8 +153,8 @@ export default function Appointments() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      if (!dataOwnerId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("appointments").insert({ ...payload, user_id: dataOwnerId });
+      if (!dataProfileId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("appointments").insert({ ...payload, profile_id: dataProfileId, user_id: dataProfileId });
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }
@@ -186,10 +186,11 @@ export default function Appointments() {
   async function handleAddDoctor(e: React.FormEvent) {
     e.preventDefault();
     if (!newDoctor.full_name) { toast.error(t.doctors.nameRequired); return; }
-    if (!dataOwnerId) { toast.error("No active profile"); return; }
+    if (!dataProfileId) { toast.error("No active profile"); return; }
     
     const { data, error } = await supabase.from("doctors").insert({ 
-      user_id: dataOwnerId, 
+      profile_id: dataProfileId,
+      user_id: dataProfileId, 
       full_name: newDoctor.full_name, 
       specialty: newDoctor.specialty || null 
     }).select().single();
@@ -209,10 +210,11 @@ export default function Appointments() {
   async function handleAddInstitution(e: React.FormEvent) {
     e.preventDefault();
     if (!newInstitution.name) { toast.error(t.institutions.nameRequired); return; }
-    if (!dataOwnerId) { toast.error("No active profile"); return; }
+    if (!dataProfileId) { toast.error("No active profile"); return; }
     
     const { data, error } = await supabase.from("institutions").insert({ 
-      user_id: dataOwnerId, 
+      profile_id: dataProfileId,
+      user_id: dataProfileId, 
       name: newInstitution.name, 
       type: newInstitution.type as any
     }).select().single();

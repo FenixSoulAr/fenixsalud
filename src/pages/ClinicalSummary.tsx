@@ -14,7 +14,7 @@ import { useTranslations, getLanguage } from "@/i18n";
 import { groupMedicationsByDiagnosis } from "@/hooks/useMedicationsByDiagnosis";
 
 export default function ClinicalSummary() {
-  const { activeProfileOwnerId, isViewingOwnProfile } = useActiveProfile();
+  const { activeProfileId, isViewingOwnProfile } = useActiveProfile();
   const { canExportPdf, loading: entitlementsLoading } = useEntitlementGate();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -37,20 +37,20 @@ export default function ClinicalSummary() {
   const twelveMonthsAgo = subMonths(new Date(), 12);
 
   useEffect(() => {
-    if (activeProfileOwnerId) fetchAllData();
-  }, [activeProfileOwnerId]);
+    if (activeProfileId) fetchAllData();
+  }, [activeProfileId]);
 
   async function fetchAllData() {
-    if (!activeProfileOwnerId) return;
+    if (!activeProfileId) return;
     setLoading(true);
     
     const [profileRes, medsRes, diagRes, testsRes, proceduresRes, appointmentsRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", activeProfileOwnerId).maybeSingle(),
-      supabase.from("medications").select("*").eq("user_id", activeProfileOwnerId).eq("status", "Active").order("name"),
-      supabase.from("diagnoses").select("*").eq("user_id", activeProfileOwnerId),
-      supabase.from("tests").select("*, institutions(name)").eq("user_id", activeProfileOwnerId).order("date", { ascending: false }),
-      supabase.from("procedures").select("*, institutions(name), doctors(full_name)").eq("user_id", activeProfileOwnerId).order("date", { ascending: false }),
-      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("user_id", activeProfileOwnerId).order("datetime_start", { ascending: false }),
+      supabase.from("profiles").select("*").eq("id", activeProfileId).maybeSingle(),
+      supabase.from("medications").select("*").eq("profile_id", activeProfileId).eq("status", "Active").order("name"),
+      supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId),
+      supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
+      supabase.from("procedures").select("*, institutions(name), doctors(full_name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
+      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", activeProfileId).order("datetime_start", { ascending: false }),
     ]);
 
     setProfile(profileRes.data);

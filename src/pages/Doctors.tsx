@@ -16,7 +16,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 
 export default function Doctors() {
-  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
   const [loading, setLoading] = useState(true);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -26,12 +26,12 @@ export default function Doctors() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ full_name: "", specialty: "", phone: "", email: "", notes: "" });
 
-  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
+  useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
 
   async function fetchData() {
-    if (!activeProfileOwnerId) return;
+    if (!activeProfileId) return;
     setLoading(true);
-    const { data } = await supabase.from("doctors").select("*").eq("user_id", activeProfileOwnerId).order("full_name");
+    const { data } = await supabase.from("doctors").select("*").eq("profile_id", activeProfileId).order("full_name");
     setDoctors(data || []);
     setLoading(false);
   }
@@ -71,8 +71,8 @@ export default function Doctors() {
       if (error) { toast.error("Something went wrong. Please try again."); return; }
       toast.success("Changes updated.");
     } else {
-      if (!dataOwnerId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("doctors").insert({ user_id: dataOwnerId, ...payload });
+      if (!dataProfileId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("doctors").insert({ profile_id: dataProfileId, user_id: dataProfileId, ...payload });
       if (error) { toast.error("Something went wrong. Please try again."); return; }
       toast.success("Saved successfully.");
     }

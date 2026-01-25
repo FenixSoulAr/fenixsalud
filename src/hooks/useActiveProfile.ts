@@ -2,12 +2,10 @@ import { useSharing } from "@/contexts/SharingContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
- * Hook that provides the correct user_id for data operations based on the active profile.
+ * Hook that provides the correct profile_id for data operations based on the active profile.
  * 
- * When viewing your own profile: returns your user ID (as owner_user_id)
- * When viewing a shared profile: returns the profile owner's user ID
- * 
- * This ensures that data is created under the correct profile owner.
+ * All health data is now scoped by profile_id, not user_id.
+ * This allows family profiles (user_id = NULL) to have their own separate data.
  */
 export function useActiveProfile() {
   const { user } = useAuth();
@@ -23,15 +21,20 @@ export function useActiveProfile() {
     loading,
   } = useSharing();
 
-  // The user_id to use for all data operations (insert/filter)
-  // When viewing own profile: use logged-in user's ID
-  // When viewing shared profile: use the profile owner's ID
+  // The profile_id to use for all data operations (insert/filter)
+  // This is the KEY change: we now use the actual profile ID, not the owner's user ID
+  const dataProfileId = activeProfileId;
+
+  // Legacy: dataOwnerId kept for backward compatibility during migration
+  // New code should use dataProfileId instead
   const dataOwnerId = isViewingOwnProfile ? user?.id : activeProfileOwnerId;
 
   return {
-    // The active profile's ID
+    // The active profile's ID - USE THIS FOR ALL DATA OPERATIONS
     activeProfileId,
-    // The user_id to use for INSERT operations and data filtering
+    // The profile_id to use for INSERT operations and data filtering
+    dataProfileId,
+    // Legacy: The user_id for backward compatibility (deprecated)
     dataOwnerId,
     // The profile owner's ID (for display/filtering purposes)
     activeProfileOwnerId,

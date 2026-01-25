@@ -35,7 +35,7 @@ function getProcedureStatusStyle(type: ProcedureType) {
 }
 
 export default function Procedures() {
-  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
   const { canUseProcedures, gateFeature, loading: entitlementsLoading } = useEntitlementGate();
   const navigate = useNavigate();
   const t = useTranslations();
@@ -59,7 +59,7 @@ export default function Procedures() {
   });
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
-  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
+  useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
 
   // Helper to get translated procedure type
   function getTranslatedType(type: ProcedureType) {
@@ -72,12 +72,12 @@ export default function Procedures() {
   }
 
   async function fetchData() {
-    if (!activeProfileOwnerId) return;
+    if (!activeProfileId) return;
     setLoading(true);
     const [procRes, instRes, docRes] = await Promise.all([
-      supabase.from("procedures").select("*, institutions(name), doctors(full_name)").eq("user_id", activeProfileOwnerId).order("date", { ascending: false }),
-      supabase.from("institutions").select("id, name").eq("user_id", activeProfileOwnerId),
-      supabase.from("doctors").select("id, full_name").eq("user_id", activeProfileOwnerId),
+      supabase.from("procedures").select("*, institutions(name), doctors(full_name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
+      supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId),
+      supabase.from("doctors").select("id, full_name").eq("profile_id", activeProfileId),
     ]);
     const proceduresData = procRes.data || [];
     setProcedures(proceduresData);
@@ -141,8 +141,8 @@ export default function Procedures() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      if (!dataOwnerId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("procedures").insert({ ...payload, user_id: dataOwnerId });
+      if (!dataProfileId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("procedures").insert({ ...payload, profile_id: dataProfileId, user_id: dataProfileId });
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }

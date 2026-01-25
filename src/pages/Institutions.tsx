@@ -24,7 +24,7 @@ const INSTITUTION_TYPE_OPTIONS = [
 ];
 
 export default function Institutions() {
-  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
   const [loading, setLoading] = useState(true);
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -33,12 +33,12 @@ export default function Institutions() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", type: "Clinic", address: "", phone: "", notes: "" });
 
-  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
+  useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
 
   async function fetchData() {
-    if (!activeProfileOwnerId) return;
+    if (!activeProfileId) return;
     setLoading(true);
-    const { data } = await supabase.from("institutions").select("*").eq("user_id", activeProfileOwnerId).order("name");
+    const { data } = await supabase.from("institutions").select("*").eq("profile_id", activeProfileId).order("name");
     setInstitutions(data || []);
     setLoading(false);
   }
@@ -78,8 +78,8 @@ export default function Institutions() {
       if (error) { toast.error("Something went wrong. Please try again."); return; }
       toast.success("Changes updated.");
     } else {
-      if (!dataOwnerId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("institutions").insert({ user_id: dataOwnerId, ...payload });
+      if (!dataProfileId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("institutions").insert({ profile_id: dataProfileId, user_id: dataProfileId, ...payload });
       if (error) { toast.error("Something went wrong. Please try again."); return; }
       toast.success("Saved successfully.");
     }

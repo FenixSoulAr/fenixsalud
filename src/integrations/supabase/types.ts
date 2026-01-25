@@ -23,6 +23,7 @@ export type Database = {
           id: string
           institution_id: string | null
           notes: string | null
+          profile_id: string | null
           reason: string | null
           status: Database["public"]["Enums"]["appointment_status"] | null
           updated_at: string | null
@@ -36,6 +37,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           notes?: string | null
+          profile_id?: string | null
           reason?: string | null
           status?: Database["public"]["Enums"]["appointment_status"] | null
           updated_at?: string | null
@@ -49,6 +51,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           notes?: string | null
+          profile_id?: string | null
           reason?: string | null
           status?: Database["public"]["Enums"]["appointment_status"] | null
           updated_at?: string | null
@@ -69,6 +72,13 @@ export type Database = {
             referencedRelation: "institutions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "appointments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       diagnoses: {
@@ -78,6 +88,7 @@ export type Database = {
           diagnosed_date: string | null
           id: string
           notes: string | null
+          profile_id: string | null
           status: Database["public"]["Enums"]["diagnosis_status"]
           updated_at: string
           user_id: string
@@ -88,6 +99,7 @@ export type Database = {
           diagnosed_date?: string | null
           id?: string
           notes?: string | null
+          profile_id?: string | null
           status?: Database["public"]["Enums"]["diagnosis_status"]
           updated_at?: string
           user_id: string
@@ -98,11 +110,20 @@ export type Database = {
           diagnosed_date?: string | null
           id?: string
           notes?: string | null
+          profile_id?: string | null
           status?: Database["public"]["Enums"]["diagnosis_status"]
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "diagnoses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       discounts: {
         Row: {
@@ -174,6 +195,7 @@ export type Database = {
           id: string
           notes: string | null
           phone: string | null
+          profile_id: string | null
           specialty: string | null
           updated_at: string | null
           user_id: string
@@ -185,6 +207,7 @@ export type Database = {
           id?: string
           notes?: string | null
           phone?: string | null
+          profile_id?: string | null
           specialty?: string | null
           updated_at?: string | null
           user_id: string
@@ -196,11 +219,20 @@ export type Database = {
           id?: string
           notes?: string | null
           phone?: string | null
+          profile_id?: string | null
           specialty?: string | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "doctors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entitlements: {
         Row: {
@@ -242,6 +274,7 @@ export type Database = {
           file_url: string
           id: string
           mime_type: string | null
+          profile_id: string | null
           uploaded_at: string | null
           user_id: string
         }
@@ -252,6 +285,7 @@ export type Database = {
           file_url: string
           id?: string
           mime_type?: string | null
+          profile_id?: string | null
           uploaded_at?: string | null
           user_id: string
         }
@@ -262,10 +296,19 @@ export type Database = {
           file_url?: string
           id?: string
           mime_type?: string | null
+          profile_id?: string | null
           uploaded_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "file_attachments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       institutions: {
         Row: {
@@ -275,6 +318,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          profile_id: string | null
           type: Database["public"]["Enums"]["institution_type"] | null
           updated_at: string | null
           user_id: string
@@ -286,6 +330,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          profile_id?: string | null
           type?: Database["public"]["Enums"]["institution_type"] | null
           updated_at?: string | null
           user_id: string
@@ -297,11 +342,20 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          profile_id?: string | null
           type?: Database["public"]["Enums"]["institution_type"] | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "institutions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoices: {
         Row: {
@@ -361,6 +415,7 @@ export type Database = {
           created_at: string | null
           id: string
           medication_id: string
+          profile_id: string | null
           scheduled_at: string
           status: Database["public"]["Enums"]["medication_log_status"] | null
           taken_at: string | null
@@ -370,6 +425,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           medication_id: string
+          profile_id?: string | null
           scheduled_at: string
           status?: Database["public"]["Enums"]["medication_log_status"] | null
           taken_at?: string | null
@@ -379,6 +435,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           medication_id?: string
+          profile_id?: string | null
           scheduled_at?: string
           status?: Database["public"]["Enums"]["medication_log_status"] | null
           taken_at?: string | null
@@ -392,6 +449,13 @@ export type Database = {
             referencedRelation: "medications"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "medication_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       medications: {
@@ -403,6 +467,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          profile_id: string | null
           schedule_type: Database["public"]["Enums"]["medication_schedule_type"]
           start_date: string | null
           status: Database["public"]["Enums"]["medication_status"] | null
@@ -418,6 +483,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          profile_id?: string | null
           schedule_type: Database["public"]["Enums"]["medication_schedule_type"]
           start_date?: string | null
           status?: Database["public"]["Enums"]["medication_status"] | null
@@ -433,6 +499,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          profile_id?: string | null
           schedule_type?: Database["public"]["Enums"]["medication_schedule_type"]
           start_date?: string | null
           status?: Database["public"]["Enums"]["medication_status"] | null
@@ -446,6 +513,13 @@ export type Database = {
             columns: ["diagnosis_id"]
             isOneToOne: false
             referencedRelation: "diagnoses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -494,6 +568,7 @@ export type Database = {
           id: string
           institution_id: string | null
           notes: string | null
+          profile_id: string | null
           title: string
           type: Database["public"]["Enums"]["procedure_type"]
           updated_at: string
@@ -506,6 +581,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           notes?: string | null
+          profile_id?: string | null
           title: string
           type: Database["public"]["Enums"]["procedure_type"]
           updated_at?: string
@@ -518,6 +594,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           notes?: string | null
+          profile_id?: string | null
           title?: string
           type?: Database["public"]["Enums"]["procedure_type"]
           updated_at?: string
@@ -536,6 +613,13 @@ export type Database = {
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procedures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -719,6 +803,7 @@ export type Database = {
           id: string
           is_completed: boolean | null
           notes: string | null
+          profile_id: string | null
           repeat_rule: Database["public"]["Enums"]["repeat_rule"] | null
           title: string
           type: Database["public"]["Enums"]["reminder_type"] | null
@@ -731,6 +816,7 @@ export type Database = {
           id?: string
           is_completed?: boolean | null
           notes?: string | null
+          profile_id?: string | null
           repeat_rule?: Database["public"]["Enums"]["repeat_rule"] | null
           title: string
           type?: Database["public"]["Enums"]["reminder_type"] | null
@@ -743,13 +829,22 @@ export type Database = {
           id?: string
           is_completed?: boolean | null
           notes?: string | null
+          profile_id?: string | null
           repeat_rule?: Database["public"]["Enums"]["repeat_rule"] | null
           title?: string
           type?: Database["public"]["Enums"]["reminder_type"] | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reminders_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscription_discounts: {
         Row: {
@@ -862,6 +957,7 @@ export type Database = {
           id: string
           institution_id: string | null
           notes: string | null
+          profile_id: string | null
           status: Database["public"]["Enums"]["test_status"] | null
           type: string
           updated_at: string | null
@@ -873,6 +969,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           notes?: string | null
+          profile_id?: string | null
           status?: Database["public"]["Enums"]["test_status"] | null
           type: string
           updated_at?: string | null
@@ -884,6 +981,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           notes?: string | null
+          profile_id?: string | null
           status?: Database["public"]["Enums"]["test_status"] | null
           type?: string
           updated_at?: string | null
@@ -895,6 +993,13 @@ export type Database = {
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -918,8 +1023,16 @@ export type Database = {
         Args: { _profile_owner_id: string; _user_id: string }
         Returns: boolean
       }
+      can_access_profile_by_id: {
+        Args: { _profile_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_modify_data: {
         Args: { _profile_owner_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_modify_profile_by_id: {
+        Args: { _profile_id: string; _user_id: string }
         Returns: boolean
       }
       get_current_user_email: { Args: never; Returns: string }
@@ -930,6 +1043,10 @@ export type Database = {
       is_authenticated_user: { Args: never; Returns: boolean }
       is_data_owner: {
         Args: { _data_owner_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_profile_owner: {
+        Args: { _profile_id: string; _user_id: string }
         Returns: boolean
       }
     }

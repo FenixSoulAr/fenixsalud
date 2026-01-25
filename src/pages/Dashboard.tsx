@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { useTranslations } from "@/i18n";
 
 export default function Dashboard() {
-  const { canEdit, activeProfileOwnerId } = useActiveProfile();
+  const { canEdit, activeProfileId } = useActiveProfile();
   const navigate = useNavigate();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
@@ -32,20 +32,20 @@ export default function Dashboard() {
   const [selectedReminder, setSelectedReminder] = useState<any | null>(null);
 
   useEffect(() => {
-    if (activeProfileOwnerId) fetchData();
-  }, [activeProfileOwnerId]);
+    if (activeProfileId) fetchData();
+  }, [activeProfileId]);
 
   async function fetchData() {
-    if (!activeProfileOwnerId) return;
+    if (!activeProfileId) return;
     setLoading(true);
     const today = new Date().toISOString();
 
     const [apptRes, remRes, medRes, diagRes, testRes] = await Promise.all([
-      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("user_id", activeProfileOwnerId).gte("datetime_start", today).eq("status", "Upcoming").order("datetime_start").limit(5),
-      supabase.from("reminders").select("*").eq("user_id", activeProfileOwnerId).gte("due_date_time", today).eq("is_completed", false).order("due_date_time").limit(5),
-      supabase.from("medications").select("*").eq("user_id", activeProfileOwnerId).eq("status", "Active"),
-      supabase.from("diagnoses").select("*").eq("user_id", activeProfileOwnerId),
-      supabase.from("tests").select("*, institutions(name)").eq("user_id", activeProfileOwnerId).gte("date", today.split("T")[0]).order("date").limit(5),
+      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", activeProfileId).gte("datetime_start", today).eq("status", "Upcoming").order("datetime_start").limit(5),
+      supabase.from("reminders").select("*").eq("profile_id", activeProfileId).gte("due_date_time", today).eq("is_completed", false).order("due_date_time").limit(5),
+      supabase.from("medications").select("*").eq("profile_id", activeProfileId).eq("status", "Active"),
+      supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId),
+      supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).gte("date", today.split("T")[0]).order("date").limit(5),
     ]);
 
     setAppointments(apptRes.data || []);
