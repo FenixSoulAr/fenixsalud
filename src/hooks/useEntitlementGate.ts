@@ -31,47 +31,31 @@ export function useEntitlementGate() {
 
   const lang = getLanguage();
 
-  // Primary message shown for gated features
-  const primaryMessage = {
-    en: "This feature is available in Plus",
-    es: "Esta función está disponible en Plus",
+  // Standardized plan limitation messages
+  const planLimitMessage = {
+    en: "This action is limited by your current plan. You can upgrade to Plus to enable it.",
+    es: "Esta acción está limitada por tu plan actual. Podés actualizar a Plus para habilitarla.",
   };
-  
-  // Secondary message explaining Free vs Plus
-  const secondaryMessage = {
-    en: "Free is for organizing your own health. Plus lets you share, export, and care for others.",
-    es: "Free es para organizar tu propia salud. Plus te permite compartir, exportar y cuidar a otros.",
+
+  // Specific limit messages (profiles and attachments have count-based limits)
+  const profileLimitMessage = {
+    en: "You've reached the profile limit for your plan.",
+    es: "Alcanzaste el límite de perfiles permitidos por tu plan.",
+  };
+
+  const attachmentLimitMessage = {
+    en: "You've reached the attachment limit for your plan.",
+    es: "Alcanzaste el límite de adjuntos permitidos por tu plan.",
   };
 
   const messages: Record<GatedFeature, { en: string; es: string }> = {
-    sharing: {
-      en: `${primaryMessage.en}. ${secondaryMessage.en}`,
-      es: `${primaryMessage.es}. ${secondaryMessage.es}`,
-    },
-    roles: {
-      en: `${primaryMessage.en}. ${secondaryMessage.en}`,
-      es: `${primaryMessage.es}. ${secondaryMessage.es}`,
-    },
-    pdf_export: {
-      en: `${primaryMessage.en}. ${secondaryMessage.en}`,
-      es: `${primaryMessage.es}. ${secondaryMessage.es}`,
-    },
-    export_backup: {
-      en: `${primaryMessage.en}. ${secondaryMessage.en}`,
-      es: `${primaryMessage.es}. ${secondaryMessage.es}`,
-    },
-    procedures: {
-      en: `${primaryMessage.en}. ${secondaryMessage.en}`,
-      es: `${primaryMessage.es}. ${secondaryMessage.es}`,
-    },
-    profiles: {
-      en: "Free plan allows only 1 personal profile. Upgrade to Plus to manage family profiles.",
-      es: "El plan Free permite solo 1 perfil personal. Actualizá a Plus para gestionar perfiles familiares.",
-    },
-    attachments: {
-      en: `You reached the attachment limit for the Free plan. Unlimited attachments are available in Plus.`,
-      es: `Alcanzaste el límite de adjuntos del plan Free. Adjuntos ilimitados disponibles en Plus.`,
-    },
+    sharing: planLimitMessage,
+    roles: planLimitMessage,
+    pdf_export: planLimitMessage,
+    export_backup: planLimitMessage,
+    procedures: planLimitMessage,
+    profiles: profileLimitMessage,
+    attachments: attachmentLimitMessage,
   };
 
   const checkFeature = useCallback(
@@ -164,12 +148,9 @@ export function useEntitlementGate() {
 
   // Exposed messages for UI display
   const gatedMessages = {
-    plusFeature: {
-      primary: lang === "es" ? primaryMessage.es : primaryMessage.en,
-      secondary: lang === "es" ? secondaryMessage.es : secondaryMessage.en,
-    },
-    profiles: lang === "es" ? messages.profiles.es : messages.profiles.en,
-    attachments: lang === "es" ? messages.attachments.es : messages.attachments.en,
+    plusFeature: lang === "es" ? planLimitMessage.es : planLimitMessage.en,
+    profiles: lang === "es" ? profileLimitMessage.es : profileLimitMessage.en,
+    attachments: lang === "es" ? attachmentLimitMessage.es : attachmentLimitMessage.en,
   };
 
   return {
