@@ -50,7 +50,10 @@ export default function SignUp() {
       toast.success("Account created successfully!");
       navigate("/");
     } catch (error: any) {
-      toast.error(error.message || "Failed to create account");
+      console.error("[SignUp] Error:", error);
+      const message = error?.message || "Failed to create account";
+      const hint = error?.hint ? ` (${error.hint})` : "";
+      toast.error(`${message}${hint}`);
     } finally {
       setLoading(false);
     }
