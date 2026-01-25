@@ -108,12 +108,30 @@ export function useEntitlements(): UseEntitlementsReturn {
         throw new Error("Failed to load subscription");
       }
 
+      // Check for active plan override using the RPC function
+      const { data: hasOverride } = await supabase
+        .rpc("has_active_override", { _user_id: user.id });
+
       // Determine current plan
       let currentPlanId: string | null = null;
       let currentPlanCode = "free";
       let currentPlanName = "Free";
 
-      if (subscription?.plans) {
+      // If user has an override, treat them as Plus
+      if (hasOverride) {
+        // Get plus_monthly plan for entitlements (both plus plans have same entitlements)
+        const { data: plusPlan } = await supabase
+          .from("plans")
+          .select("id, code, name")
+          .eq("code", "plus_monthly")
+          .single();
+        
+        if (plusPlan) {
+          currentPlanId = plusPlan.id;
+          currentPlanCode = plusPlan.code;
+          currentPlanName = "Plus (Override)";
+        }
+      } else if (subscription?.plans) {
         const plan = subscription.plans as { id: string; code: string; name: string };
         currentPlanId = plan.id;
         currentPlanCode = plan.code;

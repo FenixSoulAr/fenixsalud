@@ -18,9 +18,11 @@ import {
   FileText,
   Info,
   Mail,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/useAdmin";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/i18n";
 import { SharingBanner } from "@/components/sharing/SharingBanner";
@@ -36,6 +38,7 @@ export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { signOut, user } = useAuth();
+  const { isAdmin } = useAdmin();
   const t = useTranslations();
 
   const primaryNavigation = [
@@ -52,6 +55,8 @@ export function AppShell({ children }: AppShellProps) {
   const secondaryNavigation = [
     { name: t.nav.about, href: "/about", icon: Info },
     { name: t.nav.contact, href: "/contact", icon: Mail },
+    // Admin item - only shown for admins
+    ...(isAdmin ? [{ name: "Admin", href: "/admin", icon: Shield }] : []),
   ];
 
   return (

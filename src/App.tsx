@@ -29,6 +29,7 @@ import ClinicalSummary from "./pages/ClinicalSummary";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -145,6 +146,7 @@ function AppRoutes() {
       <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
       <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
       <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
