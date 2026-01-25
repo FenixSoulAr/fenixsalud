@@ -1,4 +1,4 @@
-import { User, Users, ChevronDown, Check } from "lucide-react";
+import { User, UserCircle, Users, ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,6 +38,7 @@ export function ActiveProfileIndicator() {
   const activeOwnProfile = myProfiles.find(p => p.id === activeProfileId);
   const activeSharedProfile = sharedWithMe.find(s => s.profile_id === activeProfileId);
   const isOwnProfile = !!activeOwnProfile;
+  const isFamilyProfile = activeOwnProfile?.user_id === null;
 
   // Determine display name with proper fallbacks
   const profileName = activeOwnProfile?.full_name 
@@ -51,7 +52,11 @@ export function ActiveProfileIndicator() {
   if (!hasMultipleProfiles) {
     return (
       <div className="flex items-center gap-2 px-3 py-2 bg-sidebar-accent/50 rounded-lg border border-sidebar-border">
-        <User className="h-4 w-4 text-primary flex-shrink-0" />
+        {isFamilyProfile ? (
+          <UserCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        ) : (
+          <User className="h-4 w-4 text-primary flex-shrink-0" />
+        )}
         <div className="flex flex-col min-w-0">
           <span className="text-xs text-muted-foreground">
             {lang === "es" ? "Perfil" : "Profile"}
@@ -78,7 +83,11 @@ export function ActiveProfileIndicator() {
         >
           <div className="flex items-center gap-2 min-w-0">
             {isOwnProfile ? (
-              <User className="h-4 w-4 flex-shrink-0 text-primary" />
+              isFamilyProfile ? (
+                <UserCircle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+              ) : (
+                <User className="h-4 w-4 flex-shrink-0 text-primary" />
+              )
             ) : (
               <Users className="h-4 w-4 flex-shrink-0 text-primary" />
             )}
@@ -102,12 +111,13 @@ export function ActiveProfileIndicator() {
         
         {myProfiles.map((profile) => {
           const isSelected = profile.id === activeProfileId;
+          const isFamily = profile.user_id === null;
           const displayName = profile.full_name || (profile.is_primary 
             ? (lang === "es" ? "Mi Salud" : "My Health")
             : (lang === "es" ? "Sin nombre" : "Unnamed"));
           
           // Compute the sub-label for each profile in the list
-          const profileSubLabel = profile.user_id === null
+          const profileSubLabel = isFamily
             ? (lang === "es" ? "Familiar" : "Family")
             : (lang === "es" ? "Principal" : "Primary");
           
@@ -117,7 +127,11 @@ export function ActiveProfileIndicator() {
               onClick={() => switchToProfile(profile.id)}
               className="flex items-center gap-2 cursor-pointer py-3"
             >
-              <User className="h-4 w-4 flex-shrink-0" />
+              {isFamily ? (
+                <UserCircle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+              ) : (
+                <User className="h-4 w-4 flex-shrink-0" />
+              )}
               <div className="flex-1 min-w-0">
                 <span className="block truncate font-medium">
                   {displayName}
