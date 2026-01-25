@@ -12,9 +12,9 @@ export function useStripeCheckout() {
   const [loading, setLoading] = useState(false);
   const lang = getLanguage();
 
-  const messages = {
+const messages = {
     notLoggedIn: lang === "es" ? "Debes iniciar sesión para continuar" : "You must be logged in to continue",
-    checkoutError: lang === "es" ? "Error al iniciar el pago" : "Failed to start checkout",
+    checkoutError: lang === "es" ? "Ocurrió un error inesperado. Por favor, intentá nuevamente." : "An unexpected error occurred. Please try again.",
     redirecting: lang === "es" ? "Redirigiendo a Stripe..." : "Redirecting to Stripe...",
     adminNoCheckout: lang === "es" ? "Los administradores tienen acceso completo sin suscripción" : "Admins have full access without subscription",
   };

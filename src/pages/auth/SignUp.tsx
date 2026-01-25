@@ -51,9 +51,7 @@ export default function SignUp() {
       navigate("/");
     } catch (error: any) {
       console.error("[SignUp] Error:", error);
-      const message = error?.message || "Failed to create account";
-      const hint = error?.hint ? ` (${error.hint})` : "";
-      toast.error(`${message}${hint}`);
+      toast.error(t.toast?.error || "Ocurrió un error inesperado. Por favor, intentá nuevamente.");
     } finally {
       setLoading(false);
     }
