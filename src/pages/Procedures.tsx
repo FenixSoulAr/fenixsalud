@@ -176,12 +176,12 @@ export default function Procedures() {
         <div className="max-w-lg mx-auto text-center py-12">
           <Crown className="h-16 w-16 mx-auto mb-4 text-amber-500" />
           <h2 className="text-xl font-semibold mb-2">
-            {lang === "es" ? "Función Plus" : "Plus Feature"}
+            {lang === "es" ? "Esta función está disponible en Plus" : "This feature is available in Plus"}
           </h2>
           <p className="text-muted-foreground mb-6">
             {lang === "es" 
-              ? "Procedimientos (cirugías, hospitalizaciones, vacunas) son una función exclusiva de Plus. Actualizá tu plan para registrar y visualizar tus procedimientos médicos."
-              : "Procedures (surgeries, hospitalizations, vaccines) are a Plus-exclusive feature. Upgrade your plan to track and view your medical procedures."}
+              ? "Free es para organizar tu propia salud. Plus te permite compartir, exportar y cuidar a otros."
+              : "Free is for organizing your own health. Plus lets you share, export, and care for others."}
           </p>
           <Button onClick={() => navigate("/pricing")}>
             {lang === "es" ? "Ver planes" : "View Plans"}
