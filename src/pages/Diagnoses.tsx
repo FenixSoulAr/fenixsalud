@@ -20,7 +20,7 @@ import { useTranslations } from "@/i18n";
 import { format } from "date-fns";
 
 export default function Diagnoses() {
-  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ export default function Diagnoses() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [form, setForm] = useState({ condition: "", notes: "", diagnosed_date: "", status: "active" });
 
-  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
+  useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
   
   // Handle URL params for auto-editing or viewing
   useEffect(() => {
@@ -48,14 +48,14 @@ export default function Diagnoses() {
   }, [searchParams, diagnoses]);
 
   async function fetchData() {
-    if (!activeProfileOwnerId) return;
+    if (!activeProfileId) return;
     setLoading(true);
     
     // Fetch diagnoses
     const { data: diagData } = await supabase
       .from("diagnoses")
       .select("*")
-      .eq("user_id", activeProfileOwnerId)
+      .eq("profile_id", activeProfileId)
       .order("status", { ascending: true })
       .order("created_at", { ascending: false });
     
@@ -66,7 +66,7 @@ export default function Diagnoses() {
       const { data: medsData } = await supabase
         .from("medications")
         .select("*")
-        .eq("user_id", activeProfileOwnerId)
+        .eq("profile_id", activeProfileId)
         .not("diagnosis_id", "is", null);
       
       // Group medications by diagnosis_id
@@ -116,8 +116,8 @@ export default function Diagnoses() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      if (!dataOwnerId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("diagnoses").insert({ ...payload, user_id: dataOwnerId });
+      if (!dataProfileId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("diagnoses").insert({ ...payload, profile_id: dataProfileId, user_id: dataProfileId });
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }

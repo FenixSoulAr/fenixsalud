@@ -20,7 +20,7 @@ import { format } from "date-fns";
 import { useTranslations } from "@/i18n";
 
 export default function Tests() {
-  const { dataOwnerId, activeProfileOwnerId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState<any[]>([]);
@@ -31,16 +31,16 @@ export default function Tests() {
   const [viewingTest, setViewingTest] = useState<any | null>(null);
   const [form, setForm] = useState({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled" });
 
-  useEffect(() => { if (activeProfileOwnerId) fetchData(); }, [activeProfileOwnerId]);
+  useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
 
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
   async function fetchData() {
-    if (!activeProfileOwnerId) return;
+    if (!activeProfileId) return;
     setLoading(true);
     const [testRes, instRes] = await Promise.all([
-      supabase.from("tests").select("*, institutions(name)").eq("user_id", activeProfileOwnerId).order("date", { ascending: false }),
-      supabase.from("institutions").select("id, name").eq("user_id", activeProfileOwnerId),
+      supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
+      supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId),
     ]);
     const testsData = testRes.data || [];
     setTests(testsData);
@@ -100,8 +100,8 @@ export default function Tests() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      if (!dataOwnerId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("tests").insert({ ...payload, user_id: dataOwnerId });
+      if (!dataProfileId) { toast.error("No active profile"); return; }
+      const { error } = await supabase.from("tests").insert({ ...payload, profile_id: dataProfileId, user_id: dataProfileId });
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }

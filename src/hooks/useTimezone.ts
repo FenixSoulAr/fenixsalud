@@ -10,7 +10,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
  * 2. Browser/device timezone (fallback)
  */
 export function useTimezone() {
-  const { activeProfileOwnerId } = useActiveProfile();
+  const { activeProfileId } = useActiveProfile();
   const [profileTimezone, setProfileTimezone] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,7 +22,7 @@ export function useTimezone() {
 
   useEffect(() => {
     async function fetchProfileTimezone() {
-      if (!activeProfileOwnerId) {
+      if (!activeProfileId) {
         setLoading(false);
         return;
       }
@@ -30,7 +30,7 @@ export function useTimezone() {
       const { data } = await supabase
         .from("profiles")
         .select("timezone")
-        .eq("user_id", activeProfileOwnerId)
+        .eq("id", activeProfileId)
         .maybeSingle();
 
       setProfileTimezone(data?.timezone || null);
@@ -38,7 +38,7 @@ export function useTimezone() {
     }
 
     fetchProfileTimezone();
-  }, [activeProfileOwnerId]);
+  }, [activeProfileId]);
 
   /**
    * Convert a local date + time string to an ISO string with timezone offset.

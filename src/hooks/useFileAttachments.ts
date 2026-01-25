@@ -20,14 +20,14 @@ const MAX_SIZE_MB = 20;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 export function useFileAttachments(entityType: EntityType, entityId: string | null) {
-  const { dataOwnerId, activeProfileOwnerId } = useActiveProfile();
+  const { dataProfileId, activeProfileId } = useActiveProfile();
   const { checkAttachmentLimit } = useEntitlementGate();
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const fetchAttachments = useCallback(async () => {
-    if (!entityId || !activeProfileOwnerId) return;
+    if (!entityId || !activeProfileId) return;
     
     setLoading(true);
     const { data, error } = await supabase
@@ -43,14 +43,14 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       setAttachments(data || []);
     }
     setLoading(false);
-  }, [entityId, entityType, activeProfileOwnerId]);
+  }, [entityId, entityType, activeProfileId]);
 
   useEffect(() => {
     fetchAttachments();
   }, [fetchAttachments]);
 
   const uploadFile = async (file: File): Promise<{ success: boolean; error?: string }> => {
-    if (!dataOwnerId || !entityId) {
+    if (!dataProfileId || !entityId) {
       return { success: false, error: "Not authenticated or missing entity ID." };
     }
 
@@ -96,10 +96,10 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
     setUploading(true);
     
     try {
-      // Create unique file path: profile_owner_id/entity_type/entity_id/timestamp_filename
+      // Create unique file path: profile_id/entity_type/entity_id/timestamp_filename
       const timestamp = Date.now();
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const filePath = `${dataOwnerId}/${entityType}/${entityId}/${timestamp}_${safeName}`;
+      const filePath = `${dataProfileId}/${entityType}/${entityId}/${timestamp}_${safeName}`;
 
       // Upload to storage with explicit content type for mobile compatibility
       const { error: uploadError, data: uploadData } = await supabase.storage
@@ -124,11 +124,12 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
         return { success: false, error: errorMsg };
       }
 
-      // Create file_attachments record with profile owner's ID
+      // Create file_attachments record with profile ID
       const { error: dbError } = await supabase
         .from("file_attachments")
         .insert({
-          user_id: dataOwnerId,
+          profile_id: dataProfileId,
+          user_id: dataProfileId,
           entity_type: entityType,
           entity_id: entityId,
           file_name: file.name,
