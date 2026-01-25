@@ -123,6 +123,10 @@ serve(async (req) => {
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
       client_reference_id: userId,
+      metadata: {
+        user_id: userId,
+        plan_code: planCode,
+      },
       subscription_data: {
         metadata: {
           user_id: userId,
