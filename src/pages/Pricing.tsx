@@ -1,12 +1,14 @@
-import { Check, X, Crown, Heart } from "lucide-react";
+import { Check, X, Crown, Heart, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { useTranslations, getLanguage } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 
 export default function Pricing() {
   const { planCode, isPlus } = useEntitlementsContext();
+  const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const lang = getLanguage();
 
   const t = {
@@ -141,9 +143,13 @@ export default function Pricing() {
             </Button>
           ) : (
             <div className="space-y-2">
-              <Button className="w-full" disabled>
+              <Button 
+                className="w-full" 
+                onClick={() => startCheckout("plus_monthly")}
+                disabled={checkoutLoading}
+              >
+                {checkoutLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {t.upgradeToPlusMonthly}
-                <Badge variant="secondary" className="ml-2 text-xs">{t.comingSoon}</Badge>
               </Button>
               <Button variant="outline" className="w-full" disabled>
                 {t.upgradeToPlusYearly}
