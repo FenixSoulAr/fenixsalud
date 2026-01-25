@@ -110,41 +110,51 @@ serve(async (req) => {
 
 // deno-lint-ignore no-explicit-any
 async function handleCheckoutCompleted(stripe: Stripe, supabase: any, session: Stripe.Checkout.Session) {
-  logStep("Processing checkout.session.completed", { sessionId: session.id });
+  logStep("Processing checkout.session.completed", { 
+    sessionId: session.id,
+    mode: session.mode,
+    subscription: session.subscription,
+    clientRefId: session.client_reference_id,
+    metadata: session.metadata
+  });
 
   if (session.mode !== "subscription" || !session.subscription) {
-    logStep("Not a subscription checkout, skipping");
+    logStep("Not a subscription checkout, skipping", { mode: session.mode });
     return;
   }
 
   // Get user_id from client_reference_id or session metadata
   const userId = session.client_reference_id || session.metadata?.user_id;
   if (!userId) {
-    logStep("ERROR: No user_id in client_reference_id or metadata");
+    logStep("ERROR: No user_id in client_reference_id or metadata", { 
+      clientRefId: session.client_reference_id, 
+      metadata: session.metadata 
+    });
     return;
   }
 
-  // Get plan_code from session metadata
-  const planCode = session.metadata?.plan_code;
-  if (!planCode) {
-    logStep("ERROR: No plan_code in session metadata");
-    return;
-  }
+  // Get plan_code from session metadata, default to plus_monthly
+  const planCode = session.metadata?.plan_code || "plus_monthly";
+  const stripeSubscriptionId = session.subscription as string;
 
-  logStep("Found user and plan from session", { userId, planCode });
+  logStep("Extracted session data", { userId, planCode, stripeSubscriptionId });
 
   // Check if subscription already exists and is active (idempotency)
-  const { data: existingSub } = await supabase
+  const { data: existingSub, error: existingError } = await supabase
     .from("subscriptions")
     .select("id, status, stripe_subscription_id")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (existingSub?.stripe_subscription_id === session.subscription && existingSub?.status === "active") {
-    logStep("Subscription already active, skipping (idempotent)", { 
-      userId, 
-      stripeSubId: session.subscription 
-    });
+  logStep("Existing subscription check", { 
+    found: !!existingSub, 
+    existingStatus: existingSub?.status,
+    existingStripeId: existingSub?.stripe_subscription_id,
+    error: existingError?.message
+  });
+
+  if (existingSub?.stripe_subscription_id === stripeSubscriptionId && existingSub?.status === "active") {
+    logStep("Subscription already active with same Stripe ID, skipping (idempotent)");
     return;
   }
 
@@ -161,31 +171,51 @@ async function handleCheckoutCompleted(stripe: Stripe, supabase: any, session: S
     return;
   }
 
-  // Get subscription details from Stripe
-  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+  logStep("Found plan", { planId: plan.id, planCode: plan.code });
 
-  // Update or insert subscription
+  // Get subscription details from Stripe
+  const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+  logStep("Retrieved Stripe subscription", { 
+    status: subscription.status,
+    currentPeriodEnd: subscription.current_period_end
+  });
+
+  // Build subscription data
   const subscriptionData = {
     user_id: userId,
     plan_id: plan.id,
     status: mapStripeStatus(subscription.status),
     provider: "stripe",
     stripe_customer_id: session.customer as string,
-    stripe_subscription_id: subscription.id,
+    stripe_subscription_id: stripeSubscriptionId,
     current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
     current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
     cancel_at_period_end: subscription.cancel_at_period_end,
     updated_at: new Date().toISOString(),
   };
 
-  const { error: upsertError } = await supabase
+  logStep("Upserting subscription data", subscriptionData);
+
+  // Upsert subscription (uses user_id unique constraint)
+  const { data: upsertData, error: upsertError } = await supabase
     .from("subscriptions")
-    .upsert(subscriptionData, { onConflict: "user_id" });
+    .upsert(subscriptionData, { onConflict: "user_id" })
+    .select();
 
   if (upsertError) {
-    logStep("ERROR: Failed to upsert subscription", { error: upsertError.message });
+    logStep("ERROR: Failed to upsert subscription", { 
+      error: upsertError.message, 
+      code: upsertError.code,
+      details: upsertError.details 
+    });
   } else {
-    logStep("Subscription created/updated", { userId, planCode: plan.code, status: subscriptionData.status });
+    logStep("SUCCESS: Subscription upserted", { 
+      userId, 
+      planCode: plan.code, 
+      status: subscriptionData.status,
+      stripeSubId: stripeSubscriptionId,
+      result: upsertData
+    });
   }
 }
 
