@@ -10,6 +10,7 @@ import { LoadingPage } from "@/components/ui/loading-spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
+import { OrientationBanner } from "@/components/onboarding/OrientationBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -90,6 +91,9 @@ export default function Dashboard() {
           )
         }
       />
+
+      {/* Orientation banner for new users */}
+      {canEdit && <OrientationBanner />}
 
       {!hasData ? (
         <EmptyState
