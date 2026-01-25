@@ -40,6 +40,12 @@ serve(async (req) => {
     const body = await req.text();
     const signature = req.headers.get("stripe-signature");
 
+    logStep("=== WEBHOOK REQUEST RECEIVED ===", { 
+      hasSignature: !!signature,
+      bodyLength: body.length,
+      timestamp: new Date().toISOString()
+    });
+
     if (!signature) {
       logStep("ERROR: Missing stripe-signature header");
       return new Response(JSON.stringify({ error: "Missing signature" }), {
@@ -52,6 +58,7 @@ serve(async (req) => {
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      logStep("Signature verified successfully");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
       logStep("ERROR: Invalid signature", { error: message });
@@ -61,7 +68,11 @@ serve(async (req) => {
       });
     }
 
-    logStep("Event received", { type: event.type, id: event.id });
+    logStep("Event received and verified", { 
+      type: event.type, 
+      id: event.id,
+      livemode: event.livemode 
+    });
 
     // Handle supported events
     switch (event.type) {
