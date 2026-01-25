@@ -43,7 +43,7 @@ interface SettingsData {
 export default function Settings() {
   const { user, signOut } = useAuth();
   const { canManageSharing } = useSharing();
-  const { isPlus, maxProfiles, maxAttachments, canExportPdf, canExportBackup, loading: entitlementsLoading } = useEntitlementsContext();
+  const { isPlus, hasPromoOverride, maxProfiles, maxAttachments, canExportPdf, canExportBackup, loading: entitlementsLoading } = useEntitlementsContext();
   const { checkProfileLimit, gatedMessages } = useEntitlementGate();
   const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const navigate = useNavigate();
@@ -486,7 +486,9 @@ export default function Settings() {
                 <div>
                   <p className="font-medium">
                     {isPlus 
-                      ? (t.settings.plusPlan || "Plus") 
+                      ? (hasPromoOverride 
+                          ? (t.settings.plusPromo || "Plus (Promo)")
+                          : (t.settings.plusPlan || "Plus"))
                       : (t.settings.freePlan || "Free")}
                   </p>
                   <p className="text-xs text-muted-foreground">

@@ -19,6 +19,7 @@ interface UseEntitlementsReturn extends EntitlementValues {
   planCode: string | null;
   planName: string | null;
   isPlus: boolean;
+  hasPromoOverride: boolean;
   refetch: () => Promise<void>;
 }
 
@@ -37,6 +38,7 @@ const entitlementCache = new Map<string, {
   entitlements: EntitlementValues;
   planCode: string;
   planName: string;
+  hasPromoOverride: boolean;
   timestamp: number;
 }>();
 
@@ -49,6 +51,7 @@ export function useEntitlements(): UseEntitlementsReturn {
   const [error, setError] = useState<string | null>(null);
   const [planCode, setPlanCode] = useState<string | null>("free");
   const [planName, setPlanName] = useState<string | null>("Free");
+  const [hasPromoOverride, setHasPromoOverride] = useState(false);
   const [entitlements, setEntitlements] = useState<EntitlementValues>(FREE_DEFAULTS);
   const fetchingRef = useRef(false);
   const hasFetchedRef = useRef(false);
@@ -66,6 +69,7 @@ export function useEntitlements(): UseEntitlementsReturn {
         setEntitlements(cached.entitlements);
         setPlanCode(cached.planCode);
         setPlanName(cached.planName);
+        setHasPromoOverride(cached.hasPromoOverride);
         setError(null);
         return;
       }
@@ -116,9 +120,11 @@ export function useEntitlements(): UseEntitlementsReturn {
       let currentPlanId: string | null = null;
       let currentPlanCode = "free";
       let currentPlanName = "Free";
+      let currentHasPromoOverride = false;
 
       // If user has an override, treat them as Plus
       if (hasOverride) {
+        currentHasPromoOverride = true;
         // Get plus_monthly plan for entitlements (both plus plans have same entitlements)
         const { data: plusPlan } = await supabase
           .from("plans")
@@ -129,7 +135,7 @@ export function useEntitlements(): UseEntitlementsReturn {
         if (plusPlan) {
           currentPlanId = plusPlan.id;
           currentPlanCode = plusPlan.code;
-          currentPlanName = "Plus (Override)";
+          currentPlanName = "Plus (Promo)";
         }
       } else if (subscription?.plans) {
         const plan = subscription.plans as { id: string; code: string; name: string };
@@ -156,6 +162,7 @@ export function useEntitlements(): UseEntitlementsReturn {
 
       setPlanCode(currentPlanCode);
       setPlanName(currentPlanName);
+      setHasPromoOverride(currentHasPromoOverride);
 
       // Get entitlements for the plan
       let resolvedEntitlements = FREE_DEFAULTS;
@@ -196,6 +203,7 @@ export function useEntitlements(): UseEntitlementsReturn {
         entitlements: resolvedEntitlements,
         planCode: currentPlanCode,
         planName: currentPlanName,
+        hasPromoOverride: currentHasPromoOverride,
         timestamp: Date.now(),
       });
 
@@ -236,6 +244,7 @@ export function useEntitlements(): UseEntitlementsReturn {
     planCode,
     planName,
     isPlus,
+    hasPromoOverride,
     ...entitlements,
     refetch: () => fetchEntitlements(true),
   };
