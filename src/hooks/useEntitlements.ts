@@ -43,21 +43,19 @@ const entitlementCache = new Map<string, {
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export function useEntitlements(): UseEntitlementsReturn {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  // Start with loading: false and safe defaults to prevent UI blocking
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [planCode, setPlanCode] = useState<string | null>(null);
-  const [planName, setPlanName] = useState<string | null>(null);
+  const [planCode, setPlanCode] = useState<string | null>("free");
+  const [planName, setPlanName] = useState<string | null>("Free");
   const [entitlements, setEntitlements] = useState<EntitlementValues>(FREE_DEFAULTS);
   const fetchingRef = useRef(false);
+  const hasFetchedRef = useRef(false);
 
   const fetchEntitlements = useCallback(async (forceRefresh = false) => {
     if (!user) {
-      setLoading(false);
-      setError(null);
-      setEntitlements(FREE_DEFAULTS);
-      setPlanCode("free");
-      setPlanName("Free");
+      // Keep defaults, don't block
       return;
     }
 
@@ -68,7 +66,6 @@ export function useEntitlements(): UseEntitlementsReturn {
         setEntitlements(cached.entitlements);
         setPlanCode(cached.planCode);
         setPlanName(cached.planName);
-        setLoading(false);
         setError(null);
         return;
       }
@@ -78,12 +75,25 @@ export function useEntitlements(): UseEntitlementsReturn {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
 
-    setLoading(true);
+    // Only show loading on subsequent fetches, not initial
+    if (hasFetchedRef.current) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
-      // Ensure subscription row exists before reading
-      await ensureSubscriptionRow();
+      // Ensure subscription row exists (fire and forget with timeout)
+      const subscriptionPromise = ensureSubscriptionRow();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Subscription check timeout")), 3000)
+      );
+      
+      try {
+        await Promise.race([subscriptionPromise, timeoutPromise]);
+      } catch (e) {
+        // Don't block on subscription row creation - continue with fetch
+        console.warn("Subscription row check skipped:", e);
+      }
       
       // Get user's subscription and plan
       const { data: subscription, error: subError } = await supabase
@@ -185,8 +195,13 @@ export function useEntitlements(): UseEntitlementsReturn {
   }, [user]);
 
   useEffect(() => {
-    fetchEntitlements();
-  }, [fetchEntitlements]);
+    // Don't fetch while auth is still loading
+    if (authLoading) return;
+    
+    fetchEntitlements().finally(() => {
+      hasFetchedRef.current = true;
+    });
+  }, [fetchEntitlements, authLoading]);
 
   // Clear cache on sign out
   useEffect(() => {
