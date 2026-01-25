@@ -24,7 +24,7 @@ const INSTITUTION_TYPE_OPTIONS = [
 ];
 
 export default function Institutions() {
-  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const [loading, setLoading] = useState(true);
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -78,9 +78,9 @@ export default function Institutions() {
       if (error) { toast.error("Something went wrong. Please try again."); return; }
       toast.success("Changes updated.");
     } else {
-      if (!dataProfileId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("institutions").insert({ profile_id: dataProfileId, user_id: dataProfileId, ...payload });
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
+      if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
+      const { error } = await supabase.from("institutions").insert({ profile_id: dataProfileId, user_id: currentUserId, ...payload });
+      if (error) { console.error("Insert error:", error); toast.error("Something went wrong. Please try again."); return; }
       toast.success("Saved successfully.");
     }
 

@@ -6,6 +6,10 @@ import { useAuth } from "@/contexts/AuthContext";
  * 
  * All health data is now scoped by profile_id, not user_id.
  * This allows family profiles (user_id = NULL) to have their own separate data.
+ * 
+ * IMPORTANT: 
+ * - Use `dataProfileId` for filtering/inserting profile-scoped data
+ * - Use `currentUserId` for the `user_id` column in INSERT operations (tracks who created the record)
  */
 export function useActiveProfile() {
   const { user } = useAuth();
@@ -25,6 +29,10 @@ export function useActiveProfile() {
   // This is the KEY change: we now use the actual profile ID, not the owner's user ID
   const dataProfileId = activeProfileId;
 
+  // The current authenticated user's ID - use this for user_id in INSERT operations
+  // This tracks WHO created the record, not WHICH profile it belongs to
+  const currentUserId = user?.id || null;
+
   // Legacy: dataOwnerId kept for backward compatibility during migration
   // New code should use dataProfileId instead
   const dataOwnerId = isViewingOwnProfile ? user?.id : activeProfileOwnerId;
@@ -34,6 +42,8 @@ export function useActiveProfile() {
     activeProfileId,
     // The profile_id to use for INSERT operations and data filtering
     dataProfileId,
+    // The current authenticated user's ID - use for user_id column in INSERTs
+    currentUserId,
     // Legacy: The user_id for backward compatibility (deprecated)
     dataOwnerId,
     // The profile owner's ID (for display/filtering purposes)

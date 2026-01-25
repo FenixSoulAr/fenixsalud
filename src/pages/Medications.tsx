@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { useTranslations } from "@/i18n";
 
 export default function Medications() {
-  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -97,9 +97,9 @@ export default function Medications() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      if (!dataProfileId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("medications").insert({ ...payload, profile_id: dataProfileId, user_id: dataProfileId });
-      if (error) { toast.error(t.toast.error); return; }
+      if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
+      const { error } = await supabase.from("medications").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
+      if (error) { console.error("Insert error:", error); toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }
     
