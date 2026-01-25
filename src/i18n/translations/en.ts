@@ -373,6 +373,16 @@ export interface Translations {
     attachments: string;
     upgradePlus: string;
     plusActive: string;
+    familyProfiles: string;
+    familyProfilesDesc: string;
+    addFamilyProfile: string;
+    noFamilyProfiles: string;
+    noFamilyProfilesDescFree: string;
+    noFamilyProfilesDescPlus: string;
+    multipleProfPlusOnly: string;
+    profileName: string;
+    relationship: string;
+    creatingProfile: string;
   };
   auth: {
     signIn: string;
@@ -848,6 +858,16 @@ export const en: Translations = {
     attachments: "Attachments",
     upgradePlus: "Upgrade to Plus",
     plusActive: "You're on the Plus plan. Thank you for your support!",
+    familyProfiles: "Family Profiles",
+    familyProfilesDesc: "Manage health profiles for family members",
+    addFamilyProfile: "Add Family Profile",
+    noFamilyProfiles: "No family profiles yet",
+    noFamilyProfilesDescFree: "Multiple profiles are available in Plus. Upgrade to manage family members' health.",
+    noFamilyProfilesDescPlus: "Add profiles to track health for family members.",
+    multipleProfPlusOnly: "Multiple profiles are available in Plus",
+    profileName: "Profile name",
+    relationship: "Relationship",
+    creatingProfile: "Creating...",
   },
   
   // Auth
