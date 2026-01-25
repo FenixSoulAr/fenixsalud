@@ -463,6 +463,28 @@ export interface Translations {
     patient: string;
     fileUploadNotAvailable: string;
   };
+  redeemPromo: {
+    title: string;
+    description: string;
+    enterCode: string;
+    enterCodeDescription: string;
+    codeLabel: string;
+    codePlaceholder: string;
+    redeemButton: string;
+    redeeming: string;
+    success: string;
+    successMessage: string;
+    successTitle: string;
+    unlimitedAccess: string;
+    accessUntil: string;
+    error: string;
+    alreadyPlus: string;
+    alreadyPlusMessage: string;
+    goToSettings: string;
+    goToDashboard: string;
+    noCode: string;
+    viewPlans: string;
+  };
 }
 
 export const en: Translations = {
@@ -965,5 +987,29 @@ export const en: Translations = {
     loading: "Loading...",
     patient: "Patient",
     fileUploadNotAvailable: "File upload not available on mobile",
+  },
+  
+  // Promo Code Redemption
+  redeemPromo: {
+    title: "Redeem Promo Code",
+    description: "Enter a promotional code to unlock Plus features",
+    enterCode: "Enter Your Code",
+    enterCodeDescription: "Type your promotional code below to activate Plus features.",
+    codeLabel: "Promo Code",
+    codePlaceholder: "e.g., FAMILIA",
+    redeemButton: "Redeem Code",
+    redeeming: "Redeeming...",
+    success: "Code Redeemed!",
+    successMessage: "Your Plus features are now active.",
+    successTitle: "Welcome to Plus!",
+    unlimitedAccess: "You have unlimited Plus access.",
+    accessUntil: "Your Plus access is active until",
+    error: "Error",
+    alreadyPlus: "You already have Plus",
+    alreadyPlusMessage: "Your account already has Plus features enabled.",
+    goToSettings: "Go to Settings",
+    goToDashboard: "Go to Dashboard",
+    noCode: "Don't have a code?",
+    viewPlans: "View Plans",
   },
 };
