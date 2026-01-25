@@ -545,7 +545,7 @@ export type Database = {
           created_at: string
           id: string
           owner_id: string
-          profile_id: string | null
+          profile_id: string
           role: Database["public"]["Enums"]["sharing_role"]
           shared_with_email: string
           shared_with_user_id: string | null
@@ -556,7 +556,7 @@ export type Database = {
           created_at?: string
           id?: string
           owner_id: string
-          profile_id?: string | null
+          profile_id: string
           role?: Database["public"]["Enums"]["sharing_role"]
           shared_with_email: string
           shared_with_user_id?: string | null
@@ -567,7 +567,7 @@ export type Database = {
           created_at?: string
           id?: string
           owner_id?: string
-          profile_id?: string | null
+          profile_id?: string
           role?: Database["public"]["Enums"]["sharing_role"]
           shared_with_email?: string
           shared_with_user_id?: string | null
