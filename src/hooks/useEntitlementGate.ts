@@ -57,8 +57,8 @@ export function useEntitlementGate() {
       es: "El plan Free permite solo 1 perfil personal. Actualizá a Plus para gestionar perfiles familiares.",
     },
     attachments: {
-      en: `You've reached the limit of ${maxAttachments} attachments. Upgrade to Plus for unlimited attachments.`,
-      es: `Has alcanzado el límite de ${maxAttachments} archivos adjuntos. Actualizá a Plus para adjuntos ilimitados.`,
+      en: `You reached the attachment limit for the Free plan. Unlimited attachments are available in Plus.`,
+      es: `Alcanzaste el límite de adjuntos del plan Free. Adjuntos ilimitados disponibles en Plus.`,
     },
   };
 
