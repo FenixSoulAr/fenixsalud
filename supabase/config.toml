@@ -1,5 +1,8 @@
 project_id = "pwwadvtoabvqvnjkcvjr"
 
+[functions.admin-actions]
+verify_jwt = false
+
 [functions.attachment-proxy]
 verify_jwt = false
 
