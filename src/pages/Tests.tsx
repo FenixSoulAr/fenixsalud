@@ -20,7 +20,7 @@ import { format } from "date-fns";
 import { useTranslations } from "@/i18n";
 
 export default function Tests() {
-  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState<any[]>([]);
@@ -100,9 +100,9 @@ export default function Tests() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      if (!dataProfileId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("tests").insert({ ...payload, profile_id: dataProfileId, user_id: dataProfileId });
-      if (error) { toast.error(t.toast.error); return; }
+      if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
+      const { error } = await supabase.from("tests").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
+      if (error) { console.error("Insert error:", error); toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }
     

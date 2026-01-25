@@ -20,7 +20,7 @@ const MAX_SIZE_MB = 20;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 export function useFileAttachments(entityType: EntityType, entityId: string | null) {
-  const { dataProfileId, activeProfileId } = useActiveProfile();
+  const { dataProfileId, activeProfileId, currentUserId } = useActiveProfile();
   const { checkAttachmentLimit } = useEntitlementGate();
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,7 +50,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
   }, [fetchAttachments]);
 
   const uploadFile = async (file: File): Promise<{ success: boolean; error?: string }> => {
-    if (!dataProfileId || !entityId) {
+    if (!dataProfileId || !entityId || !currentUserId) {
       return { success: false, error: "Not authenticated or missing entity ID." };
     }
 
@@ -129,7 +129,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
         .from("file_attachments")
         .insert({
           profile_id: dataProfileId,
-          user_id: dataProfileId,
+          user_id: currentUserId,
           entity_type: entityType,
           entity_id: entityId,
           file_name: file.name,

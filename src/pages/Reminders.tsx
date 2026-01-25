@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 export default function Reminders() {
-  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [reminders, setReminders] = useState<any[]>([]);
@@ -100,9 +100,9 @@ export default function Reminders() {
       if (error) { toast.error("Something went wrong. Please try again."); return; }
       toast.success("Changes updated.");
     } else {
-      if (!dataProfileId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("reminders").insert({ profile_id: dataProfileId, user_id: dataProfileId, ...payload });
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
+      if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
+      const { error } = await supabase.from("reminders").insert({ profile_id: dataProfileId, user_id: currentUserId, ...payload });
+      if (error) { console.error("Insert error:", error); toast.error("Something went wrong. Please try again."); return; }
       toast.success("Saved successfully.");
     }
 

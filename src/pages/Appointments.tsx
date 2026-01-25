@@ -35,7 +35,7 @@ function getDisplayStatus(apt: any): "Upcoming" | "Past" | "Completed" | "Cancel
 }
 
 export default function Appointments() {
-  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const { localToISO, isoToLocal, formatDateTime, formatTime } = useTimezone();
   const t = useTranslations();
   const [searchParams] = useSearchParams();
@@ -153,9 +153,9 @@ export default function Appointments() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      if (!dataProfileId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("appointments").insert({ ...payload, profile_id: dataProfileId, user_id: dataProfileId });
-      if (error) { toast.error(t.toast.error); return; }
+      if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
+      const { error } = await supabase.from("appointments").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
+      if (error) { console.error("Insert error:", error); toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }
     
@@ -186,11 +186,11 @@ export default function Appointments() {
   async function handleAddDoctor(e: React.FormEvent) {
     e.preventDefault();
     if (!newDoctor.full_name) { toast.error(t.doctors.nameRequired); return; }
-    if (!dataProfileId) { toast.error("No active profile"); return; }
+    if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
     
     const { data, error } = await supabase.from("doctors").insert({ 
       profile_id: dataProfileId,
-      user_id: dataProfileId, 
+      user_id: currentUserId, 
       full_name: newDoctor.full_name, 
       specialty: newDoctor.specialty || null 
     }).select().single();
@@ -210,11 +210,11 @@ export default function Appointments() {
   async function handleAddInstitution(e: React.FormEvent) {
     e.preventDefault();
     if (!newInstitution.name) { toast.error(t.institutions.nameRequired); return; }
-    if (!dataProfileId) { toast.error("No active profile"); return; }
+    if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
     
     const { data, error } = await supabase.from("institutions").insert({ 
       profile_id: dataProfileId,
-      user_id: dataProfileId, 
+      user_id: currentUserId, 
       name: newInstitution.name, 
       type: newInstitution.type as any
     }).select().single();

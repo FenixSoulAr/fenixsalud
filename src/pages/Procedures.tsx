@@ -35,7 +35,7 @@ function getProcedureStatusStyle(type: ProcedureType) {
 }
 
 export default function Procedures() {
-  const { dataProfileId, activeProfileId, canEdit, canDelete } = useActiveProfile();
+  const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const { canUseProcedures, gateFeature, loading: entitlementsLoading } = useEntitlementGate();
   const navigate = useNavigate();
   const t = useTranslations();
@@ -141,9 +141,9 @@ export default function Procedures() {
       if (error) { toast.error(t.toast.error); return; }
       toast.success(t.toast.changesUpdated);
     } else {
-      if (!dataProfileId) { toast.error("No active profile"); return; }
-      const { error } = await supabase.from("procedures").insert({ ...payload, profile_id: dataProfileId, user_id: dataProfileId });
-      if (error) { toast.error(t.toast.error); return; }
+      if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
+      const { error } = await supabase.from("procedures").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
+      if (error) { console.error("Insert error:", error); toast.error(t.toast.error); return; }
       toast.success(t.toast.savedSuccess);
     }
     
