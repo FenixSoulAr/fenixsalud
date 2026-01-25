@@ -115,6 +115,7 @@ serve(async (req) => {
     // Create Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
+      allow_promotion_codes: true,
       line_items: [
         {
           price: plan.stripe_price_id,
