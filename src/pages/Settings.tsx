@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trash2, User, Shield, Bell, CreditCard, Crown, Users, Plus, Lock, Download, FileDown } from "lucide-react";
+import { Trash2, User, Shield, Bell, CreditCard, Crown, Users, Plus, Lock, Download, FileDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSharing } from "@/contexts/SharingContext";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { useEntitlementGate } from "@/hooks/useEntitlementGate";
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { toast } from "sonner";
 import { useTranslations } from "@/i18n";
 import { useNavigate } from "react-router-dom";
@@ -44,6 +45,7 @@ export default function Settings() {
   const { canManageSharing } = useSharing();
   const { isPlus, maxProfiles, maxAttachments, canExportPdf, canExportBackup, loading: entitlementsLoading } = useEntitlementsContext();
   const { checkProfileLimit, gatedMessages } = useEntitlementGate();
+  const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const navigate = useNavigate();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
@@ -449,11 +451,16 @@ export default function Settings() {
             {/* Upgrade CTA */}
             {!isPlus && (
               <Button 
-                onClick={() => navigate("/pricing")} 
+                onClick={() => startCheckout("plus_monthly")} 
                 className="w-full"
                 variant="default"
+                disabled={checkoutLoading}
               >
-                <Crown className="h-4 w-4 mr-2" />
+                {checkoutLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Crown className="h-4 w-4 mr-2" />
+                )}
                 {t.settings.upgradePlus || "Upgrade to Plus"}
               </Button>
             )}
