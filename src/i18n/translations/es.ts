@@ -473,7 +473,7 @@ export const es: Translations = {
     savedSuccess: "Guardado correctamente.",
     changesUpdated: "Cambios guardados.",
     deletedSuccess: "Eliminado correctamente.",
-    error: "Algo salió mal. Por favor, intentá de nuevo.",
+    error: "Ocurrió un error inesperado. Por favor, intentá nuevamente.",
     settingsSaved: "Configuración guardada.",
     profileSaved: "Perfil guardado.",
     profileDeleted: "Datos del perfil eliminados.",
@@ -497,6 +497,11 @@ export const es: Translations = {
     couldNotSaveProfile: "No pudimos guardar tu perfil. Por favor, intentá de nuevo.",
     couldNotDeleteProfile: "No pudimos eliminar los datos de tu perfil. Por favor, intentá de nuevo.",
     couldNotUpdatePassword: "No pudimos actualizar tu contraseña. Por favor, intentá de nuevo.",
+    // Standardized success messages
+    appointmentCreated: "Cita creada correctamente.",
+    testCreated: "Estudio registrado correctamente.",
+    familyProfileCreated: "Perfil creado correctamente.",
+    exportSuccess: "Archivo generado correctamente.",
   },
   
   // Misc

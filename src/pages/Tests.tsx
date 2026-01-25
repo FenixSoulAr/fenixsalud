@@ -118,7 +118,7 @@ export default function Tests() {
         toast.error(msg); 
         return; 
       }
-      toast.success(t.toast.savedSuccess);
+      toast.success(t.toast.testCreated);
     }
     
     setDialogOpen(false);
