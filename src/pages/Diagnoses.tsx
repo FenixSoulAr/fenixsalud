@@ -113,12 +113,27 @@ export default function Diagnoses() {
 
     if (editingId) {
       const { error } = await supabase.from("diagnoses").update(payload).eq("id", editingId);
-      if (error) { toast.error(t.toast.error); return; }
+      if (error) { 
+        console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+        toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
+        return; 
+      }
       toast.success(t.toast.changesUpdated);
     } else {
-      if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
+      if (!dataProfileId || !currentUserId) { 
+        console.error("Missing IDs:", { dataProfileId, currentUserId });
+        toast.error("Falta el perfil activo o usuario."); 
+        return; 
+      }
+      console.log("Inserting diagnosis:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
       const { error } = await supabase.from("diagnoses").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
-      if (error) { console.error("Insert error:", error); toast.error(t.toast.error); return; }
+      if (error) { 
+        console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+        const msg = error.code === "42501" ? "No tenés permisos para crear." : 
+                    error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
+        toast.error(msg); 
+        return; 
+      }
       toast.success(t.toast.savedSuccess);
     }
     

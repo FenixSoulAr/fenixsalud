@@ -97,12 +97,27 @@ export default function Reminders() {
 
     if (editingId) {
       const { error } = await supabase.from("reminders").update(payload).eq("id", editingId);
-      if (error) { toast.error("Something went wrong. Please try again."); return; }
+      if (error) { 
+        console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+        toast.error(error.code === "42501" ? "No tenés permisos para editar." : "Algo salió mal. Por favor, intentá de nuevo."); 
+        return; 
+      }
       toast.success("Changes updated.");
     } else {
-      if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
+      if (!dataProfileId || !currentUserId) { 
+        console.error("Missing IDs:", { dataProfileId, currentUserId });
+        toast.error("Falta el perfil activo o usuario."); 
+        return; 
+      }
+      console.log("Inserting reminder:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
       const { error } = await supabase.from("reminders").insert({ profile_id: dataProfileId, user_id: currentUserId, ...payload });
-      if (error) { console.error("Insert error:", error); toast.error("Something went wrong. Please try again."); return; }
+      if (error) { 
+        console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+        const msg = error.code === "42501" ? "No tenés permisos para crear." : 
+                    error.code === "23503" ? "Error de referencia: verificá el perfil." : "Algo salió mal. Por favor, intentá de nuevo.";
+        toast.error(msg); 
+        return; 
+      }
       toast.success("Saved successfully.");
     }
 
