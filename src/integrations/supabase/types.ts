@@ -79,6 +79,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "appointments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       diagnoses: {
@@ -232,6 +239,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "doctors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       entitlements: {
@@ -308,6 +322,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "file_attachments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       institutions: {
@@ -354,6 +375,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "institutions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -408,6 +436,13 @@ export type Database = {
             referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       medication_logs: {
@@ -455,6 +490,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -522,7 +564,44 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "medications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
         ]
+      }
+      plan_overrides: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          granted_by_email: string
+          id: string
+          notes: string | null
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          granted_by_email: string
+          id?: string
+          notes?: string | null
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          granted_by_email?: string
+          id?: string
+          notes?: string | null
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       plans: {
         Row: {
@@ -729,7 +808,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       referral_codes: {
         Row: {
@@ -750,7 +837,15 @@ export type Database = {
           id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       referrals: {
         Row: {
@@ -787,6 +882,20 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "referrals_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: true
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_user_id_fkey"
+            columns: ["referrer_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "referrals_reward_discount_id_fkey"
             columns: ["reward_discount_id"]
@@ -843,6 +952,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -948,6 +1064,13 @@ export type Database = {
             referencedRelation: "plans"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       tests: {
@@ -1002,10 +1125,34 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
     }
     Views: {
+      v_admin_user_list: {
+        Row: {
+          effective_plan: string | null
+          email: string | null
+          override_created_at: string | null
+          override_expires_at: string | null
+          override_granted_by: string | null
+          override_id: string | null
+          plan_code: string | null
+          plan_name: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          user_created_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       v_user_billing_status: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -1015,7 +1162,15 @@ export type Database = {
           status: string | null
           user_id: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "v_admin_user_list"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
     }
     Functions: {
