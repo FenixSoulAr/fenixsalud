@@ -108,24 +108,32 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
     setMarkingIds(prev => new Set(prev).add(intake.id));
 
     try {
-      const scheduledAt = getTodayScheduledAt(intake.time);
+      // Get today's date in user timezone
+      const now = new Date();
+      const todayStr = now.toLocaleDateString("en-CA", { timeZone: timezone }); // YYYY-MM-DD
+      
+      // Build time range for this specific scheduled time (e.g., 08:00 -> 08:00:00 to 08:00:59)
+      const timeStart = `${todayStr}T${intake.time}:00`;
+      const timeEnd = `${todayStr}T${intake.time}:59`;
       
       console.log("[undoIntake] Deleting log for:", { 
         medication_id: intake.medicationId,
-        scheduled_at: scheduledAt,
+        time_range: `${timeStart} to ${timeEnd}`,
         profile_id: dataProfileId,
       });
 
-      // Delete the log by matching medication_id, profile_id, and scheduled_at for today
+      // Delete using time range to handle timezone offsets
       const { data, error } = await supabase
         .from("medication_logs")
         .delete()
         .eq("medication_id", intake.medicationId)
         .eq("profile_id", dataProfileId)
-        .gte("scheduled_at", scheduledAt)
-        .lt("scheduled_at", `${scheduledAt.split('T')[0]}T23:59:59`)
+        .gte("scheduled_at", timeStart)
+        .lte("scheduled_at", timeEnd)
         .eq("status", "Taken")
         .select();
+
+      console.log("[undoIntake] Delete result:", { data, error, rowsDeleted: data?.length });
 
       if (error) {
         console.error("[undoIntake] Error:", error);
@@ -135,14 +143,14 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
           variant: "destructive",
         });
       } else if (!data || data.length === 0) {
-        console.warn("[undoIntake] No rows affected");
+        console.warn("[undoIntake] No rows deleted");
         toast({
           title: t.misc.error,
           description: t.medicationHistory?.undoError || "Could not undo intake",
           variant: "destructive",
         });
       } else {
-        console.log("[undoIntake] Success - deleted:", data.length, "rows");
+        console.log("[undoIntake] Success - deleted:", data.length, "rows, calling onIntakeMarked");
         toast({
           title: t.medicationHistory?.undoSuccess || "Intake undone",
         });
