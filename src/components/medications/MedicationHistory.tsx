@@ -25,20 +25,49 @@ export function MedicationHistory({ onIntakeUndone }: MedicationHistoryProps) {
   });
 
   const handleUndo = async (log: MedicationLog) => {
+    console.log("[MedicationHistory] Undoing log:", { 
+      logId: log.id, 
+      medicationId: log.medicationId, 
+      medicationName: log.medicationName,
+      scheduledTimeStr: log.scheduledTimeStr,
+      isToday: log.isToday
+    });
+
     try {
-      const { error } = await supabase
+      // Use .select() to get the deleted row back for verification
+      const { data, error } = await supabase
         .from("medication_logs")
         .delete()
-        .eq("id", log.id);
+        .eq("id", log.id)
+        .select();
+
+      console.log("[MedicationHistory] Delete result:", { data, error });
 
       if (error) throw error;
 
+      // Verify that a row was actually deleted
+      if (!data || data.length === 0) {
+        console.error("[MedicationHistory] No rows deleted - log may not exist:", log.id);
+        toast.error(t.medicationHistory.undoError + " (registro no encontrado)");
+        return;
+      }
+
       toast.success(t.medicationHistory.undoSuccess);
-      refetch();
+      
+      // Force refetch to update UI
+      await refetch();
       onIntakeUndone?.();
-    } catch (error) {
-      console.error("Error undoing intake:", error);
-      toast.error(t.medicationHistory.undoError);
+    } catch (error: any) {
+      console.error("[MedicationHistory] Error undoing intake:", error);
+      
+      // Show specific error message
+      if (error?.code === "42501") {
+        toast.error(t.medicationHistory.undoError + " (sin permisos)");
+      } else if (error?.code === "PGRST116") {
+        toast.error(t.medicationHistory.undoError + " (registro no encontrado)");
+      } else {
+        toast.error(t.medicationHistory.undoError);
+      }
     }
   };
 
