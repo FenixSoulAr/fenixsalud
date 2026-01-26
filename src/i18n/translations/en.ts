@@ -445,10 +445,10 @@ export interface Translations {
     optional: string;
   };
   toast: {
+    // Success messages
     savedSuccess: string;
     changesUpdated: string;
     deletedSuccess: string;
-    error: string;
     settingsSaved: string;
     profileSaved: string;
     profileDeleted: string;
@@ -456,6 +456,26 @@ export interface Translations {
     accountDeleted: string;
     doctorAdded: string;
     institutionAdded: string;
+    appointmentCreated: string;
+    testCreated: string;
+    familyProfileCreated: string;
+    exportSuccess: string;
+    intakeRecorded: string;
+    intakeUndone: string;
+    // Profile switch
+    profileSwitched: string;
+    // Error messages
+    error: string;
+    couldNotSaveSettings: string;
+    couldNotSaveProfile: string;
+    couldNotDeleteProfile: string;
+    couldNotUpdatePassword: string;
+    failedAddDoctor: string;
+    failedAddInstitution: string;
+    signInAgain: string;
+    // Plan limitations
+    planLimited: string;
+    // Validation messages
     dateRequired: string;
     titleRequired: string;
     nameRequired: string;
@@ -465,20 +485,6 @@ export interface Translations {
     lastNameRequired: string;
     passwordRequirements: string;
     passwordsNoMatch: string;
-    signInAgain: string;
-    failedAddDoctor: string;
-    failedAddInstitution: string;
-    couldNotSaveSettings: string;
-    couldNotSaveProfile: string;
-    couldNotDeleteProfile: string;
-    couldNotUpdatePassword: string;
-    // Standardized success messages
-    appointmentCreated: string;
-    testCreated: string;
-    familyProfileCreated: string;
-    exportSuccess: string;
-    // Profile switch message
-    profileSwitched: string;
   };
   misc: {
     noLocation: string;
@@ -1015,17 +1021,37 @@ export const en: Translations = {
   
   // Toast messages
   toast: {
-    savedSuccess: "Saved successfully.",
-    changesUpdated: "Changes updated.",
-    deletedSuccess: "Deleted successfully.",
-    error: "An unexpected error occurred. Please try again.",
+    // Success messages - clear and concise
+    savedSuccess: "Changes saved.",
+    changesUpdated: "Changes saved.",
+    deletedSuccess: "Deleted.",
     settingsSaved: "Settings saved.",
     profileSaved: "Profile saved.",
     profileDeleted: "Profile data deleted.",
     passwordUpdated: "Password updated.",
-    accountDeleted: "Account deleted",
-    doctorAdded: "Doctor added!",
-    institutionAdded: "Institution added!",
+    accountDeleted: "Account deleted.",
+    doctorAdded: "Doctor added.",
+    institutionAdded: "Institution added.",
+    appointmentCreated: "Appointment created.",
+    testCreated: "Study registered.",
+    familyProfileCreated: "Profile created.",
+    exportSuccess: "File generated.",
+    intakeRecorded: "Intake recorded.",
+    intakeUndone: "Intake undone.",
+    // Profile switch
+    profileSwitched: "You are now viewing {{name}}'s profile.",
+    // Error messages - friendly, no technical jargon
+    error: "Something went wrong. Please try again.",
+    couldNotSaveSettings: "We couldn't save your settings. Please try again.",
+    couldNotSaveProfile: "We couldn't save your profile. Please try again.",
+    couldNotDeleteProfile: "We couldn't delete your profile data. Please try again.",
+    couldNotUpdatePassword: "We couldn't update your password. Please try again.",
+    failedAddDoctor: "Couldn't add doctor.",
+    failedAddInstitution: "Couldn't add institution.",
+    signInAgain: "For security, please sign in again and retry.",
+    // Plan limitations
+    planLimited: "This action is limited by your current plan.",
+    // Validation messages
     dateRequired: "Date is required.",
     titleRequired: "Title is required.",
     nameRequired: "Name is required.",
@@ -1035,20 +1061,6 @@ export const en: Translations = {
     lastNameRequired: "Last name is required.",
     passwordRequirements: "New password must be at least 10 characters and include a number or symbol.",
     passwordsNoMatch: "Passwords do not match.",
-    signInAgain: "For security reasons, please sign in again and retry.",
-    failedAddDoctor: "Failed to add doctor",
-    failedAddInstitution: "Failed to add institution",
-    couldNotSaveSettings: "We couldn't save your settings. Please try again.",
-    couldNotSaveProfile: "We couldn't save your profile. Please try again.",
-    couldNotDeleteProfile: "We couldn't delete your profile data. Please try again.",
-    couldNotUpdatePassword: "We couldn't update your password. Please try again.",
-    // Standardized success messages
-    appointmentCreated: "Appointment created successfully.",
-    testCreated: "Study registered successfully.",
-    familyProfileCreated: "Profile created successfully.",
-    exportSuccess: "File generated successfully.",
-    // Profile switch message
-    profileSwitched: "You are now viewing {{name}}'s profile.",
   },
   
   // Misc
@@ -1079,8 +1091,8 @@ export const en: Translations = {
     onTime: "Taken",
     takenLate: "Taken late",
     undo: "Undo",
-    undoSuccess: "Intake undone successfully",
-    undoError: "Error undoing intake",
+    undoSuccess: "Intake undone.",
+    undoError: "Couldn't undo intake. Please try again.",
   },
   
   // Promo Code Redemption

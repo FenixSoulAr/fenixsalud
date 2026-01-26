@@ -481,17 +481,37 @@ export const es: Translations = {
   
   // Toast messages
   toast: {
-    savedSuccess: "Guardado correctamente.",
+    // Success messages - clear and concise
+    savedSuccess: "Cambios guardados.",
     changesUpdated: "Cambios guardados.",
-    deletedSuccess: "Eliminado correctamente.",
-    error: "Ocurrió un error inesperado. Por favor, intentá nuevamente.",
+    deletedSuccess: "Eliminado.",
     settingsSaved: "Configuración guardada.",
     profileSaved: "Perfil guardado.",
     profileDeleted: "Datos del perfil eliminados.",
     passwordUpdated: "Contraseña actualizada.",
-    accountDeleted: "Cuenta eliminada",
-    doctorAdded: "¡Médico agregado!",
-    institutionAdded: "¡Institución agregada!",
+    accountDeleted: "Cuenta eliminada.",
+    doctorAdded: "Médico agregado.",
+    institutionAdded: "Institución agregada.",
+    appointmentCreated: "Cita creada.",
+    testCreated: "Estudio registrado.",
+    familyProfileCreated: "Perfil creado.",
+    exportSuccess: "Archivo generado.",
+    intakeRecorded: "Toma registrada.",
+    intakeUndone: "Toma deshecha.",
+    // Profile switch
+    profileSwitched: "Ahora estás viendo el perfil de {{name}}.",
+    // Error messages - friendly, no technical jargon
+    error: "Algo salió mal. Por favor, intentá nuevamente.",
+    couldNotSaveSettings: "No pudimos guardar tu configuración. Por favor, intentá de nuevo.",
+    couldNotSaveProfile: "No pudimos guardar tu perfil. Por favor, intentá de nuevo.",
+    couldNotDeleteProfile: "No pudimos eliminar los datos del perfil. Por favor, intentá de nuevo.",
+    couldNotUpdatePassword: "No pudimos actualizar tu contraseña. Por favor, intentá de nuevo.",
+    failedAddDoctor: "No se pudo agregar el médico.",
+    failedAddInstitution: "No se pudo agregar la institución.",
+    signInAgain: "Por seguridad, iniciá sesión de nuevo e intentá otra vez.",
+    // Plan limitations
+    planLimited: "Esta acción está limitada por tu plan actual.",
+    // Validation messages
     dateRequired: "La fecha es obligatoria.",
     titleRequired: "El título es obligatorio.",
     nameRequired: "El nombre es obligatorio.",
@@ -501,20 +521,6 @@ export const es: Translations = {
     lastNameRequired: "El apellido es obligatorio.",
     passwordRequirements: "La nueva contraseña debe tener al menos 10 caracteres e incluir un número o símbolo.",
     passwordsNoMatch: "Las contraseñas no coinciden.",
-    signInAgain: "Por seguridad, iniciá sesión de nuevo e intentá otra vez.",
-    failedAddDoctor: "No se pudo agregar el médico",
-    failedAddInstitution: "No se pudo agregar la institución",
-    couldNotSaveSettings: "No pudimos guardar tu configuración. Por favor, intentá de nuevo.",
-    couldNotSaveProfile: "No pudimos guardar tu perfil. Por favor, intentá de nuevo.",
-    couldNotDeleteProfile: "No pudimos eliminar los datos de tu perfil. Por favor, intentá de nuevo.",
-    couldNotUpdatePassword: "No pudimos actualizar tu contraseña. Por favor, intentá de nuevo.",
-    // Standardized success messages
-    appointmentCreated: "Cita creada correctamente.",
-    testCreated: "Estudio registrado correctamente.",
-    familyProfileCreated: "Perfil creado correctamente.",
-    exportSuccess: "Archivo generado correctamente.",
-    // Profile switch message
-    profileSwitched: "Ahora estás viendo el perfil de {{name}}.",
   },
   
   // Misc
@@ -545,8 +551,8 @@ export const es: Translations = {
     onTime: "Tomado",
     takenLate: "Tomado tarde",
     undo: "Deshacer",
-    undoSuccess: "Toma deshecha correctamente",
-    undoError: "Error al deshacer la toma",
+    undoSuccess: "Toma deshecha.",
+    undoError: "No se pudo deshacer la toma. Por favor, intentá de nuevo.",
   },
   
   // Promo Code Redemption
