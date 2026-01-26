@@ -489,6 +489,22 @@ export interface Translations {
     error: string;
     unexpectedError: string;
   };
+  medicationHistory: {
+    title: string;
+    allMedications: string;
+    filterToday: string;
+    filterWeek: string;
+    filterAll: string;
+    noHistory: string;
+    today: string;
+    yesterday: string;
+    intake: string;
+    intakes: string;
+    scheduledFor: string;
+    takenAt: string;
+    onTime: string;
+    takenLate: string;
+  };
   redeemPromo: {
     title: string;
     description: string;
@@ -1041,6 +1057,24 @@ export const en: Translations = {
     fileUploadNotAvailable: "File upload not available on mobile",
     error: "Error",
     unexpectedError: "An unexpected error occurred. Please try again.",
+  },
+  
+  // Medication History
+  medicationHistory: {
+    title: "History",
+    allMedications: "All medications",
+    filterToday: "Today",
+    filterWeek: "Last 7 days",
+    filterAll: "All time",
+    noHistory: "No medication history yet.",
+    today: "Today",
+    yesterday: "Yesterday",
+    intake: "intake",
+    intakes: "intakes",
+    scheduledFor: "Scheduled for",
+    takenAt: "taken at",
+    onTime: "Taken",
+    takenLate: "Taken late",
   },
   
   // Promo Code Redemption

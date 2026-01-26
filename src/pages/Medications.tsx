@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Plus, Pill, Pencil, Trash2, HeartPulse } from "lucide-react";
+import { Plus, Pill, Pencil, Trash2, HeartPulse, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
+import { MedicationHistory } from "@/components/medications/MedicationHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
@@ -386,17 +387,41 @@ export default function Medications() {
       </AlertDialog>
 
       {medications.length === 0 ? (
-        <EmptyState icon={Pill} title={t.medications.noMedications} description={t.medications.noMedicationsDescription} action={canEdit ? { label: t.medications.addMedication, onClick: () => setDialogOpen(true) } : undefined} />
+        <Tabs defaultValue="history" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="medications" className="flex items-center gap-1.5">
+              <Pill className="h-4 w-4" />
+              {t.medications.title}
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-1.5">
+              <History className="h-4 w-4" />
+              {t.medicationHistory.title}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="medications">
+            <EmptyState icon={Pill} title={t.medications.noMedications} description={t.medications.noMedicationsDescription} action={canEdit ? { label: t.medications.addMedication, onClick: () => setDialogOpen(true) } : undefined} />
+          </TabsContent>
+          <TabsContent value="history">
+            <MedicationHistory />
+          </TabsContent>
+        </Tabs>
       ) : (
         <Tabs defaultValue="active" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="active">{t.medications.active} ({active.length})</TabsTrigger>
             <TabsTrigger value="paused">{t.medications.paused} ({paused.length})</TabsTrigger>
             <TabsTrigger value="completed">{t.medications.completed} ({completed.length})</TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-1.5">
+              <History className="h-4 w-4" />
+              {t.medicationHistory.title}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="active"><MedList meds={active} /></TabsContent>
           <TabsContent value="paused"><MedList meds={paused} /></TabsContent>
           <TabsContent value="completed"><MedList meds={completed} /></TabsContent>
+          <TabsContent value="history">
+            <MedicationHistory />
+          </TabsContent>
         </Tabs>
       )}
     </div>
