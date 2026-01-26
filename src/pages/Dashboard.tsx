@@ -126,7 +126,7 @@ export default function Dashboard() {
 
           <TabsContent value="upcoming" className="space-y-6">
             {/* Today's Medication Intakes - Always shown first */}
-            <TodayMedicationIntakes groupedIntakes={todayIntakes} />
+            <TodayMedicationIntakes groupedIntakes={todayIntakes} onIntakeMarked={fetchData} />
             
             {/* Appointments */}
             {appointments.length > 0 && (

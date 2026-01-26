@@ -86,6 +86,9 @@ export const es: Translations = {
     today: "Hoy",
     noRemindersToday: "Sin recordatorios para hoy.",
     next: "Próximo",
+    pending: "Pendiente",
+    taken: "Tomado",
+    markAllAsTaken: "Marcar todos como tomados",
   },
   
   // Appointments
@@ -520,6 +523,8 @@ export const es: Translations = {
     loading: "Cargando...",
     patient: "Paciente",
     fileUploadNotAvailable: "Carga de archivos no disponible en móvil",
+    error: "Error",
+    unexpectedError: "Ocurrió un error inesperado. Por favor, intentá nuevamente.",
   },
   
   // Promo Code Redemption
