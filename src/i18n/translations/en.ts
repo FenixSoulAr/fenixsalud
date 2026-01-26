@@ -46,6 +46,7 @@ export interface Translations {
     edit: string;
     delete: string;
     save: string;
+    saving: string;
     cancel: string;
     view: string;
     back: string;
@@ -554,6 +555,7 @@ export const en: Translations = {
     edit: "Edit",
     delete: "Delete",
     save: "Save",
+    saving: "Saving...",
     cancel: "Cancel",
     view: "View",
     back: "Back",

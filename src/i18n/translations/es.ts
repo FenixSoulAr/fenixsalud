@@ -52,6 +52,7 @@ export const es: Translations = {
     edit: "Editar",
     delete: "Eliminar",
     save: "Guardar",
+    saving: "Guardando...",
     cancel: "Cancelar",
     view: "Ver",
     back: "Volver",

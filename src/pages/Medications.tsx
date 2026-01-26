@@ -29,6 +29,7 @@ export default function Medications() {
   const [dialogOpen, setDialogOpen] = useState(searchParams.get("new") === "true");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active", diagnosis_id: "" });
   
   // Track if we just saved to prevent useEffect from reopening modal
@@ -92,6 +93,8 @@ export default function Medications() {
     if (!form.dose_text) { toast.error(t.medications.doseRequired); return; }
     if (form.schedule_type === "Daily" && !form.times) { toast.error(t.medications.timesRequired); return; }
     
+    setIsSaving(true);
+    
     const payload = {
       name: form.name,
       dose_text: form.dose_text,
@@ -146,6 +149,8 @@ export default function Medications() {
     } catch (err) {
       console.error("Unexpected error in handleSubmit:", err);
       toast.error(t.toast.error);
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -227,8 +232,10 @@ export default function Medications() {
         title={editingId ? t.medications.editMedication : t.medications.newMedication}
         footer={
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>{t.actions.cancel}</Button>
-            <Button type="submit" form="medication-form">{editingId ? t.actions.saveChanges : t.medications.addMedication}</Button>
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)} disabled={isSaving}>{t.actions.cancel}</Button>
+            <Button type="submit" form="medication-form" disabled={isSaving}>
+              {isSaving ? t.actions.saving : (editingId ? t.actions.saveChanges : t.medications.addMedication)}
+            </Button>
           </div>
         }
       >
