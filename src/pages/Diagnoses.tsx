@@ -155,6 +155,10 @@ export default function Diagnoses() {
     if (error) { toast.error(t.toast.error); return; }
     toast.success(t.toast.deletedSuccess);
     setDeleteId(null);
+    // If we're viewing the deleted diagnosis, go back to list
+    if (detailId === deleteId) {
+      setDetailId(null);
+    }
     fetchData();
   }
 
@@ -163,98 +167,9 @@ export default function Diagnoses() {
 
   if (loading) return <LoadingPage />;
 
-  // Detail view
+  // Get detail diagnosis if viewing
   const detailDiag = detailId ? diagnoses.find(d => d.id === detailId) : null;
-  if (detailDiag) {
-    const relatedMeds = linkedMeds[detailDiag.id] || [];
-    return (
-      <div className="animate-fade-in">
-        <PageHeader 
-          title={detailDiag.condition} 
-          description={t.diagnoses.title}
-          actions={
-            <Button variant="outline" onClick={() => setDetailId(null)}>
-              {t.actions.back}
-            </Button>
-          }
-        />
-        <div className="space-y-6">
-          <div className="health-card">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-sm text-muted-foreground">{t.diagnoses.status}</p>
-                <StatusBadge status={detailDiag.status === "active" ? "active" : "completed"} />
-              </div>
-              {detailDiag.diagnosed_date && (
-                <div>
-                  <p className="text-sm text-muted-foreground">{t.diagnoses.diagnosedDate}</p>
-                  <p className="font-medium">{format(new Date(detailDiag.diagnosed_date), "PP")}</p>
-                </div>
-              )}
-            </div>
-            {detailDiag.notes && (
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground">{t.diagnoses.notes}</p>
-                <p className="whitespace-pre-wrap">{detailDiag.notes}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Related Medications */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <Pill className="h-5 w-5 text-primary" />
-              {t.diagnoses.relatedMedications}
-            </h3>
-            {relatedMeds.length === 0 ? (
-              <p className="text-muted-foreground">{t.diagnoses.noRelatedMedications}</p>
-            ) : (
-              <div className="space-y-2">
-                {relatedMeds.map(med => (
-                  <div key={med.id} className="health-card flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{med.name}</p>
-                      <p className="text-sm text-muted-foreground">{med.dose_text}</p>
-                    </div>
-                    <StatusBadge status={normalizeStatus(med.status)} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2">
-            {canEdit && (
-              <Button variant="outline" onClick={() => { openEdit(detailDiag); setDetailId(null); }}>
-                <Pencil className="h-4 w-4 mr-2" />
-                {t.actions.edit}
-              </Button>
-            )}
-            {canDelete && (
-              <Button variant="destructive" onClick={() => setDeleteId(detailDiag.id)}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                {t.actions.delete}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t.diagnoses.deleteDiagnosis}</AlertDialogTitle>
-              <AlertDialogDescription>{t.diagnoses.deleteDiagnosisDesc}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    );
-  }
+  const relatedMeds = detailDiag ? (linkedMeds[detailDiag.id] || []) : [];
 
   const DiagnosisList = ({ items }: { items: any[] }) => items.length === 0 ? (
     <p className="text-muted-foreground text-center py-8">{t.diagnoses.noDiagnosesTab}</p>
@@ -298,16 +213,114 @@ export default function Diagnoses() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader variant="gradient" title={t.diagnoses.title} description={t.diagnoses.description}
-        actions={
-          canEdit ? (
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />{t.diagnoses.addDiagnosis}
-            </Button>
-          ) : undefined
-        }
-      />
+      {/* Detail View */}
+      {detailDiag ? (
+        <>
+          <PageHeader 
+            title={detailDiag.condition} 
+            description={t.diagnoses.title}
+            actions={
+              <Button variant="outline" onClick={() => setDetailId(null)}>
+                {t.actions.back}
+              </Button>
+            }
+          />
+          <div className="space-y-6">
+            <div className="health-card">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm text-muted-foreground">{t.diagnoses.status}</p>
+                  <StatusBadge status={detailDiag.status === "active" ? "active" : "completed"} />
+                </div>
+                {detailDiag.diagnosed_date && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t.diagnoses.diagnosedDate}</p>
+                    <p className="font-medium">{format(new Date(detailDiag.diagnosed_date), "PP")}</p>
+                  </div>
+                )}
+              </div>
+              {detailDiag.notes && (
+                <div className="mt-4">
+                  <p className="text-sm text-muted-foreground">{t.diagnoses.notes}</p>
+                  <p className="whitespace-pre-wrap">{detailDiag.notes}</p>
+                </div>
+              )}
+            </div>
 
+            {/* Related Medications */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Pill className="h-5 w-5 text-primary" />
+                {t.diagnoses.relatedMedications}
+              </h3>
+              {relatedMeds.length === 0 ? (
+                <p className="text-muted-foreground">{t.diagnoses.noRelatedMedications}</p>
+              ) : (
+                <div className="space-y-2">
+                  {relatedMeds.map(med => (
+                    <div key={med.id} className="health-card flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{med.name}</p>
+                        <p className="text-sm text-muted-foreground">{med.dose_text}</p>
+                      </div>
+                      <StatusBadge status={normalizeStatus(med.status)} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              {canEdit && (
+                <Button variant="outline" onClick={() => { openEdit(detailDiag); setDetailId(null); }}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  {t.actions.edit}
+                </Button>
+              )}
+              {canDelete && (
+                <Button variant="destructive" onClick={() => setDeleteId(detailDiag.id)}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t.actions.delete}
+                </Button>
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        /* List View */
+        <>
+          <PageHeader variant="gradient" title={t.diagnoses.title} description={t.diagnoses.description}
+            actions={
+              canEdit ? (
+                <Button onClick={() => setDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />{t.diagnoses.addDiagnosis}
+                </Button>
+              ) : undefined
+            }
+          />
+
+          {diagnoses.length === 0 ? (
+            <EmptyState 
+              icon={HeartPulse} 
+              title={t.diagnoses.noDiagnoses} 
+              description={t.diagnoses.noDiagnosesDescription} 
+              action={canEdit ? { label: t.diagnoses.addDiagnosis, onClick: () => setDialogOpen(true) } : undefined} 
+            />
+          ) : (
+            <Tabs defaultValue="active" className="space-y-6">
+              <TabsList>
+                <TabsTrigger value="active">{t.diagnoses.active} ({active.length})</TabsTrigger>
+                <TabsTrigger value="resolved">{t.diagnoses.resolved} ({resolved.length})</TabsTrigger>
+              </TabsList>
+              <TabsContent value="active"><DiagnosisList items={active} /></TabsContent>
+              <TabsContent value="resolved"><DiagnosisList items={resolved} /></TabsContent>
+            </Tabs>
+          )}
+        </>
+      )}
+
+      {/* Shared Modal - always rendered once */}
       <ResponsiveFormModal
         open={dialogOpen}
         onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}
@@ -360,6 +373,7 @@ export default function Diagnoses() {
         </form>
       </ResponsiveFormModal>
 
+      {/* Shared AlertDialog - always rendered once at the end */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -372,24 +386,6 @@ export default function Diagnoses() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {diagnoses.length === 0 ? (
-        <EmptyState 
-          icon={HeartPulse} 
-          title={t.diagnoses.noDiagnoses} 
-          description={t.diagnoses.noDiagnosesDescription} 
-          action={canEdit ? { label: t.diagnoses.addDiagnosis, onClick: () => setDialogOpen(true) } : undefined} 
-        />
-      ) : (
-        <Tabs defaultValue="active" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="active">{t.diagnoses.active} ({active.length})</TabsTrigger>
-            <TabsTrigger value="resolved">{t.diagnoses.resolved} ({resolved.length})</TabsTrigger>
-          </TabsList>
-          <TabsContent value="active"><DiagnosisList items={active} /></TabsContent>
-          <TabsContent value="resolved"><DiagnosisList items={resolved} /></TabsContent>
-        </Tabs>
-      )}
     </div>
   );
 }
