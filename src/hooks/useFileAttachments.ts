@@ -219,8 +219,9 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       .createSignedUrl(filePath, 60 * 5); // 5 minute expiry
 
     if (error) {
+      // Log error but do NOT show toast - let the UI component handle the error state
+      // This prevents false error toasts when signed URL generation fails transiently
       console.error("Signed URL error:", error);
-      toast.error("Ocurrió un error inesperado. Por favor, intentá nuevamente.");
       return null;
     }
 
