@@ -30,9 +30,7 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
   const getTodayScheduledAt = (time: string) => {
     const now = new Date();
     const todayStr = now.toLocaleDateString("en-CA", { timeZone: timezone }); // YYYY-MM-DD
-    const scheduledAt = `${todayStr}T${time}:00`;
-    console.log("[getTodayScheduledAt] Creating:", { todayStr, time, scheduledAt, timezone });
-    return scheduledAt;
+    return `${todayStr}T${time}:00`;
   };
 
   const markAsTaken = async (intake: MedicationIntake) => {

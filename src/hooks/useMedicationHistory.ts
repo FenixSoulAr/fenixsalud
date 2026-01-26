@@ -8,9 +8,13 @@ export interface MedicationLog {
   medicationId: string;
   medicationName: string;
   scheduledAt: Date;
-  scheduledTime: string; // HH:MM
+  scheduledDateStr: string; // dd/MM format
+  scheduledTimeStr: string; // HH:mm format
   takenAt: Date;
+  takenDateStr: string; // dd/MM format
+  takenTimeStr: string; // HH:mm format
   status: "on_time" | "late";
+  isToday: boolean; // Can be undone only if true
 }
 
 export interface GroupedHistory {
@@ -102,17 +106,32 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
     logs.forEach((log) => {
       if (!log.scheduled_at || !log.taken_at) return;
 
-      const scheduledAt = new Date(log.scheduled_at);
+      // CRITICAL: Extract date/time from scheduled_at as stored (naive datetime treated as UTC by Postgres)
+      // The scheduled_at is stored as "YYYY-MM-DDTHH:MM:00" - we extract the raw values
+      const scheduledIso = log.scheduled_at as string;
+      const scheduledMatch = scheduledIso.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+      
+      if (!scheduledMatch) return;
+      
+      const [, sYear, sMonth, sDay, sHour, sMin] = scheduledMatch;
+      const dateKey = `${sYear}-${sMonth}-${sDay}`;
+      const scheduledTimeStr = `${sHour}:${sMin}`;
+      const scheduledDateStr = `${sDay}/${sMonth}`;
+      
+      // Create Date object for sorting (interpret as local time for the dateKey)
+      const scheduledAt = new Date(`${dateKey}T${scheduledTimeStr}:00`);
+      
+      // For taken_at, parse properly in user's timezone for display
       const takenAt = new Date(log.taken_at);
-      
-      // Get date key in user's timezone
-      const dateKey = scheduledAt.toLocaleDateString("en-CA", { timeZone: timezone });
-      
-      // Get scheduled time
-      const scheduledTime = scheduledAt.toLocaleTimeString("en-US", {
+      const takenTimeStr = takenAt.toLocaleTimeString("en-US", {
         hour12: false,
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: timezone,
+      });
+      const takenDateStr = takenAt.toLocaleDateString("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
         timeZone: timezone,
       });
 
@@ -121,6 +140,7 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
       const status: "on_time" | "late" = diffMinutes <= LATE_TOLERANCE_MINUTES ? "on_time" : "late";
 
       const medicationName = log.medications?.name || "Unknown";
+      const isToday = dateKey === todayStr;
 
       if (!groups[dateKey]) {
         groups[dateKey] = [];
@@ -131,9 +151,13 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
         medicationId: log.medication_id,
         medicationName,
         scheduledAt,
-        scheduledTime,
+        scheduledDateStr,
+        scheduledTimeStr,
         takenAt,
+        takenDateStr,
+        takenTimeStr,
         status,
+        isToday,
       });
     });
 
@@ -154,12 +178,12 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
         label = "yesterday";
       } else {
         // Format as readable date
-        const date = new Date(dateKey + "T12:00:00");
+        const [year, month, day] = dateKey.split("-");
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         label = date.toLocaleDateString(undefined, {
           month: "short",
           day: "numeric",
           year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-          timeZone: timezone,
         });
       }
 

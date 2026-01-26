@@ -540,10 +540,13 @@ export const es: Translations = {
     yesterday: "Ayer",
     intake: "toma",
     intakes: "tomas",
-    scheduledFor: "Programado para",
-    takenAt: "tomado a las",
+    scheduledFor: "Programado:",
+    takenAt: "Tomado:",
     onTime: "Tomado",
     takenLate: "Tomado tarde",
+    undo: "Deshacer",
+    undoSuccess: "Toma deshecha correctamente",
+    undoError: "Error al deshacer la toma",
   },
   
   // Promo Code Redemption

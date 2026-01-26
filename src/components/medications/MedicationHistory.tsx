@@ -1,21 +1,46 @@
 import { useState } from "react";
-import { Clock, Check, AlertTriangle, ChevronDown, ChevronRight, Filter } from "lucide-react";
+import { Clock, Check, AlertTriangle, ChevronDown, ChevronRight, Filter, Undo2 } from "lucide-react";
 import { useMedicationHistory, GroupedHistory, MedicationLog } from "@/hooks/useMedicationHistory";
 import { useTranslations } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-export function MedicationHistory() {
+interface MedicationHistoryProps {
+  onIntakeUndone?: () => void;
+}
+
+export function MedicationHistory({ onIntakeUndone }: MedicationHistoryProps) {
   const t = useTranslations();
   const [medicationFilter, setMedicationFilter] = useState("all");
   const [dateRange, setDateRange] = useState<"today" | "week" | "all">("week");
 
-  const { loading, groupedHistory, medications } = useMedicationHistory({
+  const { loading, groupedHistory, medications, refetch } = useMedicationHistory({
     medicationFilter,
     dateRange,
   });
+
+  const handleUndo = async (log: MedicationLog) => {
+    try {
+      const { error } = await supabase
+        .from("medication_logs")
+        .delete()
+        .eq("id", log.id);
+
+      if (error) throw error;
+
+      toast.success(t.medicationHistory.undoSuccess);
+      refetch();
+      onIntakeUndone?.();
+    } catch (error) {
+      console.error("Error undoing intake:", error);
+      toast.error(t.medicationHistory.undoError);
+    }
+  };
 
   if (loading) {
     return (
@@ -67,7 +92,12 @@ export function MedicationHistory() {
       ) : (
         <div className="space-y-3">
           {groupedHistory.map((group, index) => (
-            <DateGroup key={group.dateKey} group={group} defaultOpen={index === 0} />
+            <DateGroup 
+              key={group.dateKey} 
+              group={group} 
+              defaultOpen={index === 0} 
+              onUndo={handleUndo}
+            />
           ))}
         </div>
       )}
@@ -78,9 +108,10 @@ export function MedicationHistory() {
 interface DateGroupProps {
   group: GroupedHistory;
   defaultOpen?: boolean;
+  onUndo: (log: MedicationLog) => void;
 }
 
-function DateGroup({ group, defaultOpen = false }: DateGroupProps) {
+function DateGroup({ group, defaultOpen = false, onUndo }: DateGroupProps) {
   const [open, setOpen] = useState(defaultOpen);
   const t = useTranslations();
 
@@ -112,7 +143,7 @@ function DateGroup({ group, defaultOpen = false }: DateGroupProps) {
       <CollapsibleContent>
         <div className="space-y-2 mt-2 pl-6">
           {group.logs.map((log) => (
-            <HistoryItem key={log.id} log={log} />
+            <HistoryItem key={log.id} log={log} onUndo={onUndo} />
           ))}
         </div>
       </CollapsibleContent>
@@ -122,22 +153,18 @@ function DateGroup({ group, defaultOpen = false }: DateGroupProps) {
 
 interface HistoryItemProps {
   log: MedicationLog;
+  onUndo: (log: MedicationLog) => void;
 }
 
-function HistoryItem({ log }: HistoryItemProps) {
+function HistoryItem({ log, onUndo }: HistoryItemProps) {
   const t = useTranslations();
 
-  const takenTime = log.takenAt.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
-      <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between p-3 rounded-lg border bg-card gap-2">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
         <div
           className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center",
+            "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
             log.status === "on_time"
               ? "bg-accent text-accent-foreground"
               : "bg-warning/20 text-warning-foreground"
@@ -149,24 +176,38 @@ function HistoryItem({ log }: HistoryItemProps) {
             <AlertTriangle className="h-4 w-4" />
           )}
         </div>
-        <div>
-          <p className="font-medium">{log.medicationName}</p>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium truncate">{log.medicationName}</p>
           <p className="text-sm text-muted-foreground">
-            {t.medicationHistory.scheduledFor} {log.scheduledTime} · {t.medicationHistory.takenAt} {takenTime}
+            {t.medicationHistory.scheduledFor} {log.scheduledDateStr} {log.scheduledTimeStr} · {t.medicationHistory.takenAt} {log.takenDateStr} {log.takenTimeStr}
           </p>
         </div>
       </div>
 
-      <span
-        className={cn(
-          "text-xs font-medium px-2 py-0.5 rounded",
-          log.status === "on_time"
-            ? "bg-accent text-accent-foreground"
-            : "bg-warning/20 text-warning-foreground"
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span
+          className={cn(
+            "text-xs font-medium px-2 py-0.5 rounded whitespace-nowrap",
+            log.status === "on_time"
+              ? "bg-accent text-accent-foreground"
+              : "bg-warning/20 text-warning-foreground"
+          )}
+        >
+          {log.status === "on_time" ? t.medicationHistory.onTime : t.medicationHistory.takenLate}
+        </span>
+        
+        {log.isToday && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onUndo(log)}
+            title={t.medicationHistory.undo}
+          >
+            <Undo2 className="h-4 w-4" />
+          </Button>
         )}
-      >
-        {log.status === "on_time" ? t.medicationHistory.onTime : t.medicationHistory.takenLate}
-      </span>
+      </div>
     </div>
   );
 }

@@ -504,6 +504,9 @@ export interface Translations {
     takenAt: string;
     onTime: string;
     takenLate: string;
+    undo: string;
+    undoSuccess: string;
+    undoError: string;
   };
   redeemPromo: {
     title: string;
@@ -1071,10 +1074,13 @@ export const en: Translations = {
     yesterday: "Yesterday",
     intake: "intake",
     intakes: "intakes",
-    scheduledFor: "Scheduled for",
-    takenAt: "taken at",
+    scheduledFor: "Scheduled:",
+    takenAt: "Taken:",
     onTime: "Taken",
     takenLate: "Taken late",
+    undo: "Undo",
+    undoSuccess: "Intake undone successfully",
+    undoError: "Error undoing intake",
   },
   
   // Promo Code Redemption
