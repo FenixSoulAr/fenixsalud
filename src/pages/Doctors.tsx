@@ -24,6 +24,7 @@ export default function Doctors() {
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ full_name: "", specialty: "", phone: "", email: "", notes: "" });
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
@@ -58,6 +59,8 @@ export default function Doctors() {
     if (!canEdit) { toast.error("You have view-only access to this profile."); return; }
     if (!form.full_name) { toast.error("Doctor name is required."); return; }
     
+    setIsSaving(true);
+    
     const payload = {
       full_name: form.full_name,
       specialty: form.specialty || null,
@@ -66,35 +69,39 @@ export default function Doctors() {
       notes: form.notes || null,
     };
 
-    if (editingId) {
-      const { error } = await supabase.from("doctors").update(payload).eq("id", editingId);
-      if (error) { 
-        console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        toast.error(error.code === "42501" ? "No tenés permisos para editar." : "Algo salió mal. Por favor, intentá de nuevo."); 
-        return; 
+    try {
+      if (editingId) {
+        const { error } = await supabase.from("doctors").update(payload).eq("id", editingId);
+        if (error) { 
+          console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          toast.error(error.code === "42501" ? "No tenés permisos para editar." : "Algo salió mal. Por favor, intentá de nuevo."); 
+          return; 
+        }
+      } else {
+        if (!dataProfileId || !currentUserId) { 
+          console.error("Missing IDs:", { dataProfileId, currentUserId });
+          toast.error("Falta el perfil activo o usuario."); 
+          return; 
+        }
+        console.log("Inserting doctor:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
+        const { error } = await supabase.from("doctors").insert({ profile_id: dataProfileId, user_id: currentUserId, ...payload });
+        if (error) { 
+          console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          const msg = error.code === "42501" ? "No tenés permisos para crear." : 
+                      error.code === "23503" ? "Error de referencia: verificá el perfil." : "Algo salió mal. Por favor, intentá de nuevo.";
+          toast.error(msg); 
+          return; 
+        }
       }
-      toast.success("Changes updated.");
-    } else {
-      if (!dataProfileId || !currentUserId) { 
-        console.error("Missing IDs:", { dataProfileId, currentUserId });
-        toast.error("Falta el perfil activo o usuario."); 
-        return; 
-      }
-      console.log("Inserting doctor:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
-      const { error } = await supabase.from("doctors").insert({ profile_id: dataProfileId, user_id: currentUserId, ...payload });
-      if (error) { 
-        console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        const msg = error.code === "42501" ? "No tenés permisos para crear." : 
-                    error.code === "23503" ? "Error de referencia: verificá el perfil." : "Algo salió mal. Por favor, intentá de nuevo.";
-        toast.error(msg); 
-        return; 
-      }
-      toast.success("Saved successfully.");
-    }
 
-    setDialogOpen(false);
-    resetForm();
-    fetchData();
+      // Success: close modal immediately, then show toast
+      setDialogOpen(false);
+      resetForm();
+      toast.success(editingId ? "Changes updated." : "Saved successfully.");
+      fetchData();
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function handleDelete() {
@@ -127,8 +134,10 @@ export default function Doctors() {
         title={editingId ? "Edit Doctor" : "Add Doctor"}
         footer={
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button type="submit" form="doctor-form">{editingId ? "Save Changes" : "Add Doctor"}</Button>
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+            <Button type="submit" form="doctor-form" disabled={isSaving}>
+              {isSaving ? "Saving..." : (editingId ? "Save Changes" : "Add Doctor")}
+            </Button>
           </div>
         }
       >

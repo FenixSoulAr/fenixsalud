@@ -47,6 +47,7 @@ export default function Appointments() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewingAppointment, setViewingAppointment] = useState<any | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ date: "", time: "", reason: "", notes: "", doctor_id: "", institution_id: "", status: "Upcoming" });
   
   // Quick add dialogs
@@ -139,6 +140,8 @@ export default function Appointments() {
     }
     if (!form.date) { toast.error(t.appointments.dateRequired); return; }
     
+    setIsSaving(true);
+    
     const payload = {
       datetime_start: buildDateTime(),
       reason: form.reason || null,
@@ -148,35 +151,39 @@ export default function Appointments() {
       status: form.status as any,
     };
 
-    if (editingId) {
-      const { error } = await supabase.from("appointments").update(payload).eq("id", editingId);
-      if (error) { 
-        console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
-        return; 
+    try {
+      if (editingId) {
+        const { error } = await supabase.from("appointments").update(payload).eq("id", editingId);
+        if (error) { 
+          console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
+          return; 
+        }
+      } else {
+        if (!dataProfileId || !currentUserId) { 
+          console.error("Missing IDs:", { dataProfileId, currentUserId });
+          toast.error("Falta el perfil activo o usuario."); 
+          return; 
+        }
+        console.log("Inserting appointment:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
+        const { error } = await supabase.from("appointments").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
+        if (error) { 
+          console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          const msg = error.code === "42501" ? "No tenés permisos para crear." : 
+                      error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
+          toast.error(msg); 
+          return; 
+        }
       }
-      toast.success(t.toast.changesUpdated);
-    } else {
-      if (!dataProfileId || !currentUserId) { 
-        console.error("Missing IDs:", { dataProfileId, currentUserId });
-        toast.error("Falta el perfil activo o usuario."); 
-        return; 
-      }
-      console.log("Inserting appointment:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
-      const { error } = await supabase.from("appointments").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
-      if (error) { 
-        console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        const msg = error.code === "42501" ? "No tenés permisos para crear." : 
-                    error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
-        toast.error(msg); 
-        return; 
-      }
-      toast.success(t.toast.appointmentCreated);
+      
+      // Success: close modal immediately, then show toast
+      setDialogOpen(false);
+      resetForm();
+      toast.success(editingId ? t.toast.changesUpdated : t.toast.appointmentCreated);
+      fetchData();
+    } finally {
+      setIsSaving(false);
     }
-    
-    setDialogOpen(false);
-    resetForm();
-    fetchData();
   }
 
   async function handleDelete() {
@@ -345,8 +352,10 @@ export default function Appointments() {
         maxWidth="lg"
         footer={
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>{t.actions.cancel}</Button>
-            <Button type="submit" form="appointment-form">{editingId ? t.actions.saveChanges : t.appointments.createAppointment}</Button>
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)} disabled={isSaving}>{t.actions.cancel}</Button>
+            <Button type="submit" form="appointment-form" disabled={isSaving}>
+              {isSaving ? t.actions.saving : (editingId ? t.actions.saveChanges : t.appointments.createAppointment)}
+            </Button>
           </div>
         }
       >

@@ -28,6 +28,7 @@ export default function Reminders() {
   const [pastWarning, setPastWarning] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ title: "", type: "Custom", due_date: "", due_time: "", repeat_rule: "None", notes: "" });
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
@@ -87,6 +88,8 @@ export default function Reminders() {
       return;
     }
     
+    setIsSaving(true);
+    
     const payload = {
       title: form.title,
       type: form.type as any,
@@ -95,36 +98,40 @@ export default function Reminders() {
       notes: form.notes || null,
     };
 
-    if (editingId) {
-      const { error } = await supabase.from("reminders").update(payload).eq("id", editingId);
-      if (error) { 
-        console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        toast.error(error.code === "42501" ? "No tenés permisos para editar." : "Algo salió mal. Por favor, intentá de nuevo."); 
-        return; 
+    try {
+      if (editingId) {
+        const { error } = await supabase.from("reminders").update(payload).eq("id", editingId);
+        if (error) { 
+          console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          toast.error(error.code === "42501" ? "No tenés permisos para editar." : "Algo salió mal. Por favor, intentá de nuevo."); 
+          return; 
+        }
+      } else {
+        if (!dataProfileId || !currentUserId) { 
+          console.error("Missing IDs:", { dataProfileId, currentUserId });
+          toast.error("Falta el perfil activo o usuario."); 
+          return; 
+        }
+        console.log("Inserting reminder:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
+        const { error } = await supabase.from("reminders").insert({ profile_id: dataProfileId, user_id: currentUserId, ...payload });
+        if (error) { 
+          console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          const msg = error.code === "42501" ? "No tenés permisos para crear." : 
+                      error.code === "23503" ? "Error de referencia: verificá el perfil." : "Algo salió mal. Por favor, intentá de nuevo.";
+          toast.error(msg); 
+          return; 
+        }
       }
-      toast.success("Changes updated.");
-    } else {
-      if (!dataProfileId || !currentUserId) { 
-        console.error("Missing IDs:", { dataProfileId, currentUserId });
-        toast.error("Falta el perfil activo o usuario."); 
-        return; 
-      }
-      console.log("Inserting reminder:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
-      const { error } = await supabase.from("reminders").insert({ profile_id: dataProfileId, user_id: currentUserId, ...payload });
-      if (error) { 
-        console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        const msg = error.code === "42501" ? "No tenés permisos para crear." : 
-                    error.code === "23503" ? "Error de referencia: verificá el perfil." : "Algo salió mal. Por favor, intentá de nuevo.";
-        toast.error(msg); 
-        return; 
-      }
-      toast.success("Saved successfully.");
-    }
 
-    setDialogOpen(false);
-    setPastWarning(false);
-    resetForm();
-    fetchData();
+      // Success: close modal immediately, then show toast
+      setDialogOpen(false);
+      setPastWarning(false);
+      resetForm();
+      toast.success(editingId ? "Changes updated." : "Saved successfully.");
+      fetchData();
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function handleDelete() {
@@ -157,8 +164,10 @@ export default function Reminders() {
         title={editingId ? "Edit Reminder" : "New Reminder"}
         footer={
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button type="submit" form="reminder-form">{editingId ? "Save Changes" : "Create Reminder"}</Button>
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+            <Button type="submit" form="reminder-form" disabled={isSaving}>
+              {isSaving ? "Saving..." : (editingId ? "Save Changes" : "Create Reminder")}
+            </Button>
           </div>
         }
       >

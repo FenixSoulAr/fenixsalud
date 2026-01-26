@@ -49,6 +49,7 @@ export default function Procedures() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewingProcedure, setViewingProcedure] = useState<any | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ 
     type: "Surgery" as ProcedureType, 
     title: "", 
@@ -127,6 +128,8 @@ export default function Procedures() {
     if (!form.title) { toast.error(t.procedures.titleRequired); return; }
     if (!form.date) { toast.error(t.procedures.dateRequired); return; }
     
+    setIsSaving(true);
+    
     const payload = {
       type: form.type,
       title: form.title,
@@ -136,35 +139,39 @@ export default function Procedures() {
       doctor_id: form.doctor_id || null,
     };
 
-    if (editingId) {
-      const { error } = await supabase.from("procedures").update(payload).eq("id", editingId);
-      if (error) { 
-        console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
-        return; 
+    try {
+      if (editingId) {
+        const { error } = await supabase.from("procedures").update(payload).eq("id", editingId);
+        if (error) { 
+          console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
+          return; 
+        }
+      } else {
+        if (!dataProfileId || !currentUserId) { 
+          console.error("Missing IDs:", { dataProfileId, currentUserId });
+          toast.error("Falta el perfil activo o usuario."); 
+          return; 
+        }
+        console.log("Inserting procedure:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
+        const { error } = await supabase.from("procedures").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
+        if (error) { 
+          console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          const msg = error.code === "42501" ? "No tenés permisos para crear." : 
+                      error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
+          toast.error(msg); 
+          return; 
+        }
       }
-      toast.success(t.toast.changesUpdated);
-    } else {
-      if (!dataProfileId || !currentUserId) { 
-        console.error("Missing IDs:", { dataProfileId, currentUserId });
-        toast.error("Falta el perfil activo o usuario."); 
-        return; 
-      }
-      console.log("Inserting procedure:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
-      const { error } = await supabase.from("procedures").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
-      if (error) { 
-        console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        const msg = error.code === "42501" ? "No tenés permisos para crear." : 
-                    error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
-        toast.error(msg); 
-        return; 
-      }
-      toast.success(t.toast.savedSuccess);
+      
+      // Success: close modal immediately, then show toast
+      setDialogOpen(false);
+      resetForm();
+      toast.success(editingId ? t.toast.changesUpdated : t.toast.savedSuccess);
+      fetchData();
+    } finally {
+      setIsSaving(false);
     }
-    
-    setDialogOpen(false);
-    resetForm();
-    fetchData();
   }
 
   async function handleDelete() {
@@ -291,8 +298,10 @@ export default function Procedures() {
         title={editingId ? t.procedures.editProcedure : t.procedures.newProcedure}
         footer={
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>{t.actions.cancel}</Button>
-            <Button type="submit" form="procedure-form">{editingId ? t.actions.saveChanges : t.procedures.createProcedure}</Button>
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)} disabled={isSaving}>{t.actions.cancel}</Button>
+            <Button type="submit" form="procedure-form" disabled={isSaving}>
+              {isSaving ? t.actions.saving : (editingId ? t.actions.saveChanges : t.procedures.createProcedure)}
+            </Button>
           </div>
         }
       >

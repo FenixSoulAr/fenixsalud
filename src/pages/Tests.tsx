@@ -29,6 +29,7 @@ export default function Tests() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewingTest, setViewingTest] = useState<any | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled" });
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
@@ -87,6 +88,8 @@ export default function Tests() {
     if (!canEdit) { toast.error("You have view-only access to this profile."); return; }
     if (!form.type || !form.date) { toast.error(t.tests.typeRequired + " " + t.tests.dateRequired); return; }
     
+    setIsSaving(true);
+    
     const payload = {
       type: form.type,
       date: form.date,
@@ -95,35 +98,39 @@ export default function Tests() {
       status: form.status as any,
     };
 
-    if (editingId) {
-      const { error } = await supabase.from("tests").update(payload).eq("id", editingId);
-      if (error) { 
-        console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
-        return; 
+    try {
+      if (editingId) {
+        const { error } = await supabase.from("tests").update(payload).eq("id", editingId);
+        if (error) { 
+          console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
+          return; 
+        }
+      } else {
+        if (!dataProfileId || !currentUserId) { 
+          console.error("Missing IDs:", { dataProfileId, currentUserId });
+          toast.error("Falta el perfil activo o usuario."); 
+          return; 
+        }
+        console.log("Inserting test:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
+        const { error } = await supabase.from("tests").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
+        if (error) { 
+          console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          const msg = error.code === "42501" ? "No tenés permisos para crear." : 
+                      error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
+          toast.error(msg); 
+          return; 
+        }
       }
-      toast.success(t.toast.changesUpdated);
-    } else {
-      if (!dataProfileId || !currentUserId) { 
-        console.error("Missing IDs:", { dataProfileId, currentUserId });
-        toast.error("Falta el perfil activo o usuario."); 
-        return; 
-      }
-      console.log("Inserting test:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
-      const { error } = await supabase.from("tests").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
-      if (error) { 
-        console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        const msg = error.code === "42501" ? "No tenés permisos para crear." : 
-                    error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
-        toast.error(msg); 
-        return; 
-      }
-      toast.success(t.toast.testCreated);
+      
+      // Success: close modal immediately, then show toast
+      setDialogOpen(false);
+      resetForm();
+      toast.success(editingId ? t.toast.changesUpdated : t.toast.testCreated);
+      fetchData();
+    } finally {
+      setIsSaving(false);
     }
-    
-    setDialogOpen(false);
-    resetForm();
-    fetchData();
   }
 
   async function handleDelete() {
@@ -216,8 +223,10 @@ export default function Tests() {
         title={editingId ? t.tests.editTest : t.tests.newTest}
         footer={
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>{t.actions.cancel}</Button>
-            <Button type="submit" form="test-form">{editingId ? t.actions.saveChanges : t.tests.createTest}</Button>
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)} disabled={isSaving}>{t.actions.cancel}</Button>
+            <Button type="submit" form="test-form" disabled={isSaving}>
+              {isSaving ? t.actions.saving : (editingId ? t.actions.saveChanges : t.tests.createTest)}
+            </Button>
           </div>
         }
       >

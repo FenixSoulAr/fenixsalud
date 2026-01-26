@@ -30,6 +30,7 @@ export default function Diagnoses() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ condition: "", notes: "", diagnosed_date: "", status: "active" });
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
@@ -104,6 +105,8 @@ export default function Diagnoses() {
     if (!canEdit) { toast.error(t.diagnoses.viewOnlyAccess); return; }
     if (!form.condition.trim()) { toast.error(t.diagnoses.conditionRequired); return; }
     
+    setIsSaving(true);
+    
     const payload = {
       condition: form.condition.trim(),
       notes: form.notes || null,
@@ -111,35 +114,39 @@ export default function Diagnoses() {
       status: form.status as "active" | "resolved",
     };
 
-    if (editingId) {
-      const { error } = await supabase.from("diagnoses").update(payload).eq("id", editingId);
-      if (error) { 
-        console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
-        return; 
+    try {
+      if (editingId) {
+        const { error } = await supabase.from("diagnoses").update(payload).eq("id", editingId);
+        if (error) { 
+          console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
+          return; 
+        }
+      } else {
+        if (!dataProfileId || !currentUserId) { 
+          console.error("Missing IDs:", { dataProfileId, currentUserId });
+          toast.error("Falta el perfil activo o usuario."); 
+          return; 
+        }
+        console.log("Inserting diagnosis:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
+        const { error } = await supabase.from("diagnoses").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
+        if (error) { 
+          console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          const msg = error.code === "42501" ? "No tenés permisos para crear." : 
+                      error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
+          toast.error(msg); 
+          return; 
+        }
       }
-      toast.success(t.toast.changesUpdated);
-    } else {
-      if (!dataProfileId || !currentUserId) { 
-        console.error("Missing IDs:", { dataProfileId, currentUserId });
-        toast.error("Falta el perfil activo o usuario."); 
-        return; 
-      }
-      console.log("Inserting diagnosis:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
-      const { error } = await supabase.from("diagnoses").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
-      if (error) { 
-        console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        const msg = error.code === "42501" ? "No tenés permisos para crear." : 
-                    error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
-        toast.error(msg); 
-        return; 
-      }
-      toast.success(t.toast.savedSuccess);
+      
+      // Success: close modal immediately, then show toast
+      setDialogOpen(false);
+      resetForm();
+      toast.success(editingId ? t.toast.changesUpdated : t.toast.savedSuccess);
+      fetchData();
+    } finally {
+      setIsSaving(false);
     }
-    
-    setDialogOpen(false);
-    resetForm();
-    fetchData();
   }
 
   async function handleDelete() {
@@ -307,8 +314,10 @@ export default function Diagnoses() {
         title={editingId ? t.diagnoses.editDiagnosis : t.diagnoses.newDiagnosis}
         footer={
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)}>{t.actions.cancel}</Button>
-            <Button type="submit" form="diagnosis-form">{editingId ? t.actions.saveChanges : t.diagnoses.addDiagnosis}</Button>
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)} disabled={isSaving}>{t.actions.cancel}</Button>
+            <Button type="submit" form="diagnosis-form" disabled={isSaving}>
+              {isSaving ? t.actions.saving : (editingId ? t.actions.saveChanges : t.diagnoses.addDiagnosis)}
+            </Button>
           </div>
         }
       >
