@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Pill, Check, AlertTriangle } from "lucide-react";
+import { Clock, Pill, Check, AlertTriangle, Undo2 } from "lucide-react";
 import { GroupedIntakes, MedicationIntake } from "@/hooks/useTodayMedicationIntakes";
 import { useTranslations } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -81,6 +81,75 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
       }
     } catch (err) {
       console.error("[markAsTaken] Unexpected error:", err);
+    } finally {
+      setMarkingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(intake.id);
+        return newSet;
+      });
+    }
+  };
+
+  const undoIntake = async (intake: MedicationIntake) => {
+    console.log("[undoIntake] Called with:", { 
+      intakeId: intake.id, 
+      medicationId: intake.medicationId,
+      time: intake.time,
+      dataProfileId, 
+      currentUserId, 
+      canEdit 
+    });
+    
+    if (!dataProfileId || !currentUserId || !canEdit) {
+      console.warn("[undoIntake] Early return - missing permissions:", { dataProfileId, currentUserId, canEdit });
+      return;
+    }
+
+    setMarkingIds(prev => new Set(prev).add(intake.id));
+
+    try {
+      const scheduledAt = getTodayScheduledAt(intake.time);
+      
+      console.log("[undoIntake] Deleting log for:", { 
+        medication_id: intake.medicationId,
+        scheduled_at: scheduledAt,
+        profile_id: dataProfileId,
+      });
+
+      // Delete the log by matching medication_id, profile_id, and scheduled_at for today
+      const { data, error } = await supabase
+        .from("medication_logs")
+        .delete()
+        .eq("medication_id", intake.medicationId)
+        .eq("profile_id", dataProfileId)
+        .gte("scheduled_at", scheduledAt)
+        .lt("scheduled_at", `${scheduledAt.split('T')[0]}T23:59:59`)
+        .eq("status", "Taken")
+        .select();
+
+      if (error) {
+        console.error("[undoIntake] Error:", error);
+        toast({
+          title: t.misc.error,
+          description: t.misc.unexpectedError,
+          variant: "destructive",
+        });
+      } else if (!data || data.length === 0) {
+        console.warn("[undoIntake] No rows affected");
+        toast({
+          title: t.misc.error,
+          description: t.medicationHistory?.undoError || "Could not undo intake",
+          variant: "destructive",
+        });
+      } else {
+        console.log("[undoIntake] Success - deleted:", data.length, "rows");
+        toast({
+          title: t.medicationHistory?.undoSuccess || "Intake undone",
+        });
+        onIntakeMarked?.();
+      }
+    } catch (err) {
+      console.error("[undoIntake] Unexpected error:", err);
     } finally {
       setMarkingIds(prev => {
         const newSet = new Set(prev);
@@ -223,7 +292,14 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
         {doneIntakes.length > 0 && (
           <div className="space-y-2">
             {doneIntakes.map((intake) => (
-              <IntakeItem key={intake.id} intake={intake} isDone canEdit={canEdit} />
+              <IntakeItem 
+                key={intake.id} 
+                intake={intake} 
+                isDone 
+                onUndo={() => undoIntake(intake)}
+                isMarking={markingIds.has(intake.id)}
+                canEdit={canEdit} 
+              />
             ))}
           </div>
         )}
@@ -238,11 +314,12 @@ interface IntakeItemProps {
   isMissed?: boolean;
   isDone?: boolean;
   onMarkAsTaken?: () => void;
+  onUndo?: () => void;
   isMarking?: boolean;
   canEdit: boolean;
 }
 
-function IntakeItem({ intake, isNext, isMissed, isDone, onMarkAsTaken, isMarking, canEdit }: IntakeItemProps) {
+function IntakeItem({ intake, isNext, isMissed, isDone, onMarkAsTaken, onUndo, isMarking, canEdit }: IntakeItemProps) {
   const t = useTranslations();
   
   const handleCheckboxChange = () => {
@@ -254,6 +331,11 @@ function IntakeItem({ intake, isNext, isMissed, isDone, onMarkAsTaken, isMarking
     });
     onMarkAsTaken?.();
   };
+
+  const handleUndo = () => {
+    console.log("[IntakeItem] Undo clicked:", { intakeId: intake.id });
+    onUndo?.();
+  };
   
   return (
     <div
@@ -261,7 +343,7 @@ function IntakeItem({ intake, isNext, isMissed, isDone, onMarkAsTaken, isMarking
         "flex items-center justify-between p-3 rounded-lg border transition-colors",
         isMissed && "ring-2 ring-destructive/50 bg-destructive/5 border-destructive/30",
         isNext && "ring-2 ring-primary/50 bg-primary/5",
-        isDone && "bg-muted/50 opacity-70"
+        isDone && "bg-muted/50"
       )}
     >
       <div className="flex items-center gap-3">
@@ -313,6 +395,19 @@ function IntakeItem({ intake, isNext, isMissed, isDone, onMarkAsTaken, isMarking
       </div>
       
       <div className="flex items-center gap-2">
+        {/* Undo button for done items */}
+        {isDone && canEdit && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleUndo}
+            disabled={isMarking}
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Undo2 className="h-3.5 w-3.5 mr-1" />
+            {t.medicationHistory?.undo || "Undo"}
+          </Button>
+        )}
         {isDone && (
           <span className="text-xs font-medium text-accent-foreground bg-accent px-2 py-0.5 rounded">
             {t.dashboard.taken}
