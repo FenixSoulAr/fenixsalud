@@ -25,10 +25,14 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
   const hasAnyIntakes = missedIntakes.length > 0 || nextIntakes.length > 0 || upcomingIntakes.length > 0 || doneIntakes.length > 0;
 
   // Get today's date in user's timezone for scheduled_at
+  // CRITICAL: This creates a naive datetime string that Postgres interprets as UTC
+  // The matching logic in useTodayMedicationIntakes extracts date/time from this same format
   const getTodayScheduledAt = (time: string) => {
     const now = new Date();
     const todayStr = now.toLocaleDateString("en-CA", { timeZone: timezone }); // YYYY-MM-DD
-    return `${todayStr}T${time}:00`;
+    const scheduledAt = `${todayStr}T${time}:00`;
+    console.log("[getTodayScheduledAt] Creating:", { todayStr, time, scheduledAt, timezone });
+    return scheduledAt;
   };
 
   const markAsTaken = async (intake: MedicationIntake) => {
