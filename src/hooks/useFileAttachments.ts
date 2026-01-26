@@ -138,9 +138,13 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
         });
 
       if (dbError) {
-        console.error("DB error:", dbError);
-        // Try to clean up uploaded file
-        await supabase.storage.from("health-files").remove([filePath]);
+        console.error("DB insert error:", dbError);
+        // Try to clean up uploaded file silently
+        try {
+          await supabase.storage.from("health-files").remove([filePath]);
+        } catch (cleanupErr) {
+          console.error("Failed to cleanup orphaned file:", cleanupErr);
+        }
         // Check if it's a permission error
         const errorMessage = dbError.message?.toLowerCase() || "";
         if (errorMessage.includes("policy") || errorMessage.includes("permission") || dbError.code === "42501") {
@@ -148,25 +152,23 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
           toast.error(errorMsg);
           return { success: false, error: errorMsg };
         }
-        const errorMsg = `Failed to save file record: ${dbError.message}`;
+        const errorMsg = "Ocurrió un error inesperado. Por favor, intentá nuevamente.";
         toast.error(errorMsg);
         return { success: false, error: errorMsg };
       }
 
+      // Success - show single toast and refresh list
+      toast.success("Archivo subido correctamente.");
       await fetchAttachments();
-      toast.success("File uploaded.");
       return { success: true };
     } catch (error: unknown) {
-      console.error("Unexpected error:", error);
-      // Handle cases where error might be a Response object or have non-JSON body
+      console.error("Unexpected upload error:", error);
       let errorMsg = "Ocurrió un error inesperado. Por favor, intentá nuevamente.";
       if (error instanceof Error) {
-        // Check for permission-related errors - keep specific message
         const msg = error.message.toLowerCase();
         if (msg.includes("policy") || msg.includes("permission") || msg.includes("403") || msg.includes("unauthorized")) {
           errorMsg = "You don't have permission to upload files.";
         }
-        // For all other errors, use the standardized message (already set above)
       }
       toast.error(errorMsg);
       return { success: false, error: errorMsg };
