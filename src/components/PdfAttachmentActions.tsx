@@ -11,7 +11,8 @@ interface PdfAttachmentActionsProps {
 }
 
 export function PdfAttachmentActions({ attachmentId, fileName, compact = false }: PdfAttachmentActionsProps) {
-  const [loading, setLoading] = useState(false);
+  const [loadingOpen, setLoadingOpen] = useState(false);
+  const [loadingDownload, setLoadingDownload] = useState(false);
 
   // Get the proxy URL for this attachment
   function getProxyUrl(download: boolean = false): string {
@@ -21,7 +22,7 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
 
   // Handle opening PDF in new tab via proxy
   async function handleOpen() {
-    setLoading(true);
+    setLoadingOpen(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -29,7 +30,6 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
         return;
       }
 
-      // Fetch the file through the proxy with auth
       const response = await fetch(getProxyUrl(false), {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -42,27 +42,31 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
       }
 
       if (!response.ok) {
-        throw new Error("Failed to fetch file");
+        // Log internally but show user-friendly message
+        console.error("PDF fetch failed:", response.status, response.statusText);
+        toast.error("No se pudo abrir el archivo. Intentá nuevamente.");
+        return;
       }
 
-      // Create blob URL and open in new tab
+      // Success - create blob and open
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, "_blank");
       
-      // Clean up blob URL after a delay
+      // Clean up blob URL after a delay (no toast needed for success here)
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     } catch (error) {
+      // Only log, show single error to user
       console.error("Error opening PDF:", error);
-      toast.error("Ocurrió un error inesperado. Por favor, intentá nuevamente.");
+      toast.error("No se pudo abrir el archivo. Intentá nuevamente.");
     } finally {
-      setLoading(false);
+      setLoadingOpen(false);
     }
   }
 
   // Handle downloading PDF via proxy
   async function handleDownload() {
-    setLoading(true);
+    setLoadingDownload(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -70,7 +74,6 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
         return;
       }
 
-      // Fetch the file through the proxy with auth
       const response = await fetch(getProxyUrl(true), {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -83,10 +86,12 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
       }
 
       if (!response.ok) {
-        throw new Error("Failed to fetch file");
+        console.error("PDF download failed:", response.status, response.statusText);
+        toast.error("No se pudo descargar el archivo. Intentá nuevamente.");
+        return;
       }
 
-      // Create blob and download
+      // Success - create blob and download
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       
@@ -98,22 +103,14 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
       document.body.removeChild(link);
       
       URL.revokeObjectURL(blobUrl);
-      toast.success("Download started.");
+      // Success toast for download
+      toast.success("Descarga iniciada.");
     } catch (error) {
       console.error("Error downloading PDF:", error);
-      toast.error("Ocurrió un error inesperado. Por favor, intentá nuevamente.");
+      toast.error("No se pudo descargar el archivo. Intentá nuevamente.");
     } finally {
-      setLoading(false);
+      setLoadingDownload(false);
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Loading...</span>
-      </div>
-    );
   }
 
   if (compact) {
@@ -124,9 +121,14 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
           variant="ghost"
           size="sm"
           onClick={handleDownload}
+          disabled={loadingDownload || loadingOpen}
           title="Download PDF"
         >
-          <Download className="h-4 w-4 mr-1" />
+          {loadingDownload ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4 mr-1" />
+          )}
           Download
         </Button>
         
@@ -135,9 +137,14 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
           variant="ghost"
           size="icon"
           onClick={handleOpen}
+          disabled={loadingOpen || loadingDownload}
           title="Open in new tab"
         >
-          <ExternalLink className="h-4 w-4" />
+          {loadingOpen ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ExternalLink className="h-4 w-4" />
+          )}
         </Button>
       </div>
     );
@@ -150,8 +157,13 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
         variant="default"
         size="sm"
         onClick={handleDownload}
+        disabled={loadingDownload || loadingOpen}
       >
-        <Download className="h-4 w-4 mr-1" />
+        {loadingDownload ? (
+          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+        ) : (
+          <Download className="h-4 w-4 mr-1" />
+        )}
         Download PDF
       </Button>
       
@@ -160,8 +172,13 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
         variant="outline"
         size="sm"
         onClick={handleOpen}
+        disabled={loadingOpen || loadingDownload}
       >
-        <ExternalLink className="h-4 w-4 mr-1" />
+        {loadingOpen ? (
+          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+        ) : (
+          <ExternalLink className="h-4 w-4 mr-1" />
+        )}
         Open PDF
       </Button>
     </div>

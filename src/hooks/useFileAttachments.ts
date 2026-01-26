@@ -79,18 +79,14 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       else if (ext === "png") mimeType = "image/png";
     }
 
-    // Validate file type
+    // Validate file type - return error without toast (caller handles UI)
     if (!ALLOWED_TYPES.includes(mimeType)) {
-      const errorMsg = "Unsupported file type. Please upload a PDF, JPG, or PNG.";
-      toast.error(errorMsg);
-      return { success: false, error: errorMsg };
+      return { success: false, error: "Unsupported file type. Please upload a PDF, JPG, or PNG." };
     }
 
-    // Validate file size
+    // Validate file size - return error without toast (caller handles UI)
     if (file.size > MAX_SIZE_BYTES) {
-      const errorMsg = "File is too large. Maximum size is 20MB.";
-      toast.error(errorMsg);
-      return { success: false, error: errorMsg };
+      return { success: false, error: "File is too large. Maximum size is 20MB." };
     }
 
     setUploading(true);
@@ -101,8 +97,8 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
       const filePath = `${dataProfileId}/${entityType}/${entityId}/${timestamp}_${safeName}`;
 
-      // Upload to storage with explicit content type for mobile compatibility
-      const { error: uploadError, data: uploadData } = await supabase.storage
+      // Step A: Upload to storage
+      const { error: uploadError } = await supabase.storage
         .from("health-files")
         .upload(filePath, file, {
           contentType: mimeType,
@@ -112,19 +108,14 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
 
       if (uploadError) {
         console.error("Upload error:", uploadError);
-        // Check if it's a permission error
         const errorMessage = uploadError.message?.toLowerCase() || "";
         if (errorMessage.includes("policy") || errorMessage.includes("permission") || errorMessage.includes("403") || errorMessage.includes("unauthorized")) {
-          const errorMsg = "You don't have permission to upload files.";
-          toast.error(errorMsg);
-          return { success: false, error: errorMsg };
+          return { success: false, error: "You don't have permission to upload files." };
         }
-        const errorMsg = `Upload failed: ${uploadError.message}`;
-        toast.error(errorMsg);
-        return { success: false, error: errorMsg };
+        return { success: false, error: `Upload failed: ${uploadError.message}` };
       }
 
-      // Create file_attachments record with profile ID
+      // Step B: Create file_attachments record
       const { error: dbError } = await supabase
         .from("file_attachments")
         .insert({
@@ -139,39 +130,33 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
 
       if (dbError) {
         console.error("DB insert error:", dbError);
-        // Try to clean up uploaded file silently
+        // Cleanup orphaned file silently
         try {
           await supabase.storage.from("health-files").remove([filePath]);
         } catch (cleanupErr) {
           console.error("Failed to cleanup orphaned file:", cleanupErr);
         }
-        // Check if it's a permission error
         const errorMessage = dbError.message?.toLowerCase() || "";
         if (errorMessage.includes("policy") || errorMessage.includes("permission") || dbError.code === "42501") {
-          const errorMsg = "You don't have permission to upload files.";
-          toast.error(errorMsg);
-          return { success: false, error: errorMsg };
+          return { success: false, error: "You don't have permission to upload files." };
         }
-        const errorMsg = "Ocurrió un error inesperado. Por favor, intentá nuevamente.";
-        toast.error(errorMsg);
-        return { success: false, error: errorMsg };
+        return { success: false, error: "Error saving file record. Please try again." };
       }
 
-      // Success - show single toast and refresh list
-      toast.success("Archivo subido correctamente.");
+      // Step C: Success - refresh attachments list and show single toast
       await fetchAttachments();
+      toast.success("Archivo subido correctamente.");
       return { success: true };
+      
     } catch (error: unknown) {
       console.error("Unexpected upload error:", error);
-      let errorMsg = "Ocurrió un error inesperado. Por favor, intentá nuevamente.";
       if (error instanceof Error) {
         const msg = error.message.toLowerCase();
         if (msg.includes("policy") || msg.includes("permission") || msg.includes("403") || msg.includes("unauthorized")) {
-          errorMsg = "You don't have permission to upload files.";
+          return { success: false, error: "You don't have permission to upload files." };
         }
       }
-      toast.error(errorMsg);
-      return { success: false, error: errorMsg };
+      return { success: false, error: "Unexpected error. Please try again." };
     } finally {
       setUploading(false);
     }
@@ -199,16 +184,16 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
 
       if (dbError) {
         console.error("DB delete error:", dbError);
-        toast.error("Ocurrió un error inesperado. Por favor, intentá nuevamente.");
+        toast.error("No se pudo eliminar el archivo. Intentá nuevamente.");
         return false;
       }
 
       await fetchAttachments();
-      toast.success("File deleted.");
+      toast.success("Archivo eliminado.");
       return true;
     } catch (error) {
-      console.error("Unexpected error:", error);
-      toast.error("Ocurrió un error inesperado. Por favor, intentá nuevamente.");
+      console.error("Unexpected delete error:", error);
+      toast.error("No se pudo eliminar el archivo. Intentá nuevamente.");
       return false;
     }
   };
