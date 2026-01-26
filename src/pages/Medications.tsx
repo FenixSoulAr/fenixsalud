@@ -110,7 +110,6 @@ export default function Medications() {
           toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
           return; 
         }
-        toast.success(t.toast.changesUpdated);
       } else {
         if (!dataProfileId || !currentUserId) { 
           console.error("Missing IDs:", { dataProfileId, currentUserId });
@@ -125,22 +124,24 @@ export default function Medications() {
           toast.error(msg); 
           return; 
         }
-        toast.success(t.toast.savedSuccess);
       }
       
-      // Mark that we just saved to prevent useEffect from reopening
+      // Success: Mark saved, close modal immediately, then show toast
       justSavedRef.current = true;
       
-      // Clear URL params that could reopen the modal
+      // Clear URL params synchronously
       if (searchParams.has("edit") || searchParams.has("new")) {
         setSearchParams({}, { replace: true });
       }
       
-      // Close modal and reset form BEFORE fetching data
+      // Close modal and reset form immediately
       setDialogOpen(false);
       resetForm();
       
-      // Fetch data after modal state is updated
+      // Show success toast after modal starts closing
+      toast.success(editingId ? t.toast.changesUpdated : t.toast.savedSuccess);
+      
+      // Refetch data
       fetchData();
     } catch (err) {
       console.error("Unexpected error in handleSubmit:", err);
