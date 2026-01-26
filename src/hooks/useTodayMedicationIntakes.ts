@@ -46,22 +46,33 @@ export function useTodayMedicationIntakes(
     const nowTotalMinutes = nowHours * 60 + nowMinutes;
 
     // Build a set of taken intakes for today (medication_id + time)
+    // Key insight: scheduled_at is stored in UTC but was created from local time string
+    // e.g., user schedules "19:00" local → stored as "2026-01-26T19:00:00" → Postgres interprets as UTC
+    // So we must parse it the SAME WAY: extract the raw time portion without timezone conversion
     const takenSet = new Set<string>();
     medicationLogs.forEach((log) => {
       if (log.status === "Taken" && log.scheduled_at) {
-        const logDate = new Date(log.scheduled_at);
-        const logDateStr = logDate.toLocaleDateString("en-CA", { timeZone: timezone });
-        if (logDateStr === todayStr) {
-          const logTime = logDate.toLocaleTimeString("en-US", {
-            hour12: false,
-            hour: "2-digit",
-            minute: "2-digit",
-            timeZone: timezone
-          });
-          takenSet.add(`${log.medication_id}:${logTime}`);
+        // Extract date and time directly from the ISO string WITHOUT timezone conversion
+        // This matches how we INSERT: we insert "YYYY-MM-DDTHH:MM:00" as a naive datetime
+        const isoString = log.scheduled_at;
+        // Handle both formats: "2026-01-26T19:00:00+00" and "2026-01-26 19:00:00+00"
+        const match = isoString.match(/(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+        if (match) {
+          const [, logDateStr, logTime] = match;
+          if (logDateStr === todayStr) {
+            takenSet.add(`${log.medication_id}:${logTime}`);
+            console.log("[useTodayMedicationIntakes] Matched log:", { 
+              medication_id: log.medication_id, 
+              logDateStr, 
+              logTime, 
+              key: `${log.medication_id}:${logTime}` 
+            });
+          }
         }
       }
     });
+    
+    console.log("[useTodayMedicationIntakes] takenSet:", Array.from(takenSet));
 
     // Generate intake entries from active medications
     const allIntakes: MedicationIntake[] = [];
@@ -81,6 +92,13 @@ export function useTodayMedicationIntakes(
           
           const intakeKey = `${med.id}:${normalizedTime}`;
           const isDone = takenSet.has(intakeKey);
+          
+          console.log("[useTodayMedicationIntakes] Checking intake:", { 
+            intakeKey, 
+            isDone, 
+            normalizedTime,
+            medName: med.name 
+          });
           
           allIntakes.push({
             id: `${med.id}-${normalizedTime}`,
