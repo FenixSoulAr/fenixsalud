@@ -78,6 +78,9 @@ export interface Translations {
     today: string;
     noRemindersToday: string;
     next: string;
+    pending: string;
+    taken: string;
+    markAllAsTaken: string;
   };
   appointments: {
     title: string;
@@ -482,6 +485,8 @@ export interface Translations {
     loading: string;
     patient: string;
     fileUploadNotAvailable: string;
+    error: string;
+    unexpectedError: string;
   };
   redeemPromo: {
     title: string;
@@ -595,6 +600,9 @@ export const en: Translations = {
     today: "Today",
     noRemindersToday: "No reminders for today.",
     next: "Next",
+    pending: "Pending",
+    taken: "Taken",
+    markAllAsTaken: "Mark all as taken",
   },
   
   // Appointments
@@ -1029,6 +1037,8 @@ export const en: Translations = {
     loading: "Loading...",
     patient: "Patient",
     fileUploadNotAvailable: "File upload not available on mobile",
+    error: "Error",
+    unexpectedError: "An unexpected error occurred. Please try again.",
   },
   
   // Promo Code Redemption
