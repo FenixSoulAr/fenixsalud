@@ -82,6 +82,10 @@ export const es: Translations = {
     editInMedications: "Editar en Medicación",
     editInReminders: "Editar en Recordatorios",
     unlinkedNoDiagnosis: "Sin vincular (Sin diagnóstico)",
+    remember: "Recordar",
+    today: "Hoy",
+    noRemindersToday: "Sin recordatorios para hoy.",
+    next: "Próximo",
   },
   
   // Appointments

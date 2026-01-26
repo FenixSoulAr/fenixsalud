@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { OrientationBanner } from "@/components/onboarding/OrientationBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { TodayMedicationIntakes } from "@/components/dashboard/TodayMedicationIntakes";
+import { useTodayMedicationIntakes } from "@/hooks/useTodayMedicationIntakes";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -30,6 +32,7 @@ export default function Dashboard() {
   const [medications, setMedications] = useState<any[]>([]);
   const [diagnoses, setDiagnoses] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
+  const [medicationLogs, setMedicationLogs] = useState<any[]>([]);
   
   // Detail view states
   const [selectedMedication, setSelectedMedication] = useState<any | null>(null);
@@ -43,13 +46,21 @@ export default function Dashboard() {
     if (!activeProfileId) return;
     setLoading(true);
     const today = new Date().toISOString();
+    const todayDateStr = today.split("T")[0];
 
-    const [apptRes, remRes, medRes, diagRes, testRes] = await Promise.all([
+    // Get start/end of today for medication logs query
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const [apptRes, remRes, medRes, diagRes, testRes, logsRes] = await Promise.all([
       supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", activeProfileId).gte("datetime_start", today).eq("status", "Upcoming").order("datetime_start").limit(5),
       supabase.from("reminders").select("*").eq("profile_id", activeProfileId).gte("due_date_time", today).eq("is_completed", false).order("due_date_time").limit(5),
       supabase.from("medications").select("*").eq("profile_id", activeProfileId).eq("status", "Active"),
       supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId),
-      supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).gte("date", today.split("T")[0]).order("date").limit(5),
+      supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).gte("date", todayDateStr).order("date").limit(5),
+      supabase.from("medication_logs").select("*").eq("profile_id", activeProfileId).gte("scheduled_at", todayStart.toISOString()).lte("scheduled_at", todayEnd.toISOString()),
     ]);
 
     setAppointments(apptRes.data || []);
@@ -57,6 +68,7 @@ export default function Dashboard() {
     setMedications(medRes.data || []);
     setDiagnoses(diagRes.data || []);
     setTests(testRes.data || []);
+    setMedicationLogs(logsRes.data || []);
     setLoading(false);
   }
 
@@ -64,6 +76,9 @@ export default function Dashboard() {
   
   // Group medications by diagnosis
   const medicationGroups = groupMedicationsByDiagnosis(medications, diagnoses);
+  
+  // Today's medication intakes
+  const todayIntakes = useTodayMedicationIntakes(medications, medicationLogs);
 
   if (loading) return <LoadingPage />;
 
@@ -110,6 +125,9 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="upcoming" className="space-y-6">
+            {/* Today's Medication Intakes - Always shown first */}
+            <TodayMedicationIntakes intakes={todayIntakes} />
+            
             {/* Appointments */}
             {appointments.length > 0 && (
               <section className="health-card">
