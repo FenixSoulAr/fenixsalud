@@ -74,6 +74,10 @@ export interface Translations {
     editInMedications: string;
     editInReminders: string;
     unlinkedNoDiagnosis: string;
+    remember: string;
+    today: string;
+    noRemindersToday: string;
+    next: string;
   };
   appointments: {
     title: string;
@@ -585,6 +589,10 @@ export const en: Translations = {
     editInMedications: "Edit in Medications",
     editInReminders: "Edit in Reminders",
     unlinkedNoDiagnosis: "Unlinked (No diagnosis)",
+    remember: "Remember",
+    today: "Today",
+    noRemindersToday: "No reminders for today.",
+    next: "Next",
   },
   
   // Appointments
