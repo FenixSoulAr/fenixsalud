@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { ExternalLink, Copy, Download, Loader2, AlertTriangle } from "lucide-react";
+import { ExternalLink, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -145,35 +144,26 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button
-          type="button"
-          variant="default"
-          size="sm"
-          onClick={handleDownload}
-        >
-          <Download className="h-4 w-4 mr-1" />
-          Download PDF
-        </Button>
-        
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleOpen}
-        >
-          <ExternalLink className="h-4 w-4 mr-1" />
-          Open PDF
-        </Button>
-      </div>
+    <div className="flex items-center gap-2 flex-wrap">
+      <Button
+        type="button"
+        variant="default"
+        size="sm"
+        onClick={handleDownload}
+      >
+        <Download className="h-4 w-4 mr-1" />
+        Download PDF
+      </Button>
       
-      <Alert variant="default" className="bg-muted/50 border-muted">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription className="text-xs">
-          PDFs are served securely through our server to ensure compatibility with all browsers.
-        </AlertDescription>
-      </Alert>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleOpen}
+      >
+        <ExternalLink className="h-4 w-4 mr-1" />
+        Open PDF
+      </Button>
     </div>
   );
 }
