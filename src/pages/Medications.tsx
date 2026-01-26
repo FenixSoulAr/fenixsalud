@@ -402,7 +402,7 @@ export default function Medications() {
             <EmptyState icon={Pill} title={t.medications.noMedications} description={t.medications.noMedicationsDescription} action={canEdit ? { label: t.medications.addMedication, onClick: () => setDialogOpen(true) } : undefined} />
           </TabsContent>
           <TabsContent value="history">
-            <MedicationHistory />
+            <MedicationHistory onIntakeUndone={fetchData} />
           </TabsContent>
         </Tabs>
       ) : (
@@ -420,7 +420,7 @@ export default function Medications() {
           <TabsContent value="paused"><MedList meds={paused} /></TabsContent>
           <TabsContent value="completed"><MedList meds={completed} /></TabsContent>
           <TabsContent value="history">
-            <MedicationHistory />
+            <MedicationHistory onIntakeUndone={fetchData} />
           </TabsContent>
         </Tabs>
       )}

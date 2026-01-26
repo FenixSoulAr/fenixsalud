@@ -49,17 +49,24 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
     if (!activeProfileId) return;
     setLoading(true);
 
-    // Calculate date range
+    console.log("[useMedicationHistory] Fetching data for profile:", activeProfileId, "timezone:", timezone);
+
+    // Calculate date range in user's timezone, then convert to UTC for query
     const now = new Date();
-    const todayStr = now.toLocaleDateString("en-CA", { timeZone: timezone });
     
-    let startDate: string | null = null;
+    let startDateISO: string | null = null;
     if (dateRange === "today") {
-      startDate = todayStr;
+      // Get start of today in user's timezone
+      const todayStr = now.toLocaleDateString("en-CA", { timeZone: timezone });
+      // Create a date object for start of today in user's timezone
+      const startOfToday = new Date(`${todayStr}T00:00:00`);
+      startDateISO = startOfToday.toISOString();
     } else if (dateRange === "week") {
       const weekAgo = new Date(now);
       weekAgo.setDate(weekAgo.getDate() - 7);
-      startDate = weekAgo.toLocaleDateString("en-CA", { timeZone: timezone });
+      const weekAgoStr = weekAgo.toLocaleDateString("en-CA", { timeZone: timezone });
+      const startOfWeekAgo = new Date(`${weekAgoStr}T00:00:00`);
+      startDateISO = startOfWeekAgo.toISOString();
     }
 
     // Build query
@@ -69,8 +76,8 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
       .eq("profile_id", activeProfileId)
       .order("scheduled_at", { ascending: false });
 
-    if (startDate) {
-      query = query.gte("scheduled_at", `${startDate}T00:00:00`);
+    if (startDateISO) {
+      query = query.gte("scheduled_at", startDateISO);
     }
 
     if (medicationFilter && medicationFilter !== "all") {
@@ -86,6 +93,8 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
         .order("name", { ascending: true }),
     ]);
 
+    console.log("[useMedicationHistory] Fetched logs:", logsResult.data?.length || 0, "medications:", medsResult.data?.length || 0);
+
     setLogs(logsResult.data || []);
     setMedications(medsResult.data || []);
     setLoading(false);
@@ -100,26 +109,32 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     const yesterdayStr = yesterdayDate.toLocaleDateString("en-CA", { timeZone: timezone });
 
-    // Group logs by date
+    // Group logs by date (in user's timezone)
     const groups: Record<string, MedicationLog[]> = {};
 
     logs.forEach((log) => {
       if (!log.scheduled_at || !log.taken_at) return;
 
-      // CRITICAL: Extract date/time from scheduled_at as stored (naive datetime treated as UTC by Postgres)
-      // The scheduled_at is stored as "YYYY-MM-DDTHH:MM:00" - we extract the raw values
-      const scheduledIso = log.scheduled_at as string;
-      const scheduledMatch = scheduledIso.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+      // Parse scheduled_at as a proper timestamp and convert to user's timezone
+      // The scheduled_at is stored as timestamptz in UTC (e.g., "2026-01-26T08:00:00+00:00")
+      // We need to convert to user's local timezone for display
+      const scheduledAt = new Date(log.scheduled_at);
       
-      if (!scheduledMatch) return;
+      // Format scheduled time in user's timezone
+      const scheduledTimeStr = scheduledAt.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: timezone,
+      });
+      const scheduledDateStr = scheduledAt.toLocaleDateString("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: timezone,
+      });
       
-      const [, sYear, sMonth, sDay, sHour, sMin] = scheduledMatch;
-      const dateKey = `${sYear}-${sMonth}-${sDay}`;
-      const scheduledTimeStr = `${sHour}:${sMin}`;
-      const scheduledDateStr = `${sDay}/${sMonth}`;
-      
-      // Create Date object for sorting (interpret as local time for the dateKey)
-      const scheduledAt = new Date(`${dateKey}T${scheduledTimeStr}:00`);
+      // Get the date key in user's timezone for grouping
+      const dateKey = scheduledAt.toLocaleDateString("en-CA", { timeZone: timezone });
       
       // For taken_at, parse properly in user's timezone for display
       const takenAt = new Date(log.taken_at);
@@ -135,7 +150,7 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
         timeZone: timezone,
       });
 
-      // Determine if on time or late
+      // Determine if on time or late (compare actual timestamps)
       const diffMinutes = (takenAt.getTime() - scheduledAt.getTime()) / (1000 * 60);
       const status: "on_time" | "late" = diffMinutes <= LATE_TOLERANCE_MINUTES ? "on_time" : "late";
 
