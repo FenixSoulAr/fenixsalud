@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Plus, Pill, Pencil, Trash2, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
@@ -21,7 +21,8 @@ import { useTranslations } from "@/i18n";
 export default function Medications() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [medications, setMedications] = useState<any[]>([]);
   const [diagnoses, setDiagnoses] = useState<any[]>([]);
@@ -29,11 +30,20 @@ export default function Medications() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active", diagnosis_id: "" });
+  
+  // Track if we just saved to prevent useEffect from reopening modal
+  const justSavedRef = useRef(false);
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
   
   // Handle URL params for auto-editing
   useEffect(() => {
+    // Skip if we just saved - prevents modal from reopening
+    if (justSavedRef.current) {
+      justSavedRef.current = false;
+      return;
+    }
+    
     const editId = searchParams.get("edit");
     if (editId && medications.length > 0) {
       const med = medications.find(m => m.id === editId);
@@ -92,35 +102,50 @@ export default function Medications() {
       diagnosis_id: form.diagnosis_id || null,
     };
 
-    if (editingId) {
-      const { error } = await supabase.from("medications").update(payload).eq("id", editingId);
-      if (error) { 
-        console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
-        return; 
+    try {
+      if (editingId) {
+        const { error } = await supabase.from("medications").update(payload).eq("id", editingId);
+        if (error) { 
+          console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          toast.error(error.code === "42501" ? "No tenés permisos para editar." : t.toast.error); 
+          return; 
+        }
+        toast.success(t.toast.changesUpdated);
+      } else {
+        if (!dataProfileId || !currentUserId) { 
+          console.error("Missing IDs:", { dataProfileId, currentUserId });
+          toast.error("Falta el perfil activo o usuario."); 
+          return; 
+        }
+        const { error } = await supabase.from("medications").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
+        if (error) { 
+          console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+          const msg = error.code === "42501" ? "No tenés permisos para crear." : 
+                      error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
+          toast.error(msg); 
+          return; 
+        }
+        toast.success(t.toast.savedSuccess);
       }
-      toast.success(t.toast.changesUpdated);
-    } else {
-      if (!dataProfileId || !currentUserId) { 
-        console.error("Missing IDs:", { dataProfileId, currentUserId });
-        toast.error("Falta el perfil activo o usuario."); 
-        return; 
+      
+      // Mark that we just saved to prevent useEffect from reopening
+      justSavedRef.current = true;
+      
+      // Clear URL params that could reopen the modal
+      if (searchParams.has("edit") || searchParams.has("new")) {
+        setSearchParams({}, { replace: true });
       }
-      console.log("Inserting medication:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
-      const { error } = await supabase.from("medications").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
-      if (error) { 
-        console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-        const msg = error.code === "42501" ? "No tenés permisos para crear." : 
-                    error.code === "23503" ? "Error de referencia: verificá el perfil." : t.toast.error;
-        toast.error(msg); 
-        return; 
-      }
-      toast.success(t.toast.savedSuccess);
+      
+      // Close modal and reset form BEFORE fetching data
+      setDialogOpen(false);
+      resetForm();
+      
+      // Fetch data after modal state is updated
+      fetchData();
+    } catch (err) {
+      console.error("Unexpected error in handleSubmit:", err);
+      toast.error(t.toast.error);
     }
-    
-    setDialogOpen(false);
-    resetForm();
-    fetchData();
   }
 
   async function handleDelete() {
