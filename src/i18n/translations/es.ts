@@ -528,6 +528,24 @@ export const es: Translations = {
     unexpectedError: "Ocurrió un error inesperado. Por favor, intentá nuevamente.",
   },
   
+  // Medication History
+  medicationHistory: {
+    title: "Historial",
+    allMedications: "Todas las medicaciones",
+    filterToday: "Hoy",
+    filterWeek: "Últimos 7 días",
+    filterAll: "Todo el historial",
+    noHistory: "Sin historial de medicación todavía.",
+    today: "Hoy",
+    yesterday: "Ayer",
+    intake: "toma",
+    intakes: "tomas",
+    scheduledFor: "Programado para",
+    takenAt: "tomado a las",
+    onTime: "Tomado",
+    takenLate: "Tomado tarde",
+  },
+  
   // Promo Code Redemption
   redeemPromo: {
     title: "Canjear Código Promo",
