@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useTimezone } from "@/hooks/useTimezone";
@@ -39,34 +39,29 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
 
   const { medicationFilter = "all", dateRange = "week" } = options;
 
-  useEffect(() => {
-    if (activeProfileId) {
-      fetchData();
-    }
-  }, [activeProfileId, medicationFilter, dateRange]);
-
-  async function fetchData() {
+  // Memoize fetchData to prevent stale closures
+  const fetchData = useCallback(async () => {
     if (!activeProfileId) return;
     setLoading(true);
 
-    console.log("[useMedicationHistory] Fetching data for profile:", activeProfileId, "timezone:", timezone);
+    // Get current timezone at fetch time to avoid stale closure
+    const currentTimezone = timezone;
+    console.log("[useMedicationHistory] Fetching data for profile:", activeProfileId, "timezone:", currentTimezone);
 
-    // Calculate date range in user's timezone, then convert to UTC for query
+    // Calculate date range - use fixed date calculation that doesn't depend on timezone for query
     const now = new Date();
     
     let startDateISO: string | null = null;
     if (dateRange === "today") {
       // Get start of today in user's timezone
-      const todayStr = now.toLocaleDateString("en-CA", { timeZone: timezone });
-      // Create a date object for start of today in user's timezone
-      const startOfToday = new Date(`${todayStr}T00:00:00`);
-      startDateISO = startOfToday.toISOString();
+      const todayStr = now.toLocaleDateString("en-CA", { timeZone: currentTimezone });
+      // Create a date object for start of today
+      startDateISO = `${todayStr}T00:00:00`;
     } else if (dateRange === "week") {
       const weekAgo = new Date(now);
       weekAgo.setDate(weekAgo.getDate() - 7);
-      const weekAgoStr = weekAgo.toLocaleDateString("en-CA", { timeZone: timezone });
-      const startOfWeekAgo = new Date(`${weekAgoStr}T00:00:00`);
-      startDateISO = startOfWeekAgo.toISOString();
+      const weekAgoStr = weekAgo.toLocaleDateString("en-CA", { timeZone: currentTimezone });
+      startDateISO = `${weekAgoStr}T00:00:00`;
     }
 
     // Build query
@@ -98,7 +93,13 @@ export function useMedicationHistory(options: UseMedicationHistoryOptions = {}) 
     setLogs(logsResult.data || []);
     setMedications(medsResult.data || []);
     setLoading(false);
-  }
+  }, [activeProfileId, medicationFilter, dateRange, timezone]);
+
+  useEffect(() => {
+    if (activeProfileId) {
+      fetchData();
+    }
+  }, [activeProfileId, fetchData]);
 
   // Process and group logs by date
   const groupedHistory = useMemo(() => {
