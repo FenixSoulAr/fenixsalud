@@ -236,9 +236,19 @@ export default function Medications() {
           )}
           <div className="form-field">
             <Label>{t.medications.diagnosis}</Label>
-            <Select value={form.diagnosis_id || undefined} onValueChange={(v) => setForm({ ...form, diagnosis_id: v === "none" ? "" : v })}>
-              <SelectTrigger><SelectValue placeholder={t.medications.selectDiagnosis} /></SelectTrigger>
-              <SelectContent>
+            <Select 
+              value={form.diagnosis_id || "none"} 
+              onValueChange={(v) => setForm({ ...form, diagnosis_id: v === "none" ? "" : v })}
+            >
+              <SelectTrigger>
+                <SelectValue>
+                  {form.diagnosis_id 
+                    ? diagnoses.find(d => d.id === form.diagnosis_id)?.condition || "—"
+                    : t.medications.selectDiagnosis
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent position="popper" className="z-[200]">
                 <SelectItem value="none">—</SelectItem>
                 {diagnoses.map(d => (
                   <SelectItem key={d.id} value={d.id}>{d.condition}</SelectItem>
