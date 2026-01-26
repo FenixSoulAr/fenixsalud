@@ -61,18 +61,10 @@ export function useTodayMedicationIntakes(
           const [, logDateStr, logTime] = match;
           if (logDateStr === todayStr) {
             takenSet.add(`${log.medication_id}:${logTime}`);
-            console.log("[useTodayMedicationIntakes] Matched log:", { 
-              medication_id: log.medication_id, 
-              logDateStr, 
-              logTime, 
-              key: `${log.medication_id}:${logTime}` 
-            });
           }
         }
       }
     });
-    
-    console.log("[useTodayMedicationIntakes] takenSet:", Array.from(takenSet));
 
     // Generate intake entries from active medications
     const allIntakes: MedicationIntake[] = [];
@@ -92,13 +84,6 @@ export function useTodayMedicationIntakes(
           
           const intakeKey = `${med.id}:${normalizedTime}`;
           const isDone = takenSet.has(intakeKey);
-          
-          console.log("[useTodayMedicationIntakes] Checking intake:", { 
-            intakeKey, 
-            isDone, 
-            normalizedTime,
-            medName: med.name 
-          });
           
           allIntakes.push({
             id: `${med.id}-${normalizedTime}`,
