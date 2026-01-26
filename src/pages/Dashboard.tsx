@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Plus, Calendar, FlaskConical, Pill, Bell, Clock, ArrowRight, FileText, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import { OrientationBanner } from "@/components/onboarding/OrientationBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { TodayMedicationIntakes } from "@/components/dashboard/TodayMedicationIntakes";
 import { useTodayMedicationIntakes } from "@/hooks/useTodayMedicationIntakes";
+import { useTimezone } from "@/hooks/useTimezone";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -24,7 +25,9 @@ import { useTranslations } from "@/i18n";
 export default function Dashboard() {
   const { canEdit, activeProfileId } = useActiveProfile();
   const navigate = useNavigate();
+  const location = useLocation();
   const t = useTranslations();
+  const { timezone } = useTimezone();
   const { showOnboarding, completeOnboarding } = useOnboarding();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -38,22 +41,21 @@ export default function Dashboard() {
   const [selectedMedication, setSelectedMedication] = useState<any | null>(null);
   const [selectedReminder, setSelectedReminder] = useState<any | null>(null);
 
-  useEffect(() => {
-    if (activeProfileId) fetchData(true);
-  }, [activeProfileId]);
-
-  async function fetchData(showLoading = false) {
+  const fetchData = useCallback(async (showLoading = false) => {
     if (!activeProfileId) return;
     if (showLoading) setLoading(true);
     
     const today = new Date().toISOString();
     const todayDateStr = today.split("T")[0];
 
-    // Get start/end of today for medication logs query
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    // Get today's date string in user timezone for medication logs query
+    // Use the same format as how scheduled_at is stored (naive datetime)
+    const now = new Date();
+    const todayStr = now.toLocaleDateString("en-CA", { timeZone: timezone }); // YYYY-MM-DD
+    const todayStartStr = `${todayStr}T00:00:00`;
+    const todayEndStr = `${todayStr}T23:59:59`;
+
+    console.log("[Dashboard] Fetching data with todayStr:", todayStr, "timezone:", timezone);
 
     const [apptRes, remRes, medRes, diagRes, testRes, logsRes] = await Promise.all([
       supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", activeProfileId).gte("datetime_start", today).eq("status", "Upcoming").order("datetime_start").limit(5),
@@ -61,8 +63,11 @@ export default function Dashboard() {
       supabase.from("medications").select("*").eq("profile_id", activeProfileId).eq("status", "Active"),
       supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId),
       supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).gte("date", todayDateStr).order("date").limit(5),
-      supabase.from("medication_logs").select("*").eq("profile_id", activeProfileId).gte("scheduled_at", todayStart.toISOString()).lte("scheduled_at", todayEnd.toISOString()),
+      // Use naive datetime string range that matches how scheduled_at is stored
+      supabase.from("medication_logs").select("*").eq("profile_id", activeProfileId).gte("scheduled_at", todayStartStr).lte("scheduled_at", todayEndStr),
     ]);
+
+    console.log("[Dashboard] Fetched medication_logs:", logsRes.data?.length || 0);
 
     setAppointments(apptRes.data || []);
     setReminders(remRes.data || []);
@@ -71,7 +76,14 @@ export default function Dashboard() {
     setTests(testRes.data || []);
     setMedicationLogs(logsRes.data || []);
     setLoading(false);
-  }
+  }, [activeProfileId, timezone]);
+
+  // Refetch data when profile changes or when navigating to this page
+  useEffect(() => {
+    if (activeProfileId) {
+      fetchData(true);
+    }
+  }, [activeProfileId, fetchData, location.key]);
 
   const hasData = appointments.length > 0 || reminders.length > 0 || medications.length > 0 || tests.length > 0;
   

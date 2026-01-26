@@ -34,7 +34,7 @@ export function MedicationHistory({ onIntakeUndone }: MedicationHistoryProps) {
     });
 
     try {
-      // Use .select() to get the deleted row back for verification
+      // Delete by exact log.id - this is deterministic and correct
       const { data, error } = await supabase
         .from("medication_logs")
         .delete()
@@ -43,24 +43,31 @@ export function MedicationHistory({ onIntakeUndone }: MedicationHistoryProps) {
 
       console.log("[MedicationHistory] Delete result:", { data, error });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[MedicationHistory] Delete error:", error);
+        throw error;
+      }
 
       // Verify that a row was actually deleted
       if (!data || data.length === 0) {
         console.error("[MedicationHistory] No rows deleted - log may not exist:", log.id);
-        toast.error(t.medicationHistory.undoError + " (registro no encontrado)");
+        toast.error(t.medicationHistory.undoError);
         return;
       }
 
+      console.log("[MedicationHistory] Successfully deleted log, now refetching...");
       toast.success(t.medicationHistory.undoSuccess);
       
-      // Force refetch to update UI
+      // Force refetch to update the history UI
       await refetch();
+      
+      // Notify parent to refresh Dashboard reminders
+      console.log("[MedicationHistory] Calling onIntakeUndone callback");
       onIntakeUndone?.();
     } catch (error: any) {
       console.error("[MedicationHistory] Error undoing intake:", error);
       
-      // Show specific error message
+      // Show specific error message based on error code
       if (error?.code === "42501") {
         toast.error(t.medicationHistory.undoError + " (sin permisos)");
       } else if (error?.code === "PGRST116") {
