@@ -32,13 +32,30 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
   };
 
   const markAsTaken = async (intake: MedicationIntake) => {
-    if (!dataProfileId || !currentUserId || !canEdit) return;
+    console.log("[markAsTaken] Called with:", { 
+      intakeId: intake.id, 
+      dataProfileId, 
+      currentUserId, 
+      canEdit 
+    });
+    
+    if (!dataProfileId || !currentUserId || !canEdit) {
+      console.warn("[markAsTaken] Early return - missing permissions:", { dataProfileId, currentUserId, canEdit });
+      return;
+    }
 
     setMarkingIds(prev => new Set(prev).add(intake.id));
 
     try {
       const scheduledAt = getTodayScheduledAt(intake.time);
       const takenAt = new Date().toISOString();
+
+      console.log("[markAsTaken] Inserting log:", { 
+        profile_id: dataProfileId,
+        medication_id: intake.medicationId,
+        scheduled_at: scheduledAt,
+        taken_at: takenAt,
+      });
 
       const { error } = await supabase.from("medication_logs").insert({
         profile_id: dataProfileId,
@@ -50,17 +67,18 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
       });
 
       if (error) {
-        console.error("Error marking intake as taken:", error);
+        console.error("[markAsTaken] Error:", error);
         toast({
           title: t.misc.error,
           description: t.misc.unexpectedError,
           variant: "destructive",
         });
       } else {
+        console.log("[markAsTaken] Success - calling onIntakeMarked");
         onIntakeMarked?.();
       }
     } catch (err) {
-      console.error("Unexpected error:", err);
+      console.error("[markAsTaken] Unexpected error:", err);
     } finally {
       setMarkingIds(prev => {
         const newSet = new Set(prev);
@@ -225,6 +243,16 @@ interface IntakeItemProps {
 function IntakeItem({ intake, isNext, isMissed, isDone, onMarkAsTaken, isMarking, canEdit }: IntakeItemProps) {
   const t = useTranslations();
   
+  const handleCheckboxChange = () => {
+    console.log("[IntakeItem] Checkbox clicked:", { 
+      intakeId: intake.id, 
+      isDone, 
+      canEdit, 
+      hasHandler: !!onMarkAsTaken 
+    });
+    onMarkAsTaken?.();
+  };
+  
   return (
     <div
       className={cn(
@@ -239,7 +267,7 @@ function IntakeItem({ intake, isNext, isMissed, isDone, onMarkAsTaken, isMarking
         {!isDone && canEdit ? (
           <Checkbox
             checked={false}
-            onCheckedChange={() => onMarkAsTaken?.()}
+            onCheckedChange={handleCheckboxChange}
             disabled={isMarking}
             className={cn("h-5 w-5", isMissed && "border-destructive")}
           />
