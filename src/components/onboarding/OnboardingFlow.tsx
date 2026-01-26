@@ -12,7 +12,7 @@ const screens = {
     {
       icon: Heart,
       title: "Tu información de salud, organizada.",
-      text: "Registrá citas, estudios y medicación en un solo lugar, de forma clara y accesible cuando la necesitás.",
+      text: "Registrá citas, estudios y medicación en un solo lugar, de forma clara y accesible cuando lo necesites.",
       button: "Continuar",
     },
     {
