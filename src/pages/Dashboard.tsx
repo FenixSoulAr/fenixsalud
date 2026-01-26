@@ -39,12 +39,13 @@ export default function Dashboard() {
   const [selectedReminder, setSelectedReminder] = useState<any | null>(null);
 
   useEffect(() => {
-    if (activeProfileId) fetchData();
+    if (activeProfileId) fetchData(true);
   }, [activeProfileId]);
 
-  async function fetchData() {
+  async function fetchData(showLoading = false) {
     if (!activeProfileId) return;
-    setLoading(true);
+    if (showLoading) setLoading(true);
+    
     const today = new Date().toISOString();
     const todayDateStr = today.split("T")[0];
 
@@ -126,7 +127,7 @@ export default function Dashboard() {
 
           <TabsContent value="upcoming" className="space-y-6">
             {/* Today's Medication Intakes - Always shown first */}
-            <TodayMedicationIntakes groupedIntakes={todayIntakes} onIntakeMarked={fetchData} />
+            <TodayMedicationIntakes groupedIntakes={todayIntakes} onIntakeMarked={() => fetchData(false)} />
             
             {/* Appointments */}
             {appointments.length > 0 && (
