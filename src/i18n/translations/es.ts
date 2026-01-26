@@ -88,6 +88,7 @@ export const es: Translations = {
     next: "Próximo",
     pending: "Pendiente",
     taken: "Tomado",
+    missed: "Omitido",
     markAllAsTaken: "Marcar todos como tomados",
   },
   

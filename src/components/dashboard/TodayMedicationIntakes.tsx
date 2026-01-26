@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Pill, Check } from "lucide-react";
+import { Clock, Pill, Check, AlertTriangle } from "lucide-react";
 import { GroupedIntakes, MedicationIntake } from "@/hooks/useTodayMedicationIntakes";
 import { useTranslations } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -17,12 +17,12 @@ interface TodayMedicationIntakesProps {
 
 export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: TodayMedicationIntakesProps) {
   const t = useTranslations();
-  const { nextTime, nextIntakes, laterIntakes, doneIntakes } = groupedIntakes;
+  const { missedIntakes, nextTime, nextIntakes, upcomingIntakes, doneIntakes } = groupedIntakes;
   const { dataProfileId, currentUserId, canEdit } = useActiveProfile();
   const { timezone } = useTimezone();
   const [markingIds, setMarkingIds] = useState<Set<string>>(new Set());
 
-  const hasAnyIntakes = nextIntakes.length > 0 || laterIntakes.length > 0 || doneIntakes.length > 0;
+  const hasAnyIntakes = missedIntakes.length > 0 || nextIntakes.length > 0 || upcomingIntakes.length > 0 || doneIntakes.length > 0;
 
   // Get today's date in user's timezone for scheduled_at
   const getTodayScheduledAt = (time: string) => {
@@ -136,6 +136,22 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
       </div>
       
       <div className="space-y-3">
+        {/* Missed intakes - show first with warning styling */}
+        {missedIntakes.length > 0 && (
+          <div className="space-y-2">
+            {missedIntakes.map((intake) => (
+              <IntakeItem 
+                key={intake.id} 
+                intake={intake} 
+                isMissed
+                onMarkAsTaken={() => markAsTaken(intake)}
+                isMarking={markingIds.has(intake.id)}
+                canEdit={canEdit}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Next group header + items */}
         {nextIntakes.length > 0 && nextTime && (
           <div className="space-y-2">
@@ -168,10 +184,10 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
           </div>
         )}
 
-        {/* Later pending intakes */}
-        {laterIntakes.length > 0 && (
+        {/* Upcoming pending intakes */}
+        {upcomingIntakes.length > 0 && (
           <div className="space-y-2">
-            {laterIntakes.map((intake) => (
+            {upcomingIntakes.map((intake) => (
               <IntakeItem 
                 key={intake.id} 
                 intake={intake} 
@@ -199,43 +215,49 @@ export function TodayMedicationIntakes({ groupedIntakes, onIntakeMarked }: Today
 interface IntakeItemProps {
   intake: MedicationIntake;
   isNext?: boolean;
+  isMissed?: boolean;
   isDone?: boolean;
   onMarkAsTaken?: () => void;
   isMarking?: boolean;
   canEdit: boolean;
 }
 
-function IntakeItem({ intake, isNext, isDone, onMarkAsTaken, isMarking, canEdit }: IntakeItemProps) {
+function IntakeItem({ intake, isNext, isMissed, isDone, onMarkAsTaken, isMarking, canEdit }: IntakeItemProps) {
   const t = useTranslations();
   
   return (
     <div
       className={cn(
         "flex items-center justify-between p-3 rounded-lg border transition-colors",
+        isMissed && "ring-2 ring-destructive/50 bg-destructive/5 border-destructive/30",
         isNext && "ring-2 ring-primary/50 bg-primary/5",
         isDone && "bg-muted/50 opacity-70"
       )}
     >
       <div className="flex items-center gap-3">
-        {/* Checkbox for pending items */}
+        {/* Checkbox for pending items (missed or upcoming) */}
         {!isDone && canEdit ? (
           <Checkbox
             checked={false}
             onCheckedChange={() => onMarkAsTaken?.()}
             disabled={isMarking}
-            className="h-5 w-5"
+            className={cn("h-5 w-5", isMissed && "border-destructive")}
           />
         ) : (
           <div className={cn(
             "w-8 h-8 rounded-full flex items-center justify-center",
             isDone 
               ? "bg-accent text-accent-foreground" 
-              : isNext 
-                ? "bg-primary/20 text-primary" 
-                : "bg-muted text-muted-foreground"
+              : isMissed
+                ? "bg-destructive/20 text-destructive"
+                : isNext 
+                  ? "bg-primary/20 text-primary" 
+                  : "bg-muted text-muted-foreground"
           )}>
             {isDone ? (
               <Check className="h-4 w-4" />
+            ) : isMissed ? (
+              <AlertTriangle className="h-4 w-4" />
             ) : (
               <Pill className="h-4 w-4" />
             )}
@@ -244,12 +266,18 @@ function IntakeItem({ intake, isNext, isDone, onMarkAsTaken, isMarking, canEdit 
         <div>
           <p className={cn(
             "font-medium",
-            isDone && "line-through text-muted-foreground"
+            isDone && "line-through text-muted-foreground",
+            isMissed && "text-destructive"
           )}>
             {intake.medicationName}
           </p>
           {intake.doseText && (
-            <p className="text-sm text-muted-foreground">{intake.doseText}</p>
+            <p className={cn(
+              "text-sm",
+              isMissed ? "text-destructive/70" : "text-muted-foreground"
+            )}>
+              {intake.doseText}
+            </p>
           )}
         </div>
       </div>
@@ -260,7 +288,12 @@ function IntakeItem({ intake, isNext, isDone, onMarkAsTaken, isMarking, canEdit 
             {t.dashboard.taken}
           </span>
         )}
-        {!isDone && !isNext && (
+        {isMissed && (
+          <span className="text-xs font-medium text-destructive-foreground bg-destructive px-2 py-0.5 rounded">
+            {t.dashboard.missed}
+          </span>
+        )}
+        {!isDone && !isNext && !isMissed && (
           <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
             {t.dashboard.pending}
           </span>
@@ -268,7 +301,7 @@ function IntakeItem({ intake, isNext, isDone, onMarkAsTaken, isMarking, canEdit 
         {!isNext && (
           <span className={cn(
             "text-sm font-medium",
-            isDone ? "text-muted-foreground" : "text-muted-foreground"
+            isMissed ? "text-destructive" : "text-muted-foreground"
           )}>
             {intake.time}
           </span>

@@ -80,6 +80,7 @@ export interface Translations {
     next: string;
     pending: string;
     taken: string;
+    missed: string;
     markAllAsTaken: string;
   };
   appointments: {
@@ -602,6 +603,7 @@ export const en: Translations = {
     next: "Next",
     pending: "Pending",
     taken: "Taken",
+    missed: "Missed",
     markAllAsTaken: "Mark all as taken",
   },
   

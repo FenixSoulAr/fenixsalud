@@ -12,9 +12,10 @@ export interface MedicationIntake {
 }
 
 export interface GroupedIntakes {
+  missedIntakes: MedicationIntake[]; // Past pending intakes (not taken, oldest first)
   nextTime: string | null; // HH:mm of the next group, or null if none
   nextIntakes: MedicationIntake[]; // All pending intakes at nextTime
-  laterIntakes: MedicationIntake[]; // Pending intakes after nextTime
+  upcomingIntakes: MedicationIntake[]; // Pending intakes after nextTime (ascending)
   doneIntakes: MedicationIntake[]; // Already taken intakes
 }
 
@@ -100,34 +101,35 @@ export function useTodayMedicationIntakes(
     const doneIntakes = allIntakes.filter(i => i.status === "done");
     const pendingIntakes = allIntakes.filter(i => i.status === "pending");
 
-    // Find the next scheduled time (first pending >= current time)
-    const upcomingPending = pendingIntakes.filter(i => i.timeMinutes >= nowTotalMinutes);
-    
+    // Split pending into past (missed) and future
+    const missedIntakes = pendingIntakes
+      .filter(i => i.timeMinutes < nowTotalMinutes)
+      .sort((a, b) => a.timeMinutes - b.timeMinutes); // oldest first
+
+    const futurePending = pendingIntakes
+      .filter(i => i.timeMinutes >= nowTotalMinutes)
+      .sort((a, b) => a.timeMinutes - b.timeMinutes); // ascending
+
+    // Find the next scheduled time (first future pending)
     let nextTime: string | null = null;
     let nextIntakes: MedicationIntake[] = [];
-    let laterIntakes: MedicationIntake[] = [];
+    let upcomingIntakes: MedicationIntake[] = [];
 
-    if (upcomingPending.length > 0) {
+    if (futurePending.length > 0) {
       // The earliest upcoming time
-      const earliestMinutes = upcomingPending[0].timeMinutes;
-      nextTime = upcomingPending[0].time;
+      const earliestMinutes = futurePending[0].timeMinutes;
+      nextTime = futurePending[0].time;
       
       // Group all intakes at that same time
-      nextIntakes = upcomingPending.filter(i => i.timeMinutes === earliestMinutes);
-      laterIntakes = upcomingPending.filter(i => i.timeMinutes > earliestMinutes);
-      
-      // Also include past pending intakes (missed) in laterIntakes, shown before future ones
-      const pastPending = pendingIntakes.filter(i => i.timeMinutes < nowTotalMinutes);
-      laterIntakes = [...pastPending, ...laterIntakes];
-    } else {
-      // No upcoming - all pending are past (missed)
-      laterIntakes = pendingIntakes;
+      nextIntakes = futurePending.filter(i => i.timeMinutes === earliestMinutes);
+      upcomingIntakes = futurePending.filter(i => i.timeMinutes > earliestMinutes);
     }
 
     return {
+      missedIntakes,
       nextTime,
       nextIntakes,
-      laterIntakes,
+      upcomingIntakes,
       doneIntakes,
     };
   }, [medications, medicationLogs, timezone]);
