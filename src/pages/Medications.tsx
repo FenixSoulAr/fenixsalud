@@ -18,6 +18,71 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { useTranslations } from "@/i18n";
 
+/**
+ * Sanitizes and validates a time string to HH:MM format.
+ * Removes common suffixes like "hs", "h", spaces.
+ * Returns { valid: true, time: "HH:MM" } or { valid: false, time: original }
+ */
+function sanitizeTime(input: string): { valid: boolean; time: string } {
+  if (!input) return { valid: false, time: input };
+  
+  let cleaned = input.trim().toLowerCase();
+  
+  // Remove common Spanish suffixes: "hs", "hs.", "h", "h."
+  cleaned = cleaned.replace(/\s*h[s]?\.?\s*$/i, "").trim();
+  
+  // Handle dot separator (e.g., "8.00" → "8:00")
+  cleaned = cleaned.replace(/^(\d{1,2})\.(\d{2})$/, "$1:$2");
+  
+  // Handle hour-only (e.g., "8" → "08:00")
+  if (/^(\d{1,2})$/.test(cleaned)) {
+    const h = parseInt(cleaned, 10);
+    if (h >= 0 && h < 24) {
+      return { valid: true, time: `${h.toString().padStart(2, "0")}:00` };
+    }
+    return { valid: false, time: input };
+  }
+  
+  // Validate HH:MM format
+  const match = cleaned.match(/^(\d{1,2}):(\d{2})$/);
+  if (match) {
+    const h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+      return { valid: true, time: `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}` };
+    }
+  }
+  
+  return { valid: false, time: input };
+}
+
+/**
+ * Processes comma-separated times input, sanitizing each entry.
+ * Returns { valid: true, times: ["08:00", "20:00"] } or { valid: false, invalidEntries: ["bad"] }
+ */
+function processTimesInput(input: string): { valid: boolean; times: string[]; invalidEntries: string[] } {
+  if (!input.trim()) return { valid: true, times: [], invalidEntries: [] };
+  
+  const entries = input.split(",").map(e => e.trim()).filter(e => e.length > 0);
+  const validTimes: string[] = [];
+  const invalidEntries: string[] = [];
+  
+  for (const entry of entries) {
+    const result = sanitizeTime(entry);
+    if (result.valid) {
+      validTimes.push(result.time);
+    } else {
+      invalidEntries.push(entry);
+    }
+  }
+  
+  return {
+    valid: invalidEntries.length === 0,
+    times: validTimes,
+    invalidEntries,
+  };
+}
+
 export default function Medications() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
@@ -93,13 +158,20 @@ export default function Medications() {
     if (!form.dose_text) { toast.error(t.medications.doseRequired); return; }
     if (form.schedule_type === "Daily" && !form.times) { toast.error(t.medications.timesRequired); return; }
     
+    // Validate and sanitize times
+    const timesResult = processTimesInput(form.times);
+    if (!timesResult.valid) {
+      toast.error(t.medications.timesInvalid);
+      return;
+    }
+    
     setIsSaving(true);
     
     const payload = {
       name: form.name,
       dose_text: form.dose_text,
       schedule_type: form.schedule_type as any,
-      times: form.times ? form.times.split(",").map(t => t.trim()) : [],
+      times: timesResult.times, // Use sanitized times
       notes: form.notes || null,
       status: form.status as any,
       diagnosis_id: form.diagnosis_id || null,
@@ -253,7 +325,13 @@ export default function Medications() {
               </SelectContent>
             </Select>
           </div>
-          {form.schedule_type === "Daily" && <div className="form-field"><Label>{t.medications.times}</Label><Input value={form.times} onChange={(e) => setForm({ ...form, times: e.target.value })} placeholder={t.medications.timesPlaceholder} /></div>}
+          {form.schedule_type === "Daily" && (
+            <div className="form-field">
+              <Label>{t.medications.times}</Label>
+              <Input value={form.times} onChange={(e) => setForm({ ...form, times: e.target.value })} placeholder={t.medications.timesPlaceholder} />
+              <p className="text-xs text-muted-foreground mt-1">{t.medications.timesHelper}</p>
+            </div>
+          )}
           {editingId && (
             <div className="form-field">
               <Label>{t.medications.status}</Label>

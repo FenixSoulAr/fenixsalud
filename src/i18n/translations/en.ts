@@ -176,6 +176,8 @@ export interface Translations {
     schedule: string;
     times: string;
     timesPlaceholder: string;
+    timesHelper: string;
+    timesInvalid: string;
     startDate: string;
     endDate: string;
     status: string;
@@ -697,8 +699,10 @@ export const en: Translations = {
     dose: "Dose",
     dosePlaceholder: "e.g., 100mg",
     schedule: "Schedule",
-    times: "Times (comma-separated)",
-    timesPlaceholder: "e.g., 8:00, 20:00",
+    times: "Times",
+    timesPlaceholder: "e.g., 08:00, 20:00",
+    timesHelper: "Use 24h format: HH:MM (e.g., 08:00, 20:00)",
+    timesInvalid: "Invalid time format. Use HH:MM.",
     startDate: "Start date",
     endDate: "End date",
     status: "Status",
