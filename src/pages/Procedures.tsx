@@ -63,6 +63,25 @@ export default function Procedures() {
     }
   }
 
+  async function fetchInstitutions() {
+    const { data } = await supabase
+      .from("institutions")
+      .select("id, name")
+      .eq("profile_id", activeProfileId)
+      .eq("is_active", true)
+      .order("name");
+    setInstitutions(data || []);
+  }
+
+  async function fetchDoctors() {
+    const { data } = await supabase
+      .from("doctors")
+      .select("id, full_name")
+      .eq("profile_id", activeProfileId)
+      .order("full_name");
+    setDoctors(data || []);
+  }
+
   async function fetchData() {
     if (!activeProfileId) return;
     setLoading(true);
@@ -129,7 +148,8 @@ export default function Procedures() {
     if (!dataProfileId || !currentUserId) return null;
     const { data, error } = await supabase.from("institutions").insert({ name: values.name.trim(), profile_id: dataProfileId, user_id: currentUserId }).select("id").single();
     if (error) { toast.error(t.toast.error); return null; }
-    const { data: updated } = await supabase.from("institutions").select("id, name").eq("profile_id", dataProfileId);
+    // Refresh institutions list (only active)
+    const { data: updated } = await supabase.from("institutions").select("id, name").eq("profile_id", dataProfileId).eq("is_active", true);
     setInstitutions(updated || []);
     toast.success(t.toast.institutionAdded);
     return data?.id || null;

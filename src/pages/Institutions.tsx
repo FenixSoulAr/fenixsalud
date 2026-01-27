@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Building2, MoreHorizontal, Pencil, Trash2, Eye, Search } from "lucide-react";
+import { Plus, Building2, MoreHorizontal, Pencil, Trash2, Eye, Search, ToggleLeft, ToggleRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,6 +12,8 @@ import { MobileSelect } from "@/components/ui/mobile-select";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingPage } from "@/components/ui/loading-spinner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
@@ -37,8 +39,9 @@ export default function Institutions() {
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ name: "", type: "Clinic", address: "", phone: "", notes: "" });
   
-  // Search state
+  // Search and filter state
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"active" | "inactive">("active");
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
 
@@ -133,8 +136,42 @@ export default function Institutions() {
     fetchData();
   }
 
-  // Filter by search
+  async function handleToggleActive(institution: any) {
+    if (!canEdit) {
+      toast.error(lang === "es" ? "No tenés permisos para modificar." : "You don't have permission to modify.");
+      return;
+    }
+    
+    const newIsActive = !institution.is_active;
+    const { error } = await supabase
+      .from("institutions")
+      .update({ 
+        is_active: newIsActive,
+        deactivated_at: newIsActive ? null : new Date().toISOString()
+      })
+      .eq("id", institution.id);
+    
+    if (error) {
+      console.error("Toggle active error:", error);
+      toast.error(t.toast.error);
+      return;
+    }
+    
+    toast.success(newIsActive 
+      ? (lang === "es" ? "Institución reactivada" : "Institution reactivated")
+      : (lang === "es" ? "Institución desactivada" : "Institution deactivated")
+    );
+    setViewDialog(null);
+    fetchData();
+  }
+
+  // Filter by search and active status
   const filteredInstitutions = institutions.filter((inst) => {
+    // Filter by active status
+    const isActiveMatch = activeFilter === "active" ? inst.is_active !== false : inst.is_active === false;
+    if (!isActiveMatch) return false;
+    
+    // Filter by search
     if (searchQuery === "") return true;
     return inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (inst.address && inst.address.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -173,9 +210,19 @@ export default function Institutions() {
         }
       />
 
-      {/* Search Bar */}
+      {/* Filter Tabs and Search Bar */}
       {institutions.length > 0 && (
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
+          <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as "active" | "inactive")}>
+            <TabsList>
+              <TabsTrigger value="active">
+                {lang === "es" ? "Activas" : "Active"}
+              </TabsTrigger>
+              <TabsTrigger value="inactive">
+                {lang === "es" ? "Inactivas" : "Inactive"}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -276,10 +323,28 @@ export default function Institutions() {
             )}
           </div>
           {(canEdit || canDelete) && (
-            <div className="flex gap-2 mt-4">
+            <div className="flex flex-wrap gap-2 mt-4">
               {canEdit && (
                 <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); }}>
                   <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
+                </Button>
+              )}
+              {canEdit && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleToggleActive(viewDialog)}
+                >
+                  {viewDialog?.is_active !== false ? (
+                    <>
+                      <ToggleLeft className="h-4 w-4 mr-2" />
+                      {lang === "es" ? "Desactivar" : "Deactivate"}
+                    </>
+                  ) : (
+                    <>
+                      <ToggleRight className="h-4 w-4 mr-2" />
+                      {lang === "es" ? "Reactivar" : "Reactivate"}
+                    </>
+                  )}
                 </Button>
               )}
               {canDelete && (
@@ -307,7 +372,7 @@ export default function Institutions() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredInstitutions.map((i) => (
-            <div key={i.id} className="health-card relative">
+            <div key={i.id} className={`health-card relative ${i.is_active === false ? 'opacity-60' : ''}`}>
               <div className="absolute top-3 right-3">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -315,13 +380,28 @@ export default function Institutions() {
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="bg-popover">
                     <DropdownMenuItem onClick={() => setViewDialog(i)}>
                       <Eye className="h-4 w-4 mr-2" />{t.actions.view}
                     </DropdownMenuItem>
                     {canEdit && (
                       <DropdownMenuItem onClick={() => openEdit(i)}>
                         <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
+                      </DropdownMenuItem>
+                    )}
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => handleToggleActive(i)}>
+                        {i.is_active !== false ? (
+                          <>
+                            <ToggleLeft className="h-4 w-4 mr-2" />
+                            {lang === "es" ? "Desactivar" : "Deactivate"}
+                          </>
+                        ) : (
+                          <>
+                            <ToggleRight className="h-4 w-4 mr-2" />
+                            {lang === "es" ? "Reactivar" : "Reactivate"}
+                          </>
+                        )}
                       </DropdownMenuItem>
                     )}
                     {canDelete && (
@@ -333,7 +413,14 @@ export default function Institutions() {
                 </DropdownMenu>
               </div>
               <div className="flex items-start justify-between pr-10">
-                <h3 className="font-semibold">{i.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">{i.name}</h3>
+                  {i.is_active === false && (
+                    <Badge variant="secondary" className="text-xs">
+                      {lang === "es" ? "Inactiva" : "Inactive"}
+                    </Badge>
+                  )}
+                </div>
                 <span className="text-xs bg-secondary px-2 py-1 rounded">{getTranslatedType(i.type)}</span>
               </div>
               {i.address && <p className="text-sm text-muted-foreground mt-2">{i.address}</p>}

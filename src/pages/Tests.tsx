@@ -38,12 +38,22 @@ export default function Tests() {
 
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
+  async function fetchInstitutions() {
+    const { data } = await supabase
+      .from("institutions")
+      .select("id, name")
+      .eq("profile_id", activeProfileId)
+      .eq("is_active", true)
+      .order("name");
+    setInstitutions(data || []);
+  }
+
   async function fetchData() {
     if (!activeProfileId) return;
     setLoading(true);
     const [testRes, instRes] = await Promise.all([
       supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
-      supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId),
+      supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId).eq("is_active", true),
     ]);
     const testsData = testRes.data || [];
     setTests(testsData);
@@ -158,11 +168,12 @@ export default function Tests() {
       toast.error(t.toast.error);
       return null;
     }
-    // Refresh institutions list
+    // Refresh institutions list (only active)
     const { data: updated } = await supabase
       .from("institutions")
       .select("id, name")
-      .eq("profile_id", dataProfileId);
+      .eq("profile_id", dataProfileId)
+      .eq("is_active", true);
     setInstitutions(updated || []);
     toast.success(t.toast.institutionAdded);
     return data?.id || null;
