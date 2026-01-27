@@ -430,6 +430,7 @@ export interface Translations {
     downloadExport: string;
     expiresIn24Hours: string;
     recordsExported: string;
+    attachmentsIncluded: string;
     closeAccount: string;
     closeAccountDesc: string;
     closeAccountTitle: string;
@@ -1030,6 +1031,7 @@ export const en: Translations = {
     downloadExport: "Download export",
     expiresIn24Hours: "Link expires in 24 hours",
     recordsExported: "records exported",
+    attachmentsIncluded: "attachments included",
     closeAccount: "Close account",
     closeAccountDesc: "Permanently delete your account and all associated data.",
     closeAccountTitle: "Close account?",

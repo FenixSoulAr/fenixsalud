@@ -19,6 +19,7 @@ interface TableDeleteConfig {
 }
 
 // Tables to delete and their ownership rules (ORDER MATTERS for foreign key constraints)
+// Delete children first, then parents
 const TABLES_TO_DELETE: TableDeleteConfig[] = [
   // First delete dependent tables (children first)
   { table: "medication_logs", ownerColumn: "user_id" },
@@ -28,7 +29,7 @@ const TABLES_TO_DELETE: TableDeleteConfig[] = [
   { table: "promo_code_redemptions", ownerColumn: "user_id" },
   { table: "referrals", ownerColumn: "referrer_user_id", additionalColumn: "referred_user_id" },
   
-  // Then delete main tables
+  // Main health data tables
   { table: "appointments", ownerColumn: "user_id" },
   { table: "diagnoses", ownerColumn: "user_id" },
   { table: "doctors", ownerColumn: "user_id" },
@@ -38,7 +39,7 @@ const TABLES_TO_DELETE: TableDeleteConfig[] = [
   { table: "reminders", ownerColumn: "user_id" },
   { table: "tests", ownerColumn: "user_id" },
   
-  // Profile-related
+  // Profile-related (owner_user_id)
   { table: "profile_shares", ownerColumn: "owner_id" },
   { table: "referral_codes", ownerColumn: "user_id" },
   
@@ -84,8 +85,8 @@ app.post("/*", async (c) => {
     // Use service role for all operations
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Step 1: Delete attachment files from storage
-    console.log("[delete-user-account] Step 1: Deleting attachment files...");
+    // Step 1: Delete attachment files from health-files bucket
+    console.log("[delete-user-account] Step 1: Deleting attachment files from health-files bucket...");
     const { data: attachments } = await adminClient
       .from("file_attachments")
       .select("file_url")
@@ -111,8 +112,8 @@ app.post("/*", async (c) => {
       }
     }
 
-    // Step 2: Delete export ZIPs from storage
-    console.log("[delete-user-account] Step 2: Deleting export files...");
+    // Step 2: Delete export ZIPs from exports bucket
+    console.log("[delete-user-account] Step 2: Deleting export files from exports bucket...");
     try {
       const { data: exportFiles } = await adminClient.storage
         .from("exports")
