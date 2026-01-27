@@ -421,6 +421,25 @@ export interface Translations {
     daysLeft: string;
     subscribeNow: string;
     promoUnlimited: string;
+    // Data & Account section
+    dataAndAccount: string;
+    exportMyData: string;
+    exportMyDataDesc: string;
+    exportingData: string;
+    exportReady: string;
+    downloadExport: string;
+    expiresIn24Hours: string;
+    recordsExported: string;
+    closeAccount: string;
+    closeAccountDesc: string;
+    closeAccountTitle: string;
+    closeAccountConfirm: string;
+    closeAccountWarning: string;
+    closingAccount: string;
+    downloadDataFirst: string;
+    downloadDataFirstDesc: string;
+    exportNow: string;
+    deleteAnyway: string;
   };
   auth: {
     signIn: string;
@@ -1002,6 +1021,25 @@ export const en: Translations = {
     daysLeft: "days left",
     subscribeNow: "Subscribe now",
     promoUnlimited: "Unlimited promo access",
+    // Data & Account section
+    dataAndAccount: "Data & Account",
+    exportMyData: "Export my data",
+    exportMyDataDesc: "Download all your data in a ZIP file",
+    exportingData: "Exporting...",
+    exportReady: "Export ready!",
+    downloadExport: "Download export",
+    expiresIn24Hours: "Link expires in 24 hours",
+    recordsExported: "records exported",
+    closeAccount: "Close account",
+    closeAccountDesc: "Permanently delete your account and all associated data.",
+    closeAccountTitle: "Close account?",
+    closeAccountConfirm: "I understand that deletion is permanent",
+    closeAccountWarning: "This action will delete all your health data, attachments, and settings. It cannot be undone.",
+    closingAccount: "Closing account...",
+    downloadDataFirst: "Download your data first?",
+    downloadDataFirstDesc: "You haven't exported your data recently. We recommend downloading a copy before closing your account.",
+    exportNow: "Export now",
+    deleteAnyway: "Delete anyway",
   },
   
   // Auth
