@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useTranslations } from "@/i18n";
-import { Paperclip, FileWarning } from "lucide-react";
+import { Paperclip, FileWarning, AlertCircle } from "lucide-react";
 
 interface AttachmentPageProps {
   attachment: {
@@ -16,12 +16,14 @@ interface AttachmentPageProps {
   entityTitle: string;
   entityDate: string;
   type: "test" | "procedure";
+  onLoadError?: (attachmentId: string, error: string) => void;
 }
 
-export function AttachmentPage({ attachment, entityTitle, entityDate, type }: AttachmentPageProps) {
+export function AttachmentPage({ attachment, entityTitle, entityDate, type, onLoadError }: AttachmentPageProps) {
   const t = useTranslations();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const isImage = attachment.mime_type?.startsWith("image/");
@@ -40,7 +42,10 @@ export function AttachmentPage({ attachment, entityTitle, entityDate, type }: At
         const accessToken = sessionData?.session?.access_token;
 
         if (!accessToken) {
+          const msg = "No session available";
+          setErrorMessage(msg);
           setLoadError(true);
+          onLoadError?.(attachment.id, msg);
           setLoading(false);
           return;
         }
@@ -48,25 +53,45 @@ export function AttachmentPage({ attachment, entityTitle, entityDate, type }: At
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         const proxyUrl = `https://${projectId}.supabase.co/functions/v1/attachment-proxy`;
 
+        // Send both attachmentId (preferred) and fileUrl (fallback) to the proxy
         const response = await fetch(proxyUrl, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ fileUrl: attachment.file_url }),
+          body: JSON.stringify({ 
+            attachmentId: attachment.id,
+            fileUrl: attachment.file_url 
+          }),
         });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch attachment");
+          let errorDetail = `HTTP ${response.status}`;
+          try {
+            const errJson = await response.json();
+            errorDetail = errJson.error || errorDetail;
+          } catch {
+            // Ignore JSON parse errors
+          }
+          
+          console.warn(`Failed to fetch attachment ${attachment.id}: ${errorDetail}`);
+          setErrorMessage(errorDetail);
+          setLoadError(true);
+          onLoadError?.(attachment.id, errorDetail);
+          setLoading(false);
+          return;
         }
 
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
         setImageUrl(objectUrl);
       } catch (error) {
-        console.error("Error loading attachment:", error);
+        const msg = error instanceof Error ? error.message : "Unknown error";
+        console.error("Error loading attachment:", msg);
+        setErrorMessage(msg);
         setLoadError(true);
+        onLoadError?.(attachment.id, msg);
       } finally {
         setLoading(false);
       }
@@ -79,11 +104,13 @@ export function AttachmentPage({ attachment, entityTitle, entityDate, type }: At
         URL.revokeObjectURL(imageUrl);
       }
     };
-  }, [attachment.file_url, canEmbed]);
+  }, [attachment.id, attachment.file_url, canEmbed]);
 
   const typeLabel = type === "test" ? t.clinicalSummary.testAttachment : t.clinicalSummary.procedureAttachment;
   const formattedDate = format(new Date(entityDate), "MMM d, yyyy");
 
+  // If there was a load error, still render the page but with error state
+  // This allows the clinical summary to continue generating
   return (
     <div className="attachment-page break-before-page print:break-before-page">
       {/* Header */}
@@ -103,7 +130,18 @@ export function AttachmentPage({ attachment, entityTitle, entityDate, type }: At
           <div className="text-muted-foreground text-sm">
             {t.clinicalSummary.loadingAttachments}
           </div>
-        ) : loadError || !canEmbed ? (
+        ) : loadError ? (
+          <div className="text-center p-8 bg-destructive/10 rounded-lg max-w-md">
+            <AlertCircle className="h-12 w-12 mx-auto mb-3 text-destructive" />
+            <p className="text-sm text-destructive font-medium">
+              {t.clinicalSummary.attachmentLoadFailed || "Could not load this attachment"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {attachment.file_name}
+              {errorMessage && ` - ${errorMessage}`}
+            </p>
+          </div>
+        ) : !canEmbed ? (
           <div className="text-center p-8 bg-muted/50 rounded-lg max-w-md">
             <FileWarning className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
@@ -119,7 +157,10 @@ export function AttachmentPage({ attachment, entityTitle, entityDate, type }: At
             src={imageUrl}
             alt={attachment.file_name}
             className="max-w-full max-h-[700px] object-contain print:max-h-[800px]"
-            onError={() => setLoadError(true)}
+            onError={() => {
+              setLoadError(true);
+              onLoadError?.(attachment.id, "Image failed to render");
+            }}
           />
         ) : null}
       </div>

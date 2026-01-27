@@ -12,14 +12,37 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Get attachment ID from URL path
     const url = new URL(req.url);
-    const pathParts = url.pathname.split("/");
-    const attachmentId = pathParts[pathParts.length - 1];
+    let attachmentId: string | null = null;
+    let fileUrl: string | null = null;
+
+    // Support both GET with path param and POST with body
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        attachmentId = body.attachmentId || null;
+        fileUrl = body.fileUrl || null;
+      } catch {
+        // Body parsing failed, continue to check path
+      }
+    }
+    
+    // Also check URL path for attachment ID (for GET requests or fallback)
+    if (!attachmentId) {
+      const pathParts = url.pathname.split("/");
+      const lastPart = pathParts[pathParts.length - 1];
+      // Check if last part looks like a UUID
+      if (lastPart && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastPart)) {
+        attachmentId = lastPart;
+      }
+    }
+    
     const download = url.searchParams.get("download") === "1";
 
-    if (!attachmentId) {
-      return new Response(JSON.stringify({ error: "Missing attachment ID" }), {
+    // Must have either attachmentId or fileUrl
+    if (!attachmentId && !fileUrl) {
+      console.error("Missing both attachmentId and fileUrl");
+      return new Response(JSON.stringify({ error: "Missing attachment identifier" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -52,60 +75,149 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`User ${user.id} requesting attachment ${attachmentId}`);
+    console.log(`User ${user.id} requesting attachment. ID: ${attachmentId}, fileUrl: ${fileUrl}`);
 
     // Create service client for privileged operations
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch attachment metadata
-    const { data: attachment, error: fetchError } = await serviceClient
-      .from("file_attachments")
-      .select("id, file_name, file_url, mime_type, user_id")
-      .eq("id", attachmentId)
-      .single();
+    let attachment: any = null;
 
-    if (fetchError || !attachment) {
-      console.error("Attachment fetch error:", fetchError);
-      return new Response(JSON.stringify({ error: "Attachment not found" }), {
+    // If we have an attachmentId, fetch by ID
+    if (attachmentId) {
+      const { data, error: fetchError } = await serviceClient
+        .from("file_attachments")
+        .select("id, file_name, file_url, mime_type, user_id, profile_id")
+        .eq("id", attachmentId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("Attachment fetch error by ID:", fetchError);
+      }
+      attachment = data;
+    }
+
+    // If no attachment found by ID and we have a fileUrl, try to find by file_url
+    if (!attachment && fileUrl) {
+      // Normalize the fileUrl - extract just the path if it's a full URL
+      let normalizedPath = fileUrl;
+      
+      // Check if fileUrl is a full Supabase storage URL
+      if (fileUrl.includes("/storage/v1/object/")) {
+        // Extract path after bucket name
+        const match = fileUrl.match(/\/storage\/v1\/object\/(?:public|authenticated)\/([^/]+)\/(.+)/);
+        if (match) {
+          normalizedPath = match[2]; // The path after bucket name
+          console.log(`Extracted path from full URL: ${normalizedPath}`);
+        }
+      }
+      
+      // Try to find attachment by file_url (exact match first)
+      const { data: byUrl, error: urlError } = await serviceClient
+        .from("file_attachments")
+        .select("id, file_name, file_url, mime_type, user_id, profile_id")
+        .eq("file_url", normalizedPath)
+        .maybeSingle();
+
+      if (urlError) {
+        console.error("Attachment fetch error by URL:", urlError);
+      }
+      
+      if (byUrl) {
+        attachment = byUrl;
+        console.log(`Found attachment by file_url: ${attachment.id}`);
+      } else {
+        // Try original fileUrl as-is
+        const { data: byOriginal } = await serviceClient
+          .from("file_attachments")
+          .select("id, file_name, file_url, mime_type, user_id, profile_id")
+          .eq("file_url", fileUrl)
+          .maybeSingle();
+        
+        if (byOriginal) {
+          attachment = byOriginal;
+          console.log(`Found attachment by original fileUrl: ${attachment.id}`);
+        }
+      }
+    }
+
+    if (!attachment) {
+      console.error(`Attachment not found. ID: ${attachmentId}, fileUrl: ${fileUrl}`);
+      return new Response(JSON.stringify({ 
+        error: "Attachment not found",
+        details: { attachmentId, fileUrl }
+      }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Attachment belongs to user_id: ${attachment.user_id}`);
+    console.log(`Attachment found: ${attachment.id}, user_id: ${attachment.user_id}, profile_id: ${attachment.profile_id}`);
 
-    // Check access permission using the can_access_profile function
-    const { data: canAccess, error: accessError } = await serviceClient.rpc(
-      "can_access_profile",
-      { _user_id: user.id, _profile_owner_id: attachment.user_id }
-    );
+    // Check access permission - try profile-based access first (newer model)
+    let canAccess = false;
+    
+    if (attachment.profile_id) {
+      const { data: profileAccess, error: profileAccessError } = await serviceClient.rpc(
+        "can_access_profile_by_id",
+        { _profile_id: attachment.profile_id, _user_id: user.id }
+      );
+      
+      if (profileAccessError) {
+        console.error("Profile access check error:", profileAccessError);
+      } else {
+        canAccess = !!profileAccess;
+        console.log(`Profile-based access check: ${canAccess}`);
+      }
+    }
+    
+    // Fallback to user-based access check
+    if (!canAccess && attachment.user_id) {
+      const { data: userAccess, error: accessError } = await serviceClient.rpc(
+        "can_access_profile",
+        { _user_id: user.id, _profile_owner_id: attachment.user_id }
+      );
 
-    if (accessError) {
-      console.error("Access check error:", accessError);
-      return new Response(JSON.stringify({ error: "Permission check failed" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (accessError) {
+        console.error("User access check error:", accessError);
+      } else {
+        canAccess = !!userAccess;
+        console.log(`User-based access check: ${canAccess}`);
+      }
     }
 
     if (!canAccess) {
-      console.log(`User ${user.id} denied access to attachment owned by ${attachment.user_id}`);
-      return new Response(JSON.stringify({ error: "You don't have permission to view this file" }), {
+      console.log(`User ${user.id} denied access to attachment ${attachment.id}`);
+      return new Response(JSON.stringify({ error: "Permission denied" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Access granted. Fetching file from storage: ${attachment.file_url}`);
+    // Determine storage path
+    let storagePath = attachment.file_url;
+    
+    // If file_url is a full URL, extract just the path
+    if (storagePath.startsWith("http")) {
+      const match = storagePath.match(/\/storage\/v1\/object\/(?:public|authenticated)\/health-files\/(.+)/);
+      if (match) {
+        storagePath = match[1];
+        console.log(`Extracted storage path: ${storagePath}`);
+      }
+    }
+
+    console.log(`Fetching file from storage path: ${storagePath}`);
 
     // Fetch file from storage using service client
     const { data: fileData, error: storageError } = await serviceClient.storage
       .from("health-files")
-      .download(attachment.file_url);
+      .download(storagePath);
 
     if (storageError || !fileData) {
       console.error("Storage download error:", storageError);
-      return new Response(JSON.stringify({ error: "Failed to fetch file" }), {
+      return new Response(JSON.stringify({ 
+        error: "Failed to fetch file from storage",
+        storagePath
+      }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -120,7 +232,7 @@ Deno.serve(async (req) => {
       ? `attachment; filename="${fileName}"`
       : `inline; filename="${fileName}"`;
 
-    console.log(`Serving file: ${fileName}, type: ${contentType}, disposition: ${disposition}`);
+    console.log(`Serving file: ${fileName}, type: ${contentType}`);
 
     // Stream the file back to client
     return new Response(fileData, {
