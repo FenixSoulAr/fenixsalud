@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Trash2, User, Shield, Bell, CreditCard, Crown, Users, Plus, Lock, Download, FileDown, Loader2, Pencil, Clock, AlertTriangle } from "lucide-react";
+import { Trash2, User, Shield, Bell, CreditCard, Crown, Users, Plus, Lock, Download, FileDown, Loader2, Pencil, Clock, AlertTriangle, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { SharingSection } from "@/components/sharing/SharingSection";
@@ -17,6 +19,7 @@ import { useSharing } from "@/contexts/SharingContext";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { useEntitlementGate } from "@/hooks/useEntitlementGate";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { useAccountActions } from "@/hooks/useAccountActions";
 import { toast } from "sonner";
 import { useTranslations } from "@/i18n";
 import { useNavigate } from "react-router-dom";
@@ -47,6 +50,7 @@ export default function Settings() {
   const { isPlus, isAdmin, hasPromoOverride, promoExpiresAt, maxProfiles, maxAttachments, canExportPdf, canExportBackup, planName, loading: entitlementsLoading } = useEntitlementsContext();
   const { checkProfileLimit, gatedMessages } = useEntitlementGate();
   const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
+  const { exporting, exportResult, deleting, exportUserData, deleteAccount, hasRecentExport, getTotalRecords } = useAccountActions();
   const navigate = useNavigate();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
@@ -64,6 +68,8 @@ export default function Settings() {
   const [editProfileName, setEditProfileName] = useState("");
   const [savingFamilyProfile, setSavingFamilyProfile] = useState(false);
   const [deletingFamilyProfileId, setDeletingFamilyProfileId] = useState<string | null>(null);
+  const [closeAccountConfirmed, setCloseAccountConfirmed] = useState(false);
+  const [showExportFirstDialog, setShowExportFirstDialog] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
@@ -181,9 +187,32 @@ export default function Settings() {
     toast.success(t.toast.profileDeleted);
   }
 
-  async function handleDeleteAccount() {
-    await signOut();
-    toast.success(t.toast.accountDeleted);
+  async function handleCloseAccount() {
+    if (!hasRecentExport()) {
+      setShowExportFirstDialog(true);
+      return;
+    }
+    await performAccountDeletion();
+  }
+
+  async function performAccountDeletion() {
+    const result = await deleteAccount();
+    if (result.success) {
+      await signOut();
+      toast.success(t.toast.accountDeleted);
+      navigate("/auth/sign-in");
+    } else {
+      toast.error(t.toast.error);
+    }
+  }
+
+  async function handleExportData() {
+    const result = await exportUserData();
+    if (result.success) {
+      toast.success(t.settings.exportReady);
+    } else {
+      toast.error(t.toast.error);
+    }
   }
 
   async function handleAddFamilyProfile(e: React.FormEvent) {
@@ -815,30 +844,119 @@ export default function Settings() {
               </form>
             </div>
             
-            {/* Danger Zone */}
+            {/* Danger Zone - replaced with Data & Account section below */}
+          </div>
+        </section>
+
+        {/* Data & Account Section */}
+        <section className="health-card border-destructive/20">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            {t.settings.dataAndAccount}
+          </h2>
+          
+          <div className="space-y-6">
+            {/* Export Data */}
+            <div>
+              <h3 className="text-sm font-medium mb-2">{t.settings.exportMyData}</h3>
+              <p className="text-sm text-muted-foreground mb-3">{t.settings.exportMyDataDesc}</p>
+              
+              {exportResult ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <p className="text-sm font-medium text-primary">{t.settings.exportReady}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {getTotalRecords()} {t.settings.recordsExported}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild>
+                      <a href={exportResult.signedUrl} download>
+                        <Download className="h-4 w-4 mr-2" />
+                        {t.settings.downloadExport}
+                      </a>
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t.settings.expiresIn24Hours}</p>
+                </div>
+              ) : (
+                <Button onClick={handleExportData} disabled={exporting} variant="outline">
+                  {exporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {t.settings.exportingData}
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      {t.settings.exportMyData}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+            
+            {/* Close Account */}
             <div className="border-t pt-6">
-              <h3 className="text-sm font-medium text-destructive mb-2">{t.settings.dangerZone}</h3>
-              <p className="text-sm text-muted-foreground mb-4">{t.settings.dangerZoneDesc}</p>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />{t.settings.deleteAccount}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t.settings.deleteAccountTitle}</AlertDialogTitle>
-                    <AlertDialogDescription>{t.settings.deleteAccountDescription}</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <h3 className="text-sm font-medium text-destructive mb-2">{t.settings.closeAccount}</h3>
+              <p className="text-sm text-muted-foreground mb-4">{t.settings.closeAccountDesc}</p>
+              
+              <div className="flex items-start gap-2 mb-4">
+                <Checkbox 
+                  id="confirm-close"
+                  checked={closeAccountConfirmed}
+                  onCheckedChange={(checked) => setCloseAccountConfirmed(checked === true)}
+                />
+                <Label htmlFor="confirm-close" className="text-sm cursor-pointer">
+                  {t.settings.closeAccountConfirm}
+                </Label>
+              </div>
+              
+              <Button 
+                variant="destructive" 
+                disabled={!closeAccountConfirmed || deleting}
+                onClick={handleCloseAccount}
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {t.settings.closingAccount}
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {t.settings.closeAccount}
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </section>
+
+        {/* Export First Dialog */}
+        <Dialog open={showExportFirstDialog} onOpenChange={setShowExportFirstDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t.settings.downloadDataFirst}</DialogTitle>
+              <DialogDescription>{t.settings.downloadDataFirstDesc}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => {
+                setShowExportFirstDialog(false);
+                handleExportData();
+              }}>
+                <Download className="h-4 w-4 mr-2" />
+                {t.settings.exportNow}
+              </Button>
+              <Button variant="destructive" onClick={() => {
+                setShowExportFirstDialog(false);
+                performAccountDeletion();
+              }}>
+                {t.settings.deleteAnyway}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
