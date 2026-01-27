@@ -368,6 +368,7 @@ export const es: Translations = {
     testAttachment: "Estudio",
     procedureAttachment: "Procedimiento",
     attachmentNotEmbeddable: "Adjunto no embebible. Archivo disponible para descarga.",
+    attachmentLoadFailed: "No se pudo cargar este adjunto",
     loadingAttachments: "Cargando adjuntos...",
   },
   

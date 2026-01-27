@@ -49,6 +49,9 @@ export default function ClinicalSummary() {
   const [procedures, setProcedures] = useState<any[]>([]);
   const [procedureAttachmentsFull, setProcedureAttachmentsFull] = useState<FileAttachment[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
+  
+  // Track attachment loading failures
+  const [failedAttachments, setFailedAttachments] = useState<{ id: string; name: string; error: string }[]>([]);
 
   const twelveMonthsAgo = subMonths(new Date(), 12);
 
@@ -516,6 +519,26 @@ export default function ClinicalSummary() {
               <Paperclip className="h-5 w-5" />{t.clinicalSummary.attachmentsSection}
             </h2>
             
+            {/* Warning for failed attachments - shown in print too */}
+            {failedAttachments.length > 0 && (
+              <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+                  {lang === "es" 
+                    ? `Algunos adjuntos no pudieron incluirse (${failedAttachments.length}). El resumen se generó sin ellos.`
+                    : `Some attachments could not be included (${failedAttachments.length}). The summary was generated without them.`
+                  }
+                </p>
+                <ul className="mt-2 text-xs text-amber-700 dark:text-amber-400 list-disc list-inside">
+                  {failedAttachments.slice(0, 5).map(f => (
+                    <li key={f.id}>{f.name}</li>
+                  ))}
+                  {failedAttachments.length > 5 && (
+                    <li>{lang === "es" ? `...y ${failedAttachments.length - 5} más` : `...and ${failedAttachments.length - 5} more`}</li>
+                  )}
+                </ul>
+              </div>
+            )}
+            
             {/* Test Attachments */}
             {includeTestAttachments && testAttachmentsFull.map(attachment => {
               const test = tests.find(t => t.id === attachment.entity_id);
@@ -527,6 +550,13 @@ export default function ClinicalSummary() {
                   entityTitle={test.type}
                   entityDate={test.date}
                   type="test"
+                  onLoadError={(id, error) => {
+                    setFailedAttachments(prev => {
+                      // Avoid duplicates
+                      if (prev.some(f => f.id === id)) return prev;
+                      return [...prev, { id, name: attachment.file_name, error }];
+                    });
+                  }}
                 />
               );
             })}
@@ -542,6 +572,12 @@ export default function ClinicalSummary() {
                   entityTitle={procedure.title}
                   entityDate={procedure.date}
                   type="procedure"
+                  onLoadError={(id, error) => {
+                    setFailedAttachments(prev => {
+                      if (prev.some(f => f.id === id)) return prev;
+                      return [...prev, { id, name: attachment.file_name, error }];
+                    });
+                  }}
                 />
               );
             })}

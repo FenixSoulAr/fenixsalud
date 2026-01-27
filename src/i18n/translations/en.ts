@@ -342,6 +342,7 @@ export interface Translations {
     testAttachment: string;
     procedureAttachment: string;
     attachmentNotEmbeddable: string;
+    attachmentLoadFailed: string;
     loadingAttachments: string;
   };
   settings: {
@@ -941,6 +942,7 @@ export const en: Translations = {
     testAttachment: "Test",
     procedureAttachment: "Procedure",
     attachmentNotEmbeddable: "Attachment cannot be embedded. File available for download.",
+    attachmentLoadFailed: "Could not load this attachment",
     loadingAttachments: "Loading attachments...",
   },
   
