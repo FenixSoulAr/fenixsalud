@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Building2, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Building2, MoreHorizontal, Pencil, Trash2, Eye, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import { LoadingPage } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
+import { useTranslations, getLanguage } from "@/i18n";
 
 const INSTITUTION_TYPE_OPTIONS = [
   { value: "Clinic", label: "Clinic" },
@@ -25,6 +26,8 @@ const INSTITUTION_TYPE_OPTIONS = [
 
 export default function Institutions() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
+  const t = useTranslations();
+  const lang = getLanguage();
   const [loading, setLoading] = useState(true);
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -33,6 +36,9 @@ export default function Institutions() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ name: "", type: "Clinic", address: "", phone: "", notes: "" });
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
 
@@ -63,8 +69,11 @@ export default function Institutions() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canEdit) { toast.error("You have view-only access to this profile."); return; }
-    if (!form.name) { toast.error("Institution name is required."); return; }
+    if (!canEdit) { 
+      toast.error(lang === "es" ? "Tenés acceso de solo lectura a este perfil." : "You have view-only access to this profile."); 
+      return; 
+    }
+    if (!form.name) { toast.error(t.institutions.nameRequired); return; }
     
     setIsSaving(true);
     
@@ -81,30 +90,33 @@ export default function Institutions() {
         const { error } = await supabase.from("institutions").update(payload).eq("id", editingId);
         if (error) { 
           console.error("Update error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-          toast.error(error.code === "42501" ? "No tenés permisos para editar." : "Algo salió mal. Por favor, intentá de nuevo."); 
+          toast.error(error.code === "42501" 
+            ? (lang === "es" ? "No tenés permisos para editar." : "You don't have permission to edit.") 
+            : t.toast.error); 
           return; 
         }
       } else {
         if (!dataProfileId || !currentUserId) { 
           console.error("Missing IDs:", { dataProfileId, currentUserId });
-          toast.error("Falta el perfil activo o usuario."); 
+          toast.error(lang === "es" ? "Falta el perfil activo o usuario." : "Missing active profile or user."); 
           return; 
         }
-        console.log("Inserting institution:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
         const { error } = await supabase.from("institutions").insert({ profile_id: dataProfileId, user_id: currentUserId, ...payload });
         if (error) { 
           console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-          const msg = error.code === "42501" ? "No tenés permisos para crear." : 
-                      error.code === "23503" ? "Error de referencia: verificá el perfil." : "Algo salió mal. Por favor, intentá de nuevo.";
+          const msg = error.code === "42501" 
+            ? (lang === "es" ? "No tenés permisos para crear." : "You don't have permission to create.") 
+            : error.code === "23503" 
+            ? (lang === "es" ? "Error de referencia: verificá el perfil." : "Reference error: check the profile.") 
+            : t.toast.error;
           toast.error(msg); 
           return; 
         }
       }
 
-      // Success: close modal immediately, then show toast
       setDialogOpen(false);
       resetForm();
-      toast.success(editingId ? "Changes updated." : "Saved successfully.");
+      toast.success(editingId ? t.toast.changesUpdated : t.toast.savedSuccess);
       fetchData();
     } finally {
       setIsSaving(false);
@@ -114,55 +126,108 @@ export default function Institutions() {
   async function handleDelete() {
     if (!deleteId) return;
     const { error } = await supabase.from("institutions").delete().eq("id", deleteId);
-    if (error) { toast.error("Something went wrong. Please try again."); return; }
-    toast.success("Deleted successfully.");
+    if (error) { toast.error(t.toast.error); return; }
+    toast.success(t.toast.deletedSuccess);
     setDeleteId(null);
     setViewDialog(null);
     fetchData();
   }
 
+  // Filter by search
+  const filteredInstitutions = institutions.filter((inst) => {
+    if (searchQuery === "") return true;
+    return inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (inst.address && inst.address.toLowerCase().includes(searchQuery.toLowerCase()));
+  });
+
+  // Translate institution type
+  function getTranslatedType(type: string) {
+    switch (type) {
+      case "Clinic": return t.institutions.clinic;
+      case "Lab": return t.institutions.lab;
+      case "Hospital": return t.institutions.hospital;
+      case "Other": return t.institutions.other;
+      default: return type;
+    }
+  }
+
+  const typeOptions = INSTITUTION_TYPE_OPTIONS.map(opt => ({
+    value: opt.value,
+    label: getTranslatedType(opt.value)
+  }));
+
   if (loading) return <LoadingPage />;
 
   return (
     <div className="animate-fade-in">
-      <PageHeader variant="gradient" title="Institutions" description="Clinics, labs, and hospitals"
+      <PageHeader 
+        variant="gradient" 
+        title={t.institutions.title} 
+        description={t.institutions.description}
         actions={
           canEdit ? (
             <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />Add institution
+              <Plus className="h-4 w-4 mr-2" />{t.institutions.addInstitution}
             </Button>
           ) : undefined
         }
       />
 
+      {/* Search Bar */}
+      {institutions.length > 0 && (
+        <div className="mb-6">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t.actions.search}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+      )}
+
       <ResponsiveFormModal
         open={dialogOpen}
         onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}
-        title={editingId ? "Edit Institution" : "Add Institution"}
+        title={editingId ? t.institutions.editInstitution : t.institutions.newInstitution}
         footer={
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+            <Button variant="outline" type="button" onClick={() => setDialogOpen(false)} disabled={isSaving}>{t.actions.cancel}</Button>
             <Button type="submit" form="institution-form" disabled={isSaving}>
-              {isSaving ? "Saving..." : (editingId ? "Save Changes" : "Add Institution")}
+              {isSaving ? t.actions.saving : (editingId ? t.actions.saveChanges : t.institutions.addInstitution)}
             </Button>
           </div>
         }
       >
         <form id="institution-form" onSubmit={handleSubmit} className="space-y-4">
-          <div className="form-field"><Label>Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
           <div className="form-field">
-            <Label>Type</Label>
+            <Label>{t.institutions.name} *</Label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          </div>
+          <div className="form-field">
+            <Label>{t.institutions.type}</Label>
             <MobileSelect
               value={form.type}
               onValueChange={(v) => setForm({ ...form, type: v })}
-              options={INSTITUTION_TYPE_OPTIONS}
-              placeholder="Select type"
-              label="Institution type"
+              options={typeOptions}
+              placeholder={lang === "es" ? "Seleccionar tipo" : "Select type"}
+              label={t.institutions.type}
             />
           </div>
-          <div className="form-field"><Label>Address</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
-          <div className="form-field"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-          <div className="form-field"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+          <div className="form-field">
+            <Label>{t.institutions.address}</Label>
+            <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder={lang === "es" ? "ej., Av. Corrientes 1234" : "e.g., 123 Main St"} />
+          </div>
+          <div className="form-field">
+            <Label>{t.institutions.phone}</Label>
+            <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          </div>
+          <div className="form-field">
+            <Label>{t.institutions.notes}</Label>
+            <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
         </form>
       </ResponsiveFormModal>
 
@@ -170,12 +235,12 @@ export default function Institutions() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete item?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>{t.dialogs.deleteItem}</AlertDialogTitle>
+            <AlertDialogDescription>{t.dialogs.deleteItemDescription}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t.actions.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t.actions.delete}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -185,21 +250,41 @@ export default function Institutions() {
         <DialogContent>
           <DialogHeader><DialogTitle>{viewDialog?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            {viewDialog?.type && <div><Label className="text-muted-foreground text-xs">Type</Label><p>{viewDialog.type}</p></div>}
-            {viewDialog?.address && <div><Label className="text-muted-foreground text-xs">Address</Label><p>{viewDialog.address}</p></div>}
-            {viewDialog?.phone && <div><Label className="text-muted-foreground text-xs">Phone</Label><p>{viewDialog.phone}</p></div>}
-            {viewDialog?.notes && <div><Label className="text-muted-foreground text-xs">Notes</Label><p>{viewDialog.notes}</p></div>}
+            {viewDialog?.type && (
+              <div>
+                <Label className="text-muted-foreground text-xs">{t.institutions.type}</Label>
+                <p>{getTranslatedType(viewDialog.type)}</p>
+              </div>
+            )}
+            {viewDialog?.address && (
+              <div>
+                <Label className="text-muted-foreground text-xs">{t.institutions.address}</Label>
+                <p>{viewDialog.address}</p>
+              </div>
+            )}
+            {viewDialog?.phone && (
+              <div>
+                <Label className="text-muted-foreground text-xs">{t.institutions.phone}</Label>
+                <p>{viewDialog.phone}</p>
+              </div>
+            )}
+            {viewDialog?.notes && (
+              <div>
+                <Label className="text-muted-foreground text-xs">{t.institutions.notes}</Label>
+                <p>{viewDialog.notes}</p>
+              </div>
+            )}
           </div>
           {(canEdit || canDelete) && (
             <div className="flex gap-2 mt-4">
               {canEdit && (
                 <Button onClick={() => { openEdit(viewDialog); setViewDialog(null); }}>
-                  <Pencil className="h-4 w-4 mr-2" />Edit
+                  <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
                 </Button>
               )}
               {canDelete && (
                 <Button variant="destructive" onClick={() => setDeleteId(viewDialog?.id)}>
-                  <Trash2 className="h-4 w-4 mr-2" />Delete
+                  <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
                 </Button>
               )}
             </div>
@@ -207,11 +292,21 @@ export default function Institutions() {
         </DialogContent>
       </Dialog>
 
-      {institutions.length === 0 ? (
-        <EmptyState icon={Building2} title="No institutions yet" description="Add clinics, labs, or hospitals you visit." action={canEdit ? { label: "Add institution", onClick: () => setDialogOpen(true) } : undefined} />
+      {filteredInstitutions.length === 0 && institutions.length === 0 ? (
+        <EmptyState 
+          icon={Building2} 
+          title={t.institutions.noInstitutions} 
+          description={t.institutions.noInstitutionsDescription} 
+          action={canEdit ? { label: t.institutions.addInstitution, onClick: () => setDialogOpen(true) } : undefined} 
+        />
+      ) : filteredInstitutions.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>{lang === "es" ? "Sin resultados" : "No results"}</p>
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {institutions.map((i) => (
+          {filteredInstitutions.map((i) => (
             <div key={i.id} className="health-card relative">
               <div className="absolute top-3 right-3">
                 <DropdownMenu>
@@ -222,16 +317,16 @@ export default function Institutions() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setViewDialog(i)}>
-                      <Eye className="h-4 w-4 mr-2" />View
+                      <Eye className="h-4 w-4 mr-2" />{t.actions.view}
                     </DropdownMenuItem>
                     {canEdit && (
                       <DropdownMenuItem onClick={() => openEdit(i)}>
-                        <Pencil className="h-4 w-4 mr-2" />Edit
+                        <Pencil className="h-4 w-4 mr-2" />{t.actions.edit}
                       </DropdownMenuItem>
                     )}
                     {canDelete && (
                       <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(i.id)}>
-                        <Trash2 className="h-4 w-4 mr-2" />Delete
+                        <Trash2 className="h-4 w-4 mr-2" />{t.actions.delete}
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
@@ -239,7 +334,7 @@ export default function Institutions() {
               </div>
               <div className="flex items-start justify-between pr-10">
                 <h3 className="font-semibold">{i.name}</h3>
-                <span className="text-xs bg-secondary px-2 py-1 rounded">{i.type}</span>
+                <span className="text-xs bg-secondary px-2 py-1 rounded">{getTranslatedType(i.type)}</span>
               </div>
               {i.address && <p className="text-sm text-muted-foreground mt-2">{i.address}</p>}
               {i.phone && <p className="text-sm text-muted-foreground">{i.phone}</p>}
