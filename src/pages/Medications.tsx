@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { MedicationHistory } from "@/components/medications/MedicationHistory";
+import { InlineEntitySelect } from "@/components/ui/inline-entity-select";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
@@ -348,25 +349,45 @@ export default function Medications() {
           )}
           <div className="form-field">
             <Label>{t.medications.diagnosis}</Label>
-            <Select 
-              value={form.diagnosis_id || "none"} 
+            <InlineEntitySelect
+              value={form.diagnosis_id || "none"}
               onValueChange={(v) => setForm({ ...form, diagnosis_id: v === "none" ? "" : v })}
-            >
-              <SelectTrigger>
-                <SelectValue>
-                  {form.diagnosis_id 
-                    ? diagnoses.find(d => d.id === form.diagnosis_id)?.condition || "—"
-                    : t.medications.selectDiagnosis
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent position="popper" className="z-[200]">
-                <SelectItem value="none">—</SelectItem>
-                {diagnoses.map(d => (
-                  <SelectItem key={d.id} value={d.id}>{d.condition}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={diagnoses.map((d) => ({ id: d.id, label: d.condition }))}
+              placeholder={t.medications.selectDiagnosis}
+              entityLabel={t.diagnoses.addDiagnosis}
+              modalTitle={t.diagnoses.newDiagnosis}
+              fields={[
+                { key: "condition", label: t.diagnoses.condition, placeholder: t.diagnoses.conditionPlaceholder, required: true }
+              ]}
+              onCreate={async (values) => {
+                if (!dataProfileId || !currentUserId) return null;
+                const { data, error } = await supabase
+                  .from("diagnoses")
+                  .insert({ 
+                    condition: values.condition.trim(), 
+                    status: "active",
+                    profile_id: dataProfileId, 
+                    user_id: currentUserId 
+                  })
+                  .select("id")
+                  .single();
+                if (error) { 
+                  console.error("Diagnosis insert error:", error);
+                  toast.error(t.toast.error);
+                  return null;
+                }
+                // Refresh diagnoses list
+                const { data: updated } = await supabase
+                  .from("diagnoses")
+                  .select("*")
+                  .eq("profile_id", dataProfileId)
+                  .eq("status", "active")
+                  .order("condition", { ascending: true });
+                setDiagnoses(updated || []);
+                toast.success(t.toast.savedSuccess);
+                return data?.id || null;
+              }}
+            />
             <p className="text-xs text-muted-foreground mt-1">{t.medications.diagnosisHelper}</p>
           </div>
           <div className="form-field"><Label>{t.medications.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
