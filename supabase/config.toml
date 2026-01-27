@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.export-user-data]
 verify_jwt = false
 
+[functions.generate-clinical-summary-pdf]
+verify_jwt = false
+
 [functions.redeem-promo]
 verify_jwt = false
 
