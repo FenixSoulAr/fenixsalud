@@ -6,6 +6,8 @@ interface ExportResult {
   filePath: string;
   expiresAt: string;
   countsByTable: Record<string, number>;
+  totalRecords: number;
+  attachmentCount: number;
 }
 
 export function useAccountActions() {
@@ -97,8 +99,11 @@ export function useAccountActions() {
   }
 
   function getTotalRecords(): number {
-    if (!exportResult?.countsByTable) return 0;
-    return Object.values(exportResult.countsByTable).reduce((sum, count) => sum + count, 0);
+    return exportResult?.totalRecords ?? 0;
+  }
+
+  function getAttachmentCount(): number {
+    return exportResult?.attachmentCount ?? 0;
   }
 
   return {
@@ -109,5 +114,6 @@ export function useAccountActions() {
     deleteAccount,
     hasRecentExport,
     getTotalRecords,
+    getAttachmentCount,
   };
 }

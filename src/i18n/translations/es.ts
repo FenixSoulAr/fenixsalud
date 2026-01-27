@@ -458,6 +458,7 @@ export const es: Translations = {
     downloadExport: "Descargar exportación",
     expiresIn24Hours: "El link expira en 24 horas",
     recordsExported: "registros exportados",
+    attachmentsIncluded: "adjuntos incluidos",
     closeAccount: "Cerrar cuenta",
     closeAccountDesc: "Eliminar permanentemente tu cuenta y todos los datos asociados.",
     closeAccountTitle: "¿Cerrar cuenta?",

@@ -50,7 +50,7 @@ export default function Settings() {
   const { isPlus, isAdmin, hasPromoOverride, promoExpiresAt, maxProfiles, maxAttachments, canExportPdf, canExportBackup, planName, loading: entitlementsLoading } = useEntitlementsContext();
   const { checkProfileLimit, gatedMessages } = useEntitlementGate();
   const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
-  const { exporting, exportResult, deleting, exportUserData, deleteAccount, hasRecentExport, getTotalRecords } = useAccountActions();
+  const { exporting, exportResult, deleting, exportUserData, deleteAccount, hasRecentExport, getTotalRecords, getAttachmentCount } = useAccountActions();
   const navigate = useNavigate();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
@@ -865,9 +865,12 @@ export default function Settings() {
                 <div className="space-y-3">
                   <div className="p-3 bg-primary/10 rounded-lg">
                     <p className="text-sm font-medium text-primary">{t.settings.exportReady}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {getTotalRecords()} {t.settings.recordsExported}
-                    </p>
+                    <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                      <p>{getTotalRecords()} {t.settings.recordsExported}</p>
+                      {getAttachmentCount() > 0 && (
+                        <p>{getAttachmentCount()} {t.settings.attachmentsIncluded}</p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button asChild>
