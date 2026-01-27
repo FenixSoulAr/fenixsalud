@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar, HeartPulse, Crown, Lock, Paperclip } from "lucide-react";
+import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar, HeartPulse, Crown, Lock, Loader2, Download, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -12,17 +12,8 @@ import { useNavigate } from "react-router-dom";
 import { format, subMonths, isAfter } from "date-fns";
 import { useTranslations, getLanguage } from "@/i18n";
 import { groupMedicationsByDiagnosis } from "@/hooks/useMedicationsByDiagnosis";
-import { AttachmentPage } from "@/components/clinical-summary/AttachmentPage";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
-
-interface FileAttachment {
-  id: string;
-  entity_id: string;
-  entity_type: "TestStudy" | "Procedure";
-  file_name: string;
-  file_url: string;
-  mime_type: string | null;
-}
+import { toast } from "sonner";
 
 export default function ClinicalSummary() {
   const { activeProfileId, isViewingOwnProfile } = useActiveProfile();
@@ -39,25 +30,31 @@ export default function ClinicalSummary() {
   const [includeTestAttachments, setIncludeTestAttachments] = useState(false);
   const [includeProcedureAttachments, setIncludeProcedureAttachments] = useState(false);
   
+  // PDF generation states
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [downloadFileName, setDownloadFileName] = useState<string | null>(null);
+  
   // Data states
   const [profile, setProfile] = useState<any>(null);
   const [medications, setMedications] = useState<any[]>([]);
   const [diagnoses, setDiagnoses] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
   const [testAttachments, setTestAttachments] = useState<Record<string, string[]>>({});
-  const [testAttachmentsFull, setTestAttachmentsFull] = useState<FileAttachment[]>([]);
   const [procedures, setProcedures] = useState<any[]>([]);
-  const [procedureAttachmentsFull, setProcedureAttachmentsFull] = useState<FileAttachment[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
-  
-  // Track attachment loading failures
-  const [failedAttachments, setFailedAttachments] = useState<{ id: string; name: string; error: string }[]>([]);
 
   const twelveMonthsAgo = subMonths(new Date(), 12);
 
   useEffect(() => {
     if (activeProfileId) fetchAllData();
   }, [activeProfileId]);
+
+  // Reset download URL when options change
+  useEffect(() => {
+    setDownloadUrl(null);
+    setDownloadFileName(null);
+  }, [includeVisits, includeTestAttachments, includeProcedureAttachments]);
 
   async function fetchAllData() {
     if (!activeProfileId) return;
@@ -81,11 +78,11 @@ export default function ClinicalSummary() {
     const recentTests = allTests.filter(t => isAfter(new Date(t.date), twelveMonthsAgo));
     setTests(recentTests);
     
-    // Fetch test attachments (both summary and full data)
+    // Fetch test attachments for display
     if (recentTests.length > 0) {
       const { data: attachments } = await supabase
         .from("file_attachments")
-        .select("id, entity_id, entity_type, file_name, file_url, mime_type")
+        .select("id, entity_id, file_name")
         .eq("entity_type", "TestStudy")
         .in("entity_id", recentTests.map(t => t.id));
       
@@ -95,28 +92,15 @@ export default function ClinicalSummary() {
         attachMap[att.entity_id].push(att.file_name);
       });
       setTestAttachments(attachMap);
-      setTestAttachmentsFull((attachments || []) as FileAttachment[]);
     }
     
     // Filter procedures based on type rules
     const allProcedures = proceduresRes.data || [];
     const filteredProcedures = allProcedures.filter(p => {
-      if (p.type === "Surgery") return true; // Full history
-      // Hospitalizations and Vaccines: last 12 months only
+      if (p.type === "Surgery") return true;
       return isAfter(new Date(p.date), twelveMonthsAgo);
     });
     setProcedures(filteredProcedures);
-    
-    // Fetch procedure attachments
-    if (filteredProcedures.length > 0) {
-      const { data: procAttachments } = await supabase
-        .from("file_attachments")
-        .select("id, entity_id, entity_type, file_name, file_url, mime_type")
-        .eq("entity_type", "Procedure")
-        .in("entity_id", filteredProcedures.map(p => p.id));
-      
-      setProcedureAttachmentsFull((procAttachments || []) as FileAttachment[]);
-    }
     
     // Filter appointments to last 12 months
     const allAppointments = appointmentsRes.data || [];
@@ -134,6 +118,73 @@ export default function ClinicalSummary() {
 
   function handleSaveAsPDF() {
     window.print();
+  }
+
+  async function handleGenerateFullPdf() {
+    if (!activeProfileId) return;
+    
+    setGeneratingPdf(true);
+    setDownloadUrl(null);
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        toast.error(lang === "es" ? "Sesión no disponible" : "Session not available");
+        return;
+      }
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const functionUrl = `https://${projectId}.supabase.co/functions/v1/generate-clinical-summary-pdf`;
+
+      const response = await fetch(functionUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          profileId: activeProfileId,
+          includeVisits,
+          includeTestAttachments,
+          includeProcedureAttachments,
+          language: lang,
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMsg = lang === "es" ? "Error al generar el PDF" : "Failed to generate PDF";
+        try {
+          const errJson = await response.json();
+          if (errJson.error) errorMsg = errJson.error;
+        } catch {
+          // ignore
+        }
+        toast.error(errorMsg);
+        return;
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.downloadUrl) {
+        setDownloadUrl(result.downloadUrl);
+        setDownloadFileName(result.fileName);
+        toast.success(lang === "es" ? "PDF generado correctamente" : "PDF generated successfully");
+        
+        // Log if some files were not included
+        if (result.notIncludedFiles && result.notIncludedFiles.length > 0) {
+          console.log("Files not included in PDF:", result.notIncludedFiles);
+        }
+      } else {
+        toast.error(lang === "es" ? "Error al generar el PDF" : "Failed to generate PDF");
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error(lang === "es" ? "Error al generar el PDF" : "Failed to generate PDF");
+    } finally {
+      setGeneratingPdf(false);
+    }
   }
 
   if (loading || entitlementsLoading) return <LoadingPage />;
@@ -174,6 +225,9 @@ export default function ClinicalSummary() {
   // Group medications by diagnosis
   const medicationGroups = groupMedicationsByDiagnosis(medications, diagnoses);
 
+  // Check if attachments are selected
+  const hasAttachmentsSelected = includeTestAttachments || includeProcedureAttachments;
+
   return (
     <div className="animate-fade-in">
       <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4 print:hidden">
@@ -186,17 +240,55 @@ export default function ClinicalSummary() {
           <p className="text-muted-foreground">{t.clinicalSummary.generatedOn} {today}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handlePrint}>
-              <Printer className="h-4 w-4 mr-2" />{t.actions.print}
-            </Button>
-            <Button onClick={handleSaveAsPDF}>
-              <FileDown className="h-4 w-4 mr-2" />{t.actions.saveAsPDF}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {t.clinicalSummary.saveAsPDFHelper}
-          </p>
+          {/* Simple print buttons - no attachments */}
+          {!hasAttachmentsSelected && (
+            <>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handlePrint}>
+                  <Printer className="h-4 w-4 mr-2" />{t.actions.print}
+                </Button>
+                <Button onClick={handleSaveAsPDF}>
+                  <FileDown className="h-4 w-4 mr-2" />{t.actions.saveAsPDF}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t.clinicalSummary.saveAsPDFHelper}
+              </p>
+            </>
+          )}
+          
+          {/* Full PDF generation button - with attachments */}
+          {hasAttachmentsSelected && (
+            <div className="flex flex-col gap-2">
+              {downloadUrl ? (
+                <a href={downloadUrl} download={downloadFileName || "clinical_summary.pdf"} target="_blank" rel="noopener noreferrer">
+                  <Button className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    {lang === "es" ? "Descargar PDF" : "Download PDF"}
+                  </Button>
+                </a>
+              ) : (
+                <Button onClick={handleGenerateFullPdf} disabled={generatingPdf}>
+                  {generatingPdf ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {lang === "es" ? "Generando..." : "Generating..."}
+                    </>
+                  ) : (
+                    <>
+                      <FileDown className="h-4 w-4 mr-2" />
+                      {lang === "es" ? "Generar PDF completo" : "Generate Full PDF"}
+                    </>
+                  )}
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground text-right">
+                {lang === "es" 
+                  ? "Incluye resumen + adjuntos en un solo PDF"
+                  : "Includes summary + attachments in one PDF"}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -257,6 +349,25 @@ export default function ClinicalSummary() {
           </Label>
         </div>
       </div>
+
+      {/* Success state when PDF is ready */}
+      {downloadUrl && hasAttachmentsSelected && (
+        <div className="mb-6 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg print:hidden">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <p className="text-sm font-medium text-green-800 dark:text-green-300">
+              {lang === "es" 
+                ? "PDF listo para descargar" 
+                : "PDF ready for download"}
+            </p>
+          </div>
+          <p className="text-xs text-green-700 dark:text-green-400 mt-1">
+            {lang === "es" 
+              ? "El link expira en 24 horas" 
+              : "Link expires in 24 hours"}
+          </p>
+        </div>
+      )}
 
       {/* Printable Content */}
       <div ref={printRef} className="space-y-6 max-w-3xl">
@@ -511,78 +622,16 @@ export default function ClinicalSummary() {
           </div>
         )}
 
-        {/* Attachments Section - Always at the end */}
-        {(includeTestAttachments && testAttachmentsFull.length > 0) || 
-         (includeProcedureAttachments && procedureAttachmentsFull.length > 0) ? (
-          <div className="section break-before-page print:break-before-page">
-            <h2 className="flex items-center gap-2 text-lg font-semibold mb-6 print:mt-8">
-              <Paperclip className="h-5 w-5" />{t.clinicalSummary.attachmentsSection}
-            </h2>
-            
-            {/* Warning for failed attachments - shown in print too */}
-            {failedAttachments.length > 0 && (
-              <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
-                  {lang === "es" 
-                    ? `Algunos adjuntos no pudieron incluirse (${failedAttachments.length}). El resumen se generó sin ellos.`
-                    : `Some attachments could not be included (${failedAttachments.length}). The summary was generated without them.`
-                  }
-                </p>
-                <ul className="mt-2 text-xs text-amber-700 dark:text-amber-400 list-disc list-inside">
-                  {failedAttachments.slice(0, 5).map(f => (
-                    <li key={f.id}>{f.name}</li>
-                  ))}
-                  {failedAttachments.length > 5 && (
-                    <li>{lang === "es" ? `...y ${failedAttachments.length - 5} más` : `...and ${failedAttachments.length - 5} more`}</li>
-                  )}
-                </ul>
-              </div>
-            )}
-            
-            {/* Test Attachments */}
-            {includeTestAttachments && testAttachmentsFull.map(attachment => {
-              const test = tests.find(t => t.id === attachment.entity_id);
-              if (!test) return null;
-              return (
-                <AttachmentPage
-                  key={attachment.id}
-                  attachment={attachment}
-                  entityTitle={test.type}
-                  entityDate={test.date}
-                  type="test"
-                  onLoadError={(id, error) => {
-                    setFailedAttachments(prev => {
-                      // Avoid duplicates
-                      if (prev.some(f => f.id === id)) return prev;
-                      return [...prev, { id, name: attachment.file_name, error }];
-                    });
-                  }}
-                />
-              );
-            })}
-            
-            {/* Procedure Attachments */}
-            {includeProcedureAttachments && procedureAttachmentsFull.map(attachment => {
-              const procedure = procedures.find(p => p.id === attachment.entity_id);
-              if (!procedure) return null;
-              return (
-                <AttachmentPage
-                  key={attachment.id}
-                  attachment={attachment}
-                  entityTitle={procedure.title}
-                  entityDate={procedure.date}
-                  type="procedure"
-                  onLoadError={(id, error) => {
-                    setFailedAttachments(prev => {
-                      if (prev.some(f => f.id === id)) return prev;
-                      return [...prev, { id, name: attachment.file_name, error }];
-                    });
-                  }}
-                />
-              );
-            })}
+        {/* Note about attachments when selected - shown on screen only */}
+        {hasAttachmentsSelected && (
+          <div className="text-center py-6 border-t print:hidden">
+            <p className="text-sm text-muted-foreground">
+              {lang === "es" 
+                ? "Los adjuntos se incluirán en el PDF descargable."
+                : "Attachments will be included in the downloadable PDF."}
+            </p>
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
