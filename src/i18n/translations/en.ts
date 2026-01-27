@@ -308,6 +308,9 @@ export interface Translations {
     generatedOn: string;
     saveAsPDFHelper: string;
     includeVisits: string;
+    includeTestAttachments: string;
+    includeProcedureAttachments: string;
+    availableInPlus: string;
     nationalId: string;
     phone: string;
     email: string;
@@ -335,6 +338,11 @@ export interface Translations {
     noVisitsLast12: string;
     doctor: string;
     last12months: string;
+    attachmentsSection: string;
+    testAttachment: string;
+    procedureAttachment: string;
+    attachmentNotEmbeddable: string;
+    loadingAttachments: string;
   };
   settings: {
     title: string;
@@ -879,6 +887,9 @@ export const en: Translations = {
     generatedOn: "Generated on",
     saveAsPDFHelper: "To download, choose \"Save as PDF\" in the print dialog.",
     includeVisits: "Include visits from the last 12 months",
+    includeTestAttachments: "Include test attachments",
+    includeProcedureAttachments: "Include procedure attachments",
+    availableInPlus: "Available in Plus",
     nationalId: "National ID",
     phone: "Phone",
     email: "Email",
@@ -906,6 +917,11 @@ export const en: Translations = {
     noVisitsLast12: "No visits in the last 12 months.",
     doctor: "Doctor",
     last12months: "(last 12 months)",
+    attachmentsSection: "Attachments",
+    testAttachment: "Test",
+    procedureAttachment: "Procedure",
+    attachmentNotEmbeddable: "Attachment cannot be embedded. File available for download.",
+    loadingAttachments: "Loading attachments...",
   },
   
   // Settings

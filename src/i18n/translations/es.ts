@@ -334,6 +334,9 @@ export const es: Translations = {
     generatedOn: "Generado el",
     saveAsPDFHelper: "Para descargar, elegí \"Guardar como PDF\" en el diálogo de impresión.",
     includeVisits: "Incluir consultas de los últimos 12 meses",
+    includeTestAttachments: "Incluir adjuntos de estudios",
+    includeProcedureAttachments: "Incluir adjuntos de procedimientos",
+    availableInPlus: "Disponible en Plan Plus",
     nationalId: "DNI",
     phone: "Teléfono",
     email: "Email",
@@ -361,6 +364,11 @@ export const es: Translations = {
     noVisitsLast12: "Sin consultas en los últimos 12 meses.",
     doctor: "Médico",
     last12months: "(últimos 12 meses)",
+    attachmentsSection: "Adjuntos",
+    testAttachment: "Estudio",
+    procedureAttachment: "Procedimiento",
+    attachmentNotEmbeddable: "Adjunto no embebible. Archivo disponible para descarga.",
+    loadingAttachments: "Cargando adjuntos...",
   },
   
   // Settings
