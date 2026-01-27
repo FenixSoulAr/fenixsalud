@@ -79,7 +79,7 @@ export default function Appointments() {
     const [apptRes, docRes, instRes] = await Promise.all([
       supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", activeProfileId).order("datetime_start", { ascending: true }),
       supabase.from("doctors").select("id, full_name").eq("profile_id", activeProfileId),
-      supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId),
+      supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId).eq("is_active", true),
     ]);
     const appts = apptRes.data || [];
     setAppointments(appts);
@@ -247,8 +247,8 @@ export default function Appointments() {
     setAddInstitutionOpen(false);
     setNewInstitution({ name: "", type: "Clinic" });
     
-    // Refresh institutions and auto-select
-    const { data: insts } = await supabase.from("institutions").select("id, name");
+    // Refresh institutions and auto-select (only active)
+    const { data: insts } = await supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId).eq("is_active", true);
     setInstitutions(insts || []);
     setForm(f => ({ ...f, institution_id: data.id }));
   }
