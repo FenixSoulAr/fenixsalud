@@ -14,29 +14,22 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { MedicationHistory } from "@/components/medications/MedicationHistory";
-import { InlineEntitySelect } from "@/components/ui/inline-entity-select";
+import { RelatedEntityPicker } from "@/components/ui/related-entity-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
-import { useTranslations } from "@/i18n";
+import { useTranslations, getLanguage } from "@/i18n";
 
 /**
  * Sanitizes and validates a time string to HH:MM format.
- * Removes common suffixes like "hs", "h", spaces.
- * Returns { valid: true, time: "HH:MM" } or { valid: false, time: original }
  */
 function sanitizeTime(input: string): { valid: boolean; time: string } {
   if (!input) return { valid: false, time: input };
   
   let cleaned = input.trim().toLowerCase();
-  
-  // Remove common Spanish suffixes: "hs", "hs.", "h", "h."
   cleaned = cleaned.replace(/\s*h[s]?\.?\s*$/i, "").trim();
-  
-  // Handle dot separator (e.g., "8.00" → "8:00")
   cleaned = cleaned.replace(/^(\d{1,2})\.(\d{2})$/, "$1:$2");
   
-  // Handle hour-only (e.g., "8" → "08:00")
   if (/^(\d{1,2})$/.test(cleaned)) {
     const h = parseInt(cleaned, 10);
     if (h >= 0 && h < 24) {
@@ -45,7 +38,6 @@ function sanitizeTime(input: string): { valid: boolean; time: string } {
     return { valid: false, time: input };
   }
   
-  // Validate HH:MM format
   const match = cleaned.match(/^(\d{1,2}):(\d{2})$/);
   if (match) {
     const h = parseInt(match[1], 10);
@@ -58,10 +50,6 @@ function sanitizeTime(input: string): { valid: boolean; time: string } {
   return { valid: false, time: input };
 }
 
-/**
- * Processes comma-separated times input, sanitizing each entry.
- * Returns { valid: true, times: ["08:00", "20:00"] } or { valid: false, invalidEntries: ["bad"] }
- */
 function processTimesInput(input: string): { valid: boolean; times: string[]; invalidEntries: string[] } {
   if (!input.trim()) return { valid: true, times: [], invalidEntries: [] };
   
@@ -88,6 +76,7 @@ function processTimesInput(input: string): { valid: boolean; times: string[]; in
 export default function Medications() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
+  const lang = getLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -99,14 +88,11 @@ export default function Medications() {
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active", diagnosis_id: "" });
   
-  // Track if we just saved to prevent useEffect from reopening modal
   const justSavedRef = useRef(false);
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
   
-  // Handle URL params for auto-editing
   useEffect(() => {
-    // Skip if we just saved - prevents modal from reopening
     if (justSavedRef.current) {
       justSavedRef.current = false;
       return;
@@ -123,7 +109,6 @@ export default function Medications() {
     if (!activeProfileId) return;
     setLoading(true);
     
-    // Fetch medications and diagnoses in parallel
     const [medsResult, diagsResult] = await Promise.all([
       supabase.from("medications").select("*").eq("profile_id", activeProfileId).order("name", { ascending: true }),
       supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId).eq("status", "active").order("condition", { ascending: true })
@@ -160,7 +145,6 @@ export default function Medications() {
     if (!form.dose_text) { toast.error(t.medications.doseRequired); return; }
     if (form.schedule_type === "Daily" && !form.times) { toast.error(t.medications.timesRequired); return; }
     
-    // Validate and sanitize times
     const timesResult = processTimesInput(form.times);
     if (!timesResult.valid) {
       toast.error(t.medications.timesInvalid);
@@ -173,7 +157,7 @@ export default function Medications() {
       name: form.name,
       dose_text: form.dose_text,
       schedule_type: form.schedule_type as any,
-      times: timesResult.times, // Use sanitized times
+      times: timesResult.times,
       notes: form.notes || null,
       status: form.status as any,
       diagnosis_id: form.diagnosis_id || null,
@@ -203,22 +187,15 @@ export default function Medications() {
         }
       }
       
-      // Success: Mark saved, close modal immediately, then show toast
       justSavedRef.current = true;
       
-      // Clear URL params synchronously
       if (searchParams.has("edit") || searchParams.has("new")) {
         setSearchParams({}, { replace: true });
       }
       
-      // Close modal and reset form immediately
       setDialogOpen(false);
       resetForm();
-      
-      // Show success toast after modal starts closing
       toast.success(editingId ? t.toast.changesUpdated : t.toast.savedSuccess);
-      
-      // Refetch data
       fetchData();
     } catch (err) {
       console.error("Unexpected error in handleSubmit:", err);
@@ -237,13 +214,41 @@ export default function Medications() {
     fetchData();
   }
 
+  async function handleCreateDiagnosis(values: Record<string, string>): Promise<string | null> {
+    if (!dataProfileId || !currentUserId) return null;
+    const { data, error } = await supabase
+      .from("diagnoses")
+      .insert({ 
+        condition: values.condition.trim(), 
+        status: "active",
+        profile_id: dataProfileId, 
+        user_id: currentUserId 
+      })
+      .select("id")
+      .single();
+    if (error) { 
+      console.error("Diagnosis insert error:", error);
+      toast.error(t.toast.error);
+      return null;
+    }
+    // Refresh diagnoses list
+    const { data: updated } = await supabase
+      .from("diagnoses")
+      .select("*")
+      .eq("profile_id", dataProfileId)
+      .eq("status", "active")
+      .order("condition", { ascending: true });
+    setDiagnoses(updated || []);
+    toast.success(t.toast.savedSuccess);
+    return data?.id || null;
+  }
+
   const active = medications.filter(m => m.status === "Active");
   const paused = medications.filter(m => m.status === "Paused");
   const completed = medications.filter(m => m.status === "Completed");
 
   if (loading) return <LoadingPage />;
 
-  // Helper to get diagnosis name by ID
   const getDiagnosisName = (diagnosisId: string | null) => {
     if (!diagnosisId) return null;
     const diag = diagnoses.find(d => d.id === diagnosisId);
@@ -349,44 +354,20 @@ export default function Medications() {
           )}
           <div className="form-field">
             <Label>{t.medications.diagnosis}</Label>
-            <InlineEntitySelect
-              value={form.diagnosis_id || "none"}
-              onValueChange={(v) => setForm({ ...form, diagnosis_id: v === "none" ? "" : v })}
+            <RelatedEntityPicker
+              value={form.diagnosis_id}
+              onValueChange={(v) => setForm({ ...form, diagnosis_id: v })}
               options={diagnoses.map((d) => ({ id: d.id, label: d.condition }))}
               placeholder={t.medications.selectDiagnosis}
-              entityLabel={t.diagnoses.addDiagnosis}
+              searchPlaceholder={lang === "es" ? "Buscar diagnóstico..." : "Search diagnosis..."}
+              emptyText={lang === "es" ? "Sin resultados." : "No results."}
+              addNewLabel={t.diagnoses.addDiagnosis}
               modalTitle={t.diagnoses.newDiagnosis}
+              modalIcon={<HeartPulse className="h-5 w-5" />}
               fields={[
                 { key: "condition", label: t.diagnoses.condition, placeholder: t.diagnoses.conditionPlaceholder, required: true }
               ]}
-              onCreate={async (values) => {
-                if (!dataProfileId || !currentUserId) return null;
-                const { data, error } = await supabase
-                  .from("diagnoses")
-                  .insert({ 
-                    condition: values.condition.trim(), 
-                    status: "active",
-                    profile_id: dataProfileId, 
-                    user_id: currentUserId 
-                  })
-                  .select("id")
-                  .single();
-                if (error) { 
-                  console.error("Diagnosis insert error:", error);
-                  toast.error(t.toast.error);
-                  return null;
-                }
-                // Refresh diagnoses list
-                const { data: updated } = await supabase
-                  .from("diagnoses")
-                  .select("*")
-                  .eq("profile_id", dataProfileId)
-                  .eq("status", "active")
-                  .order("condition", { ascending: true });
-                setDiagnoses(updated || []);
-                toast.success(t.toast.savedSuccess);
-                return data?.id || null;
-              }}
+              onCreate={handleCreateDiagnosis}
             />
             <p className="text-xs text-muted-foreground mt-1">{t.medications.diagnosisHelper}</p>
           </div>
@@ -410,38 +391,35 @@ export default function Medications() {
       {medications.length === 0 ? (
         <Tabs defaultValue="history" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="medications" className="flex items-center gap-1.5">
-              <Pill className="h-4 w-4" />
-              {t.medications.title}
-            </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-1.5">
+            <TabsTrigger value="active">{t.medications.active}</TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="h-4 w-4" />
-              {t.medicationHistory.title}
+              {lang === "es" ? "Historial" : "History"}
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="medications">
+          <TabsContent value="active">
             <EmptyState icon={Pill} title={t.medications.noMedications} description={t.medications.noMedicationsDescription} action={canEdit ? { label: t.medications.addMedication, onClick: () => setDialogOpen(true) } : undefined} />
           </TabsContent>
           <TabsContent value="history">
-            <MedicationHistory onIntakeUndone={fetchData} />
+            <MedicationHistory />
           </TabsContent>
         </Tabs>
       ) : (
         <Tabs defaultValue="active" className="space-y-6">
-          <TabsList className="flex-wrap h-auto gap-1">
+          <TabsList>
             <TabsTrigger value="active">{t.medications.active} ({active.length})</TabsTrigger>
             <TabsTrigger value="paused">{t.medications.paused} ({paused.length})</TabsTrigger>
             <TabsTrigger value="completed">{t.medications.completed} ({completed.length})</TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-1.5">
+            <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="h-4 w-4" />
-              {t.medicationHistory.title}
+              {lang === "es" ? "Historial" : "History"}
             </TabsTrigger>
           </TabsList>
           <TabsContent value="active"><MedList meds={active} /></TabsContent>
           <TabsContent value="paused"><MedList meds={paused} /></TabsContent>
           <TabsContent value="completed"><MedList meds={completed} /></TabsContent>
           <TabsContent value="history">
-            <MedicationHistory onIntakeUndone={fetchData} />
+            <MedicationHistory />
           </TabsContent>
         </Tabs>
       )}

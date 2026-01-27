@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, FlaskConical, Pencil, Trash2, Eye, ArrowLeft } from "lucide-react";
+import { Plus, FlaskConical, Pencil, Trash2, Eye, ArrowLeft, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -13,16 +13,17 @@ import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { FileAttachments } from "@/components/FileAttachments";
 import { AttachmentIndicator } from "@/components/AttachmentIndicator";
-import { InlineEntitySelect } from "@/components/ui/inline-entity-select";
+import { RelatedEntityPicker } from "@/components/ui/related-entity-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { useTranslations } from "@/i18n";
+import { useTranslations, getLanguage } from "@/i18n";
 
 export default function Tests() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
+  const lang = getLanguage();
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<any[]>([]);
@@ -145,6 +146,28 @@ export default function Tests() {
     fetchData();
   }
 
+  async function handleCreateInstitution(values: Record<string, string>): Promise<string | null> {
+    if (!dataProfileId || !currentUserId) return null;
+    const { data, error } = await supabase
+      .from("institutions")
+      .insert({ name: values.name.trim(), profile_id: dataProfileId, user_id: currentUserId })
+      .select("id")
+      .single();
+    if (error) { 
+      console.error("Institution insert error:", error);
+      toast.error(t.toast.error);
+      return null;
+    }
+    // Refresh institutions list
+    const { data: updated } = await supabase
+      .from("institutions")
+      .select("id, name")
+      .eq("profile_id", dataProfileId);
+    setInstitutions(updated || []);
+    toast.success(t.toast.institutionAdded);
+    return data?.id || null;
+  }
+
   if (loading) return <LoadingPage />;
 
   // Detail View
@@ -237,37 +260,20 @@ export default function Tests() {
           <div className="form-field"><Label>{t.tests.date} *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></div>
           <div className="form-field">
             <Label>{t.tests.institution}</Label>
-            <InlineEntitySelect
-              value={form.institution_id || "none"}
-              onValueChange={(v) => setForm({ ...form, institution_id: v === "none" ? "" : v })}
+            <RelatedEntityPicker
+              value={form.institution_id}
+              onValueChange={(v) => setForm({ ...form, institution_id: v })}
               options={institutions.map((i) => ({ id: i.id, label: i.name }))}
               placeholder={t.tests.selectInstitution}
-              entityLabel={t.institutions.addNewInstitution}
+              searchPlaceholder={lang === "es" ? "Buscar institución..." : "Search institution..."}
+              emptyText={lang === "es" ? "Sin resultados." : "No results."}
+              addNewLabel={t.institutions.addNewInstitution}
               modalTitle={t.institutions.newInstitution}
+              modalIcon={<Building2 className="h-5 w-5" />}
               fields={[
                 { key: "name", label: t.institutions.name, placeholder: t.tests.institutionNamePlaceholder, required: true }
               ]}
-              onCreate={async (values) => {
-                if (!dataProfileId || !currentUserId) return null;
-                const { data, error } = await supabase
-                  .from("institutions")
-                  .insert({ name: values.name.trim(), profile_id: dataProfileId, user_id: currentUserId })
-                  .select("id")
-                  .single();
-                if (error) { 
-                  console.error("Institution insert error:", error);
-                  toast.error(t.toast.error);
-                  return null;
-                }
-                // Refresh institutions list
-                const { data: updated } = await supabase
-                  .from("institutions")
-                  .select("id, name")
-                  .eq("profile_id", dataProfileId);
-                setInstitutions(updated || []);
-                toast.success(t.toast.savedSuccess);
-                return data?.id || null;
-              }}
+              onCreate={handleCreateInstitution}
             />
           </div>
           <div className="form-field">
