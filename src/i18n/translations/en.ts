@@ -130,6 +130,11 @@ export interface Translations {
     status: string;
     institution: string;
     selectInstitution: string;
+    addInstitution: string;
+    newInstitution: string;
+    institutionName: string;
+    institutionNamePlaceholder: string;
+    institutionNameRequired: string;
     notes: string;
     scheduled: string;
     done: string;
@@ -682,6 +687,11 @@ export const en: Translations = {
     status: "Status",
     institution: "Institution",
     selectInstitution: "Select institution",
+    addInstitution: "+ Add institution",
+    newInstitution: "New Institution",
+    institutionName: "Institution name",
+    institutionNamePlaceholder: "e.g., Central Hospital",
+    institutionNameRequired: "Name is required.",
     notes: "Notes",
     scheduled: "Scheduled",
     done: "Done",

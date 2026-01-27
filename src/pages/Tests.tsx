@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, FlaskConical, Pencil, Trash2, Eye, ArrowLeft } from "lucide-react";
+import { Plus, FlaskConical, Pencil, Trash2, Eye, ArrowLeft, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,7 +32,12 @@ export default function Tests() {
   const [viewingTest, setViewingTest] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled" });
-
+  
+  // Add institution modal state
+  const [addInstitutionOpen, setAddInstitutionOpen] = useState(false);
+  const [newInstitutionName, setNewInstitutionName] = useState("");
+  const [institutionError, setInstitutionError] = useState("");
+  const [isSavingInstitution, setIsSavingInstitution] = useState(false);
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
 
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
@@ -81,6 +87,53 @@ export default function Tests() {
   function resetForm() {
     setEditingId(null);
     setForm({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled" });
+  }
+
+  async function handleCreateInstitution() {
+    const trimmedName = newInstitutionName.trim();
+    if (!trimmedName) {
+      setInstitutionError(t.tests.institutionNameRequired || "El nombre es obligatorio");
+      return;
+    }
+    if (!dataProfileId || !currentUserId) {
+      toast.error(t.toast.error);
+      return;
+    }
+    
+    setIsSavingInstitution(true);
+    setInstitutionError("");
+    
+    const { data, error } = await supabase
+      .from("institutions")
+      .insert({ name: trimmedName, profile_id: dataProfileId, user_id: currentUserId })
+      .select("id")
+      .single();
+    
+    setIsSavingInstitution(false);
+    
+    if (error) {
+      console.error("Institution insert error:", error);
+      toast.error(t.toast.error);
+      return;
+    }
+    
+    // Refresh institutions list
+    const { data: updatedInstitutions } = await supabase
+      .from("institutions")
+      .select("id, name")
+      .eq("profile_id", dataProfileId);
+    
+    setInstitutions(updatedInstitutions || []);
+    
+    // Auto-select the new institution
+    if (data?.id) {
+      setForm(prev => ({ ...prev, institution_id: data.id }));
+    }
+    
+    // Close modal and reset
+    setAddInstitutionOpen(false);
+    setNewInstitutionName("");
+    toast.success(t.toast.savedSuccess);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -239,6 +292,20 @@ export default function Tests() {
               <SelectTrigger><SelectValue placeholder={t.tests.selectInstitution} /></SelectTrigger>
               <SelectContent>{institutions.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
             </Select>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-2 h-8 px-2 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setNewInstitutionName("");
+                setInstitutionError("");
+                setAddInstitutionOpen(true);
+              }}
+            >
+              <Building2 className="h-4 w-4 mr-1" />
+              {t.tests.addInstitution}
+            </Button>
           </div>
           <div className="form-field">
             <Label>{t.tests.status}</Label>
@@ -267,6 +334,51 @@ export default function Tests() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Institution Modal */}
+      <Dialog open={addInstitutionOpen} onOpenChange={(open) => { 
+        setAddInstitutionOpen(open); 
+        if (!open) { setNewInstitutionName(""); setInstitutionError(""); }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t.tests.newInstitution}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="form-field">
+              <Label htmlFor="institution-name">{t.tests.institutionName} *</Label>
+              <Input
+                id="institution-name"
+                value={newInstitutionName}
+                onChange={(e) => {
+                  setNewInstitutionName(e.target.value);
+                  if (institutionError) setInstitutionError("");
+                }}
+                placeholder={t.tests.institutionNamePlaceholder}
+                autoFocus
+              />
+              {institutionError && (
+                <p className="text-sm text-destructive mt-1">{institutionError}</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setAddInstitutionOpen(false)}
+              disabled={isSavingInstitution}
+            >
+              {t.actions.cancel}
+            </Button>
+            <Button 
+              onClick={handleCreateInstitution}
+              disabled={isSavingInstitution}
+            >
+              {isSavingInstitution ? t.actions.saving : t.actions.save}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {tests.length === 0 ? (
         <EmptyState icon={FlaskConical} title={t.tests.noTests} description={t.tests.noTestsDescription} action={canEdit ? { label: t.tests.addTest, onClick: () => setDialogOpen(true) } : undefined} />
