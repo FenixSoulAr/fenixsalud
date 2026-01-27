@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { FileAttachments } from "@/components/FileAttachments";
 import { AttachmentIndicator } from "@/components/AttachmentIndicator";
+import { InlineEntitySelect, EntityOption, InlineEntityField } from "@/components/ui/inline-entity-select";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useEntitlementGate } from "@/hooks/useEntitlementGate";
@@ -319,17 +320,79 @@ export default function Procedures() {
           <div className="form-field"><Label>{t.procedures.date} *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required /></div>
           <div className="form-field">
             <Label>{t.procedures.institution}</Label>
-            <Select value={form.institution_id} onValueChange={(v) => setForm({ ...form, institution_id: v })}>
-              <SelectTrigger><SelectValue placeholder={t.procedures.selectInstitution} /></SelectTrigger>
-              <SelectContent>{institutions.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent>
-            </Select>
+            <InlineEntitySelect
+              value={form.institution_id || "none"}
+              onValueChange={(v) => setForm({ ...form, institution_id: v === "none" ? "" : v })}
+              options={institutions.map((i) => ({ id: i.id, label: i.name }))}
+              placeholder={t.procedures.selectInstitution}
+              entityLabel={t.institutions.addNewInstitution}
+              modalTitle={t.institutions.newInstitution}
+              fields={[
+                { key: "name", label: t.institutions.name, placeholder: t.tests.institutionNamePlaceholder, required: true }
+              ]}
+              onCreate={async (values) => {
+                if (!dataProfileId || !currentUserId) return null;
+                const { data, error } = await supabase
+                  .from("institutions")
+                  .insert({ name: values.name.trim(), profile_id: dataProfileId, user_id: currentUserId })
+                  .select("id")
+                  .single();
+                if (error) { 
+                  console.error("Institution insert error:", error);
+                  toast.error(t.toast.error);
+                  return null;
+                }
+                // Refresh institutions list
+                const { data: updated } = await supabase
+                  .from("institutions")
+                  .select("id, name")
+                  .eq("profile_id", dataProfileId);
+                setInstitutions(updated || []);
+                toast.success(t.toast.savedSuccess);
+                return data?.id || null;
+              }}
+            />
           </div>
           <div className="form-field">
             <Label>{t.procedures.doctor}</Label>
-            <Select value={form.doctor_id} onValueChange={(v) => setForm({ ...form, doctor_id: v })}>
-              <SelectTrigger><SelectValue placeholder={t.procedures.selectDoctor} /></SelectTrigger>
-              <SelectContent>{doctors.map((d) => <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>)}</SelectContent>
-            </Select>
+            <InlineEntitySelect
+              value={form.doctor_id || "none"}
+              onValueChange={(v) => setForm({ ...form, doctor_id: v === "none" ? "" : v })}
+              options={doctors.map((d) => ({ id: d.id, label: d.full_name }))}
+              placeholder={t.procedures.selectDoctor}
+              entityLabel={t.doctors.addDoctor}
+              modalTitle={t.doctors.newDoctor}
+              fields={[
+                { key: "full_name", label: t.doctors.fullName, placeholder: "ej., Dr. García", required: true },
+                { key: "specialty", label: t.doctors.specialty, placeholder: t.doctors.specialtyPlaceholder, required: false }
+              ]}
+              onCreate={async (values) => {
+                if (!dataProfileId || !currentUserId) return null;
+                const { data, error } = await supabase
+                  .from("doctors")
+                  .insert({ 
+                    full_name: values.full_name.trim(), 
+                    specialty: values.specialty?.trim() || null,
+                    profile_id: dataProfileId, 
+                    user_id: currentUserId 
+                  })
+                  .select("id")
+                  .single();
+                if (error) { 
+                  console.error("Doctor insert error:", error);
+                  toast.error(t.toast.error);
+                  return null;
+                }
+                // Refresh doctors list
+                const { data: updated } = await supabase
+                  .from("doctors")
+                  .select("id, full_name")
+                  .eq("profile_id", dataProfileId);
+                setDoctors(updated || []);
+                toast.success(t.toast.savedSuccess);
+                return data?.id || null;
+              }}
+            />
           </div>
           <div className="form-field"><Label>{t.procedures.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
         </form>
