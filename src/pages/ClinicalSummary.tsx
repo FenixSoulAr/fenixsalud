@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar, HeartPulse, Crown } from "lucide-react";
+import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar, HeartPulse, Crown, Lock, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -12,10 +12,22 @@ import { useNavigate } from "react-router-dom";
 import { format, subMonths, isAfter } from "date-fns";
 import { useTranslations, getLanguage } from "@/i18n";
 import { groupMedicationsByDiagnosis } from "@/hooks/useMedicationsByDiagnosis";
+import { AttachmentPage } from "@/components/clinical-summary/AttachmentPage";
+import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
+
+interface FileAttachment {
+  id: string;
+  entity_id: string;
+  entity_type: "TestStudy" | "Procedure";
+  file_name: string;
+  file_url: string;
+  mime_type: string | null;
+}
 
 export default function ClinicalSummary() {
   const { activeProfileId, isViewingOwnProfile } = useActiveProfile();
   const { canExportPdf, loading: entitlementsLoading } = useEntitlementGate();
+  const { isPlus } = useEntitlementsContext();
   const { user } = useAuth();
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
@@ -24,6 +36,8 @@ export default function ClinicalSummary() {
   
   const [loading, setLoading] = useState(true);
   const [includeVisits, setIncludeVisits] = useState(false);
+  const [includeTestAttachments, setIncludeTestAttachments] = useState(false);
+  const [includeProcedureAttachments, setIncludeProcedureAttachments] = useState(false);
   
   // Data states
   const [profile, setProfile] = useState<any>(null);
@@ -31,7 +45,9 @@ export default function ClinicalSummary() {
   const [diagnoses, setDiagnoses] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
   const [testAttachments, setTestAttachments] = useState<Record<string, string[]>>({});
+  const [testAttachmentsFull, setTestAttachmentsFull] = useState<FileAttachment[]>([]);
   const [procedures, setProcedures] = useState<any[]>([]);
+  const [procedureAttachmentsFull, setProcedureAttachmentsFull] = useState<FileAttachment[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
 
   const twelveMonthsAgo = subMonths(new Date(), 12);
@@ -62,11 +78,11 @@ export default function ClinicalSummary() {
     const recentTests = allTests.filter(t => isAfter(new Date(t.date), twelveMonthsAgo));
     setTests(recentTests);
     
-    // Fetch test attachments
+    // Fetch test attachments (both summary and full data)
     if (recentTests.length > 0) {
       const { data: attachments } = await supabase
         .from("file_attachments")
-        .select("entity_id, file_name")
+        .select("id, entity_id, entity_type, file_name, file_url, mime_type")
         .eq("entity_type", "TestStudy")
         .in("entity_id", recentTests.map(t => t.id));
       
@@ -76,6 +92,7 @@ export default function ClinicalSummary() {
         attachMap[att.entity_id].push(att.file_name);
       });
       setTestAttachments(attachMap);
+      setTestAttachmentsFull((attachments || []) as FileAttachment[]);
     }
     
     // Filter procedures based on type rules
@@ -86,6 +103,17 @@ export default function ClinicalSummary() {
       return isAfter(new Date(p.date), twelveMonthsAgo);
     });
     setProcedures(filteredProcedures);
+    
+    // Fetch procedure attachments
+    if (filteredProcedures.length > 0) {
+      const { data: procAttachments } = await supabase
+        .from("file_attachments")
+        .select("id, entity_id, entity_type, file_name, file_url, mime_type")
+        .eq("entity_type", "Procedure")
+        .in("entity_id", filteredProcedures.map(p => p.id));
+      
+      setProcedureAttachmentsFull((procAttachments || []) as FileAttachment[]);
+    }
     
     // Filter appointments to last 12 months
     const allAppointments = appointmentsRes.data || [];
@@ -169,16 +197,62 @@ export default function ClinicalSummary() {
         </div>
       </div>
 
-      {/* Visits toggle */}
-      <div className="flex items-center gap-2 mb-6 print:hidden">
-        <Checkbox 
-          id="include-visits" 
-          checked={includeVisits} 
-          onCheckedChange={(checked) => setIncludeVisits(checked === true)} 
-        />
-        <Label htmlFor="include-visits" className="text-sm cursor-pointer">
-          {t.clinicalSummary.includeVisits}
-        </Label>
+      {/* Options toggles */}
+      <div className="flex flex-col gap-3 mb-6 print:hidden">
+        <div className="flex items-center gap-2">
+          <Checkbox 
+            id="include-visits" 
+            checked={includeVisits} 
+            onCheckedChange={(checked) => setIncludeVisits(checked === true)} 
+          />
+          <Label htmlFor="include-visits" className="text-sm cursor-pointer">
+            {t.clinicalSummary.includeVisits}
+          </Label>
+        </div>
+        
+        {/* Test attachments toggle */}
+        <div className="flex items-center gap-2">
+          <Checkbox 
+            id="include-test-attachments" 
+            checked={includeTestAttachments} 
+            onCheckedChange={(checked) => isPlus && setIncludeTestAttachments(checked === true)}
+            disabled={!isPlus}
+          />
+          <Label 
+            htmlFor="include-test-attachments" 
+            className={`text-sm cursor-pointer flex items-center gap-2 ${!isPlus ? "text-muted-foreground" : ""}`}
+          >
+            {t.clinicalSummary.includeTestAttachments}
+            {!isPlus && (
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" />
+                {t.clinicalSummary.availableInPlus}
+              </span>
+            )}
+          </Label>
+        </div>
+        
+        {/* Procedure attachments toggle */}
+        <div className="flex items-center gap-2">
+          <Checkbox 
+            id="include-procedure-attachments" 
+            checked={includeProcedureAttachments} 
+            onCheckedChange={(checked) => isPlus && setIncludeProcedureAttachments(checked === true)}
+            disabled={!isPlus}
+          />
+          <Label 
+            htmlFor="include-procedure-attachments" 
+            className={`text-sm cursor-pointer flex items-center gap-2 ${!isPlus ? "text-muted-foreground" : ""}`}
+          >
+            {t.clinicalSummary.includeProcedureAttachments}
+            {!isPlus && (
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" />
+                {t.clinicalSummary.availableInPlus}
+              </span>
+            )}
+          </Label>
+        </div>
       </div>
 
       {/* Printable Content */}
@@ -433,6 +507,46 @@ export default function ClinicalSummary() {
             )}
           </div>
         )}
+
+        {/* Attachments Section - Always at the end */}
+        {(includeTestAttachments && testAttachmentsFull.length > 0) || 
+         (includeProcedureAttachments && procedureAttachmentsFull.length > 0) ? (
+          <div className="section break-before-page print:break-before-page">
+            <h2 className="flex items-center gap-2 text-lg font-semibold mb-6 print:mt-8">
+              <Paperclip className="h-5 w-5" />{t.clinicalSummary.attachmentsSection}
+            </h2>
+            
+            {/* Test Attachments */}
+            {includeTestAttachments && testAttachmentsFull.map(attachment => {
+              const test = tests.find(t => t.id === attachment.entity_id);
+              if (!test) return null;
+              return (
+                <AttachmentPage
+                  key={attachment.id}
+                  attachment={attachment}
+                  entityTitle={test.type}
+                  entityDate={test.date}
+                  type="test"
+                />
+              );
+            })}
+            
+            {/* Procedure Attachments */}
+            {includeProcedureAttachments && procedureAttachmentsFull.map(attachment => {
+              const procedure = procedures.find(p => p.id === attachment.entity_id);
+              if (!procedure) return null;
+              return (
+                <AttachmentPage
+                  key={attachment.id}
+                  attachment={attachment}
+                  entityTitle={procedure.title}
+                  entityDate={procedure.date}
+                  type="procedure"
+                />
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </div>
   );
