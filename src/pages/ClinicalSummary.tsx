@@ -264,9 +264,22 @@ export default function ClinicalSummary() {
                 <Button 
                   className="w-full"
                   onClick={() => {
-                    // Use Cloudflare Worker proxy for download
+                    // Use Cloudflare Worker proxy for download - same tab navigation
                     const proxiedUrl = "https://salud.fenixsoular.com.ar/download?url=" + encodeURIComponent(downloadUrl);
-                    window.location.href = proxiedUrl;
+                    
+                    // Try location.assign first
+                    try {
+                      window.location.assign(proxiedUrl);
+                    } catch {
+                      // Fallback: create temporary anchor and click it
+                      const a = document.createElement("a");
+                      a.href = proxiedUrl;
+                      a.target = "_self";
+                      a.rel = "noopener";
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                    }
                   }}
                 >
                   <Download className="h-4 w-4 mr-2" />
@@ -277,7 +290,7 @@ export default function ClinicalSummary() {
                   {generatingPdf ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {lang === "es" ? "Generando..." : "Generating..."}
+                      {lang === "es" ? "Preparando PDF…" : "Preparing PDF…"}
                     </>
                   ) : (
                     <>
