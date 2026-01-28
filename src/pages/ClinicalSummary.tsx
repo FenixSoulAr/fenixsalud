@@ -261,12 +261,17 @@ export default function ClinicalSummary() {
           {hasAttachmentsSelected && (
             <div className="flex flex-col gap-2">
               {downloadUrl ? (
-                <a href={downloadUrl} download={downloadFileName || "clinical_summary.pdf"} target="_blank" rel="noopener noreferrer">
-                  <Button className="w-full">
-                    <Download className="h-4 w-4 mr-2" />
-                    {lang === "es" ? "Descargar PDF" : "Download PDF"}
-                  </Button>
-                </a>
+                <Button 
+                  className="w-full"
+                  onClick={() => {
+                    // Use Cloudflare Worker proxy for download
+                    const proxiedUrl = "https://salud.fenixsoular.com.ar/download?url=" + encodeURIComponent(downloadUrl);
+                    window.location.href = proxiedUrl;
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {lang === "es" ? "Descargar PDF" : "Download PDF"}
+                </Button>
               ) : (
                 <Button onClick={handleGenerateFullPdf} disabled={generatingPdf}>
                   {generatingPdf ? (
