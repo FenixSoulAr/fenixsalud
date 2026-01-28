@@ -264,21 +264,9 @@ export default function ClinicalSummary() {
                 <Button 
                   className="w-full"
                   onClick={() => {
-                    // Use Cloudflare Worker proxy for download - same tab navigation
-                    const proxiedUrl = "https://salud.fenixsoular.com.ar/download?url=" + encodeURIComponent(downloadUrl);
-                    
-                    // Try location.assign first
-                    try {
-                      window.location.assign(proxiedUrl);
-                    } catch {
-                      // Fallback: create temporary anchor and click it
-                      const a = document.createElement("a");
-                      a.href = proxiedUrl;
-                      a.target = "_self";
-                      a.rel = "noopener";
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
+                    // Use direct Supabase signed URL - hard browser redirect (no SPA routing)
+                    if (downloadUrl && downloadUrl.startsWith("https://")) {
+                      window.location.assign(downloadUrl);
                     }
                   }}
                 >
