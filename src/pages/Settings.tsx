@@ -873,11 +873,17 @@ export default function Settings() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button asChild>
-                      <a href={exportResult.signedUrl} download>
-                        <Download className="h-4 w-4 mr-2" />
-                        {t.settings.downloadExport}
-                      </a>
+                    <Button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Use Cloudflare Worker proxy for download
+                        const proxiedUrl = "https://salud.fenixsoular.com.ar/download?url=" + encodeURIComponent(exportResult.signedUrl);
+                        window.location.assign(proxiedUrl);
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      {t.settings.downloadExport}
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">{t.settings.expiresIn24Hours}</p>
