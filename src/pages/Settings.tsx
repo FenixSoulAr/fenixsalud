@@ -877,9 +877,10 @@ export default function Settings() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        // Use Cloudflare Worker proxy for download
-                        const proxiedUrl = "https://salud.fenixsoular.com.ar/download?url=" + encodeURIComponent(exportResult.signedUrl);
-                        window.location.assign(proxiedUrl);
+                        // Use direct Supabase signed URL - hard browser redirect (no SPA routing)
+                        if (exportResult.signedUrl && exportResult.signedUrl.startsWith("https://")) {
+                          window.location.assign(exportResult.signedUrl);
+                        }
                       }}
                     >
                       <Download className="h-4 w-4 mr-2" />
