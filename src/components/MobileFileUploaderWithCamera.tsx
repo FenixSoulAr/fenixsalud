@@ -3,6 +3,7 @@ import { Upload, X, FileText, Image, AlertTriangle, Loader2, ExternalLink, Camer
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getLanguage } from "@/i18n";
+import { Camera as CapacitorCamera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 interface StagedFile {
   file: File;
@@ -16,6 +17,11 @@ interface MobileFileUploaderWithCameraProps {
   onUpload: (file: File) => Promise<{ success: boolean; error?: string }>;
   uploading: boolean;
   disabled?: boolean;
+}
+
+// Detect if running in Capacitor native environment
+function isCapacitorNative(): boolean {
+  return !!(window as any).Capacitor?.isNativePlatform?.();
 }
 
 // Detect in-app browsers (Instagram, Facebook, TikTok, WhatsApp, etc.)
@@ -45,6 +51,29 @@ function detectInAppBrowser(): { isInApp: boolean; browserName: string | null } 
   }
 
   return { isInApp: false, browserName: null };
+}
+
+// Generate filename in format photo-YYYYMMDD-HHMMSS.jpg
+function generatePhotoFilename(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `photo-${year}${month}${day}-${hours}${minutes}${seconds}.jpg`;
+}
+
+// Convert base64 to File object
+function base64ToFile(base64: string, filename: string, mimeType: string): File {
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new File([byteArray], filename, { type: mimeType });
 }
 
 function getFileIcon(mimeType: string) {
@@ -78,16 +107,22 @@ export function MobileFileUploaderWithCamera({ onUpload, uploading, disabled }: 
   const [error, setError] = useState<string | null>(null);
   const [inAppBrowser, setInAppBrowser] = useState<{ isInApp: boolean; browserName: string | null }>({ isInApp: false, browserName: null });
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [isCapturingPhoto, setIsCapturingPhoto] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   
   const fileInputId = useId();
   const cameraInputId = useId();
+  
+  const isNative = isCapacitorNative();
 
   useEffect(() => {
-    setInAppBrowser(detectInAppBrowser());
-  }, []);
+    // Only check for in-app browser if not running in native Capacitor
+    if (!isNative) {
+      setInAppBrowser(detectInAppBrowser());
+    }
+  }, [isNative]);
 
   const processFile = (file: File): StagedFile | null => {
     const mimeType = getMimeType(file);
@@ -149,7 +184,59 @@ export function MobileFileUploaderWithCamera({ onUpload, uploading, disabled }: 
     if (e.target) e.target.value = "";
   };
 
-  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Native camera capture using Capacitor Camera plugin
+  const handleNativeCameraCapture = async () => {
+    setError(null);
+    setIsCapturingPhoto(true);
+    
+    try {
+      const photo = await CapacitorCamera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Camera, // Force camera, not gallery
+        saveToGallery: false,
+      });
+      
+      if (photo.base64String) {
+        const filename = generatePhotoFilename();
+        const mimeType = "image/jpeg";
+        const file = base64ToFile(photo.base64String, filename, mimeType);
+        
+        const staged: StagedFile = {
+          file,
+          name: filename,
+          size: file.size,
+          type: mimeType,
+          preview: `data:${mimeType};base64,${photo.base64String}`,
+        };
+        
+        setStagedFiles(prev => [...prev, staged]);
+      }
+    } catch (err: any) {
+      console.error("[Camera] Error capturing photo:", err);
+      
+      // Handle permission denied or user cancelled
+      if (err?.message?.includes("denied") || err?.message?.includes("permission")) {
+        setError(lang === "es" 
+          ? "Permiso de cámara denegado. Por favor, habilitalo en Configuración."
+          : "Camera permission denied. Please enable it in Settings."
+        );
+      } else if (err?.message?.includes("cancelled") || err?.message?.includes("canceled")) {
+        // User cancelled - no error needed
+      } else {
+        setError(lang === "es" 
+          ? "Error al capturar foto. Intentá nuevamente."
+          : "Error capturing photo. Please try again."
+        );
+      }
+    } finally {
+      setIsCapturingPhoto(false);
+    }
+  };
+
+  // Fallback camera capture for web (non-native)
+  const handleWebCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     
     const files = e.target.files;
@@ -170,6 +257,15 @@ export function MobileFileUploaderWithCamera({ onUpload, uploading, disabled }: 
     
     // Reset input
     if (e.target) e.target.value = "";
+  };
+
+  const handleCameraClick = () => {
+    if (isNative) {
+      handleNativeCameraCapture();
+    } else {
+      // Trigger the file input for web fallback
+      cameraInputRef.current?.click();
+    }
   };
 
   const removeStaged = (index: number) => {
@@ -215,12 +311,12 @@ export function MobileFileUploaderWithCamera({ onUpload, uploading, disabled }: 
     }
   };
 
-  const isDisabled = disabled || uploading;
+  const isDisabled = disabled || uploading || isCapturingPhoto;
 
   return (
     <div className="space-y-4">
-      {/* In-app browser warning */}
-      {inAppBrowser.isInApp && (
+      {/* In-app browser warning - only show if not native */}
+      {!isNative && inAppBrowser.isInApp && (
         <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           <AlertTitle className="text-amber-800 dark:text-amber-200 text-sm">
@@ -282,31 +378,41 @@ export function MobileFileUploaderWithCamera({ onUpload, uploading, disabled }: 
           aria-label={lang === "es" ? "Seleccionar archivo" : "Select file"}
         />
 
-        {/* Camera button */}
-        <label 
-          htmlFor={cameraInputId}
+        {/* Camera button - native or web fallback */}
+        <button
+          type="button"
+          onClick={handleCameraClick}
+          disabled={isDisabled}
           className={`
-            flex-1 flex items-center justify-center gap-2 p-3 cursor-pointer
+            flex-1 flex items-center justify-center gap-2 p-3
             border-2 border-dashed rounded-lg transition-colors
             ${isDisabled 
               ? "bg-muted/50 border-muted-foreground/20 opacity-50 cursor-not-allowed" 
-              : "bg-primary/10 border-primary/30 hover:border-primary/50 hover:bg-primary/20 active:bg-primary/30"
+              : "bg-primary/10 border-primary/30 hover:border-primary/50 hover:bg-primary/20 active:bg-primary/30 cursor-pointer"
             }
           `}
         >
-          <Camera className="h-5 w-5 text-primary" />
+          {isCapturingPhoto ? (
+            <Loader2 className="h-5 w-5 text-primary animate-spin" />
+          ) : (
+            <Camera className="h-5 w-5 text-primary" />
+          )}
           <span className="text-sm font-medium text-primary">
-            {lang === "es" ? "Tomar foto" : "Take photo"}
+            {isCapturingPhoto 
+              ? (lang === "es" ? "Capturando..." : "Capturing...") 
+              : (lang === "es" ? "Tomar foto" : "Take photo")
+            }
           </span>
-        </label>
+        </button>
         
+        {/* Hidden file input for web camera fallback */}
         <input
           ref={cameraInputRef}
           id={cameraInputId}
           type="file"
           accept="image/*"
           capture="environment"
-          onChange={handleCameraCapture}
+          onChange={handleWebCameraCapture}
           disabled={isDisabled}
           className="sr-only"
           aria-label={lang === "es" ? "Tomar foto" : "Take photo"}
