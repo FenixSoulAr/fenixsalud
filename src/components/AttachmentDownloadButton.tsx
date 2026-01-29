@@ -20,9 +20,9 @@ function getCapacitorBrowser() {
 }
 
 interface AttachmentDownloadButtonProps {
-  /** For PDFs: attachment ID to fetch via proxy */
+  /** For PDFs: attachment ID to fetch via signed URL */
   attachmentId?: string;
-  /** For images: function to get signed URL */
+  /** For images: function to get signed URL directly */
   getSignedUrl?: () => Promise<string | null>;
   /** Original filename (used for download) */
   fileName: string;
@@ -33,8 +33,8 @@ interface AttachmentDownloadButtonProps {
 }
 
 /**
- * Unified download/share button for all attachment types (PDF, images)
- * Uses Web Share API on mobile for save/share functionality
+ * Unified download/open button for all attachment types (PDF, images)
+ * Uses signed URLs for mobile compatibility (no auth headers needed)
  */
 export function AttachmentDownloadButton({
   attachmentId,
@@ -60,23 +60,35 @@ export function AttachmentDownloadButton({
     return name;
   }
 
-  // Get the proxy URL for PDF attachments
-  // For mobile: use inline (no download param) so PDF opens in external viewer
-  // For desktop: use download=1 to force file save
-  function getProxyUrl(forceDownload: boolean): string {
-    const base = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/attachment-proxy/${attachmentId}`;
-    return forceDownload ? `${base}?download=1` : base;
+  // Open URL in external browser using Capacitor Browser plugin
+  async function openInExternalBrowser(url: string): Promise<boolean> {
+    const Browser = getCapacitorBrowser();
+    
+    if (Browser?.open) {
+      try {
+        console.log("Opening in Capacitor Browser:", url.substring(0, 100) + "...");
+        await Browser.open({ url });
+        return true;
+      } catch (error) {
+        console.error("Capacitor Browser.open failed:", error);
+      }
+    }
+    
+    // Hard fallback: direct navigation
+    try {
+      console.log("Fallback: window.location.href");
+      window.location.href = url;
+      return true;
+    } catch (error) {
+      console.error("Direct navigation failed:", error);
+      return false;
+    }
   }
 
-  // Fetch file as blob
-  async function fetchFileBlob(url: string, authToken?: string): Promise<Blob | null> {
+  // Fetch file as blob for desktop download
+  async function fetchFileBlob(url: string): Promise<Blob | null> {
     try {
-      const headers: HeadersInit = {};
-      if (authToken) {
-        headers.Authorization = `Bearer ${authToken}`;
-      }
-
-      const response = await fetch(url, { headers });
+      const response = await fetch(url);
 
       if (!response.ok) {
         console.error("Fetch failed:", response.status, response.statusText);
@@ -111,26 +123,34 @@ export function AttachmentDownloadButton({
     }
   }
 
-  // Open URL in external browser using Capacitor Browser plugin
-  async function openInExternalBrowser(url: string): Promise<boolean> {
-    const Browser = getCapacitorBrowser();
-    
-    if (Browser?.open) {
-      try {
-        await Browser.open({ url });
-        return true;
-      } catch (error) {
-        console.error("Capacitor Browser.open failed:", error);
-      }
-    }
-    
-    // Hard fallback: direct navigation
+  // Get signed URL for attachment via Edge Function
+  async function getAttachmentSignedUrl(id: string): Promise<{ url: string; mimeType: string; fileName: string } | null> {
     try {
-      window.location.href = url;
-      return true;
+      console.log("Fetching signed URL for attachment:", id);
+      
+      const { data, error } = await supabase.functions.invoke("get-attachment-signed-url", {
+        body: { attachmentId: id },
+      });
+
+      if (error) {
+        console.error("Edge function error:", error);
+        return null;
+      }
+
+      if (!data?.url) {
+        console.error("No URL in response:", data);
+        return null;
+      }
+
+      console.log("Signed URL obtained successfully");
+      return {
+        url: data.url,
+        mimeType: data.mimeType || "application/octet-stream",
+        fileName: data.fileName || "attachment",
+      };
     } catch (error) {
-      console.error("Direct navigation failed:", error);
-      return false;
+      console.error("Failed to get signed URL:", error);
+      return null;
     }
   }
 
@@ -138,23 +158,23 @@ export function AttachmentDownloadButton({
     setLoading(true);
 
     try {
-      // Get auth session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error("Iniciá sesión para descargar archivos.");
-        return;
-      }
-
       let downloadUrl: string;
+      let finalFilename = fileName;
+      let finalMimeType = mimeType;
 
-      // Determine URL based on attachment type
+      // Get signed URL based on attachment type
       if (attachmentId) {
-        // For PDFs: use proxy URL
-        // On mobile: use inline URL (no download param) so it opens in external PDF viewer
-        // On desktop: use download=1 to force file save
-        downloadUrl = getProxyUrl(!isNative);
+        // For PDFs/attachments: use Edge Function to get signed URL
+        const result = await getAttachmentSignedUrl(attachmentId);
+        if (!result) {
+          toast.error("No se pudo obtener el archivo. Intentá nuevamente.");
+          return;
+        }
+        downloadUrl = result.url;
+        finalFilename = result.fileName;
+        finalMimeType = result.mimeType;
       } else if (getSignedUrl) {
-        // For images: get signed URL (this is already HTTPS)
+        // For images: get signed URL directly
         const signedUrl = await getSignedUrl();
         if (!signedUrl) {
           toast.error("No se pudo obtener el archivo. Intentá nuevamente.");
@@ -173,28 +193,27 @@ export function AttachmentDownloadButton({
         return;
       }
 
-      console.log("Download URL:", downloadUrl);
+      console.log("Download URL obtained:", downloadUrl.substring(0, 100) + "...");
 
-      const finalFilename = ensureExtension(fileName, mimeType);
+      finalFilename = ensureExtension(finalFilename, finalMimeType);
 
       // MOBILE: Open in external browser/app
       if (isNative) {
         toast.info("Abriendo...");
         const success = await openInExternalBrowser(downloadUrl);
         if (!success) {
-          toast.error("No se pudo guardar. Probá nuevamente.");
+          toast.error("No se pudo abrir. Probá nuevamente.");
         }
         return;
       }
 
       // DESKTOP: Traditional download via fetch + blob + anchor
-      const blob = await fetchFileBlob(
-        downloadUrl,
-        attachmentId ? session.access_token : undefined
-      );
+      const blob = await fetchFileBlob(downloadUrl);
 
       if (!blob) {
-        toast.error("No se pudo descargar. Probá nuevamente.");
+        // Fallback: open in new tab
+        window.open(downloadUrl, "_blank");
+        toast.success("Abierto en nueva pestaña.");
         return;
       }
 
@@ -202,7 +221,9 @@ export function AttachmentDownloadButton({
       if (downloadSuccess) {
         toast.success("Descarga iniciada.");
       } else {
-        toast.error("No se pudo descargar. Probá nuevamente.");
+        // Fallback: open in new tab
+        window.open(downloadUrl, "_blank");
+        toast.success("Abierto en nueva pestaña.");
       }
     } catch (error) {
       console.error("Action error:", error);
