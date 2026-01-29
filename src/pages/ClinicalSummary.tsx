@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar, HeartPulse, Crown, Lock, Loader2, Download, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +15,10 @@ import { groupMedicationsByDiagnosis } from "@/hooks/useMedicationsByDiagnosis";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { toast } from "sonner";
 
+// Detect if running inside Capacitor (native mobile app)
+function isCapacitorNative(): boolean {
+  return !!(window as any).Capacitor?.isNativePlatform?.();
+}
 export default function ClinicalSummary() {
   const { activeProfileId, isViewingOwnProfile } = useActiveProfile();
   const { canExportPdf, loading: entitlementsLoading } = useEntitlementGate();
@@ -112,12 +116,25 @@ export default function ClinicalSummary() {
     setLoading(false);
   }
 
+  // Detect if we're in Capacitor native environment
+  const isNativeMobile = useMemo(() => isCapacitorNative(), []);
+
   function handlePrint() {
-    window.print();
+    if (isNativeMobile) {
+      // On mobile Capacitor, trigger PDF generation instead
+      handleGenerateFullPdf();
+    } else {
+      window.print();
+    }
   }
 
   function handleSaveAsPDF() {
-    window.print();
+    if (isNativeMobile) {
+      // On mobile Capacitor, trigger PDF generation instead
+      handleGenerateFullPdf();
+    } else {
+      window.print();
+    }
   }
 
   async function handleGenerateFullPdf() {
@@ -240,8 +257,8 @@ export default function ClinicalSummary() {
           <p className="text-muted-foreground">{t.clinicalSummary.generatedOn} {today}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          {/* Simple print buttons - no attachments */}
-          {!hasAttachmentsSelected && (
+          {/* Simple print buttons - no attachments (desktop only shows both, mobile shows PDF generation) */}
+          {!hasAttachmentsSelected && !isNativeMobile && (
             <>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handlePrint}>
@@ -255,6 +272,39 @@ export default function ClinicalSummary() {
                 {t.clinicalSummary.saveAsPDFHelper}
               </p>
             </>
+          )}
+          
+          {/* Mobile Capacitor: always show PDF generation button */}
+          {!hasAttachmentsSelected && isNativeMobile && (
+            <div className="flex flex-col gap-2">
+              {downloadUrl ? (
+                <Button 
+                  className="w-full"
+                  onClick={() => {
+                    if (downloadUrl && downloadUrl.startsWith("https://")) {
+                      window.location.assign(downloadUrl);
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {lang === "es" ? "Descargar PDF" : "Download PDF"}
+                </Button>
+              ) : (
+                <Button onClick={handleGenerateFullPdf} disabled={generatingPdf}>
+                  {generatingPdf ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {lang === "es" ? "Preparando PDF…" : "Preparing PDF…"}
+                    </>
+                  ) : (
+                    <>
+                      <FileDown className="h-4 w-4 mr-2" />
+                      {lang === "es" ? "Guardar como PDF" : "Save as PDF"}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           )}
           
           {/* Full PDF generation button - with attachments */}
