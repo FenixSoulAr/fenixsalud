@@ -126,6 +126,11 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    min-height: 100dvh;
   }
 
   body {

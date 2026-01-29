@@ -61,7 +61,7 @@ export function AppShell({ children }: AppShellProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background pt-3 pb-6 lg:pt-0 lg:pb-0 box-border">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -205,7 +205,7 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Page content */}
-        <main className="min-h-[calc(100vh-4rem)] lg:min-h-screen">
+        <main className="min-h-[calc(100dvh-4rem)] lg:min-h-[100dvh]">
           <div className="container py-6 lg:py-8 max-w-7xl px-4 lg:px-8">
             <ActiveProfileBanner />
             <SharingBanner />
