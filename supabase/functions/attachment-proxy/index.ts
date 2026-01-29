@@ -38,6 +38,7 @@ Deno.serve(async (req) => {
     }
     
     const download = url.searchParams.get("download") === "1";
+    const inline = url.searchParams.get("inline") === "1";
 
     // Must have either attachmentId or fileUrl
     if (!attachmentId && !fileUrl) {
@@ -227,8 +228,9 @@ Deno.serve(async (req) => {
     const contentType = attachment.mime_type || "application/octet-stream";
     const fileName = attachment.file_name || "attachment";
 
-    // Set disposition based on download flag
-    const disposition = download
+    // Set disposition based on download/inline flags
+    // Priority: download=1 forces attachment, otherwise default to inline for viewing
+    const disposition = download && !inline
       ? `attachment; filename="${fileName}"`
       : `inline; filename="${fileName}"`;
 
