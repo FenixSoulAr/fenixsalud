@@ -86,8 +86,8 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
         // Clean up blob URL after a delay
         setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       } else {
-        // On web, open in new tab
-        window.open(blobUrl, "_blank");
+        // On web/desktop, open in new tab with security params
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
         setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       }
     } catch (error) {
