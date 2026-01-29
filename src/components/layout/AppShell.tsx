@@ -61,7 +61,7 @@ export function AppShell({ children }: AppShellProps) {
   ];
 
   return (
-    <div className="min-h-[100dvh] bg-background pt-3 pb-6 lg:pt-0 lg:pb-0 box-border">
+    <div className="app-shell min-h-[100dvh] bg-background lg:pt-0 lg:pb-0 box-border">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
