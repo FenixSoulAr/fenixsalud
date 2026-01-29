@@ -1,15 +1,16 @@
 import { useState, useCallback } from "react";
-import { Paperclip, FileText, Image, Trash2, Monitor } from "lucide-react";
+import { Paperclip, FileText, Image, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useFileAttachments } from "@/hooks/useFileAttachments";
 import { MobileFileUploader } from "@/components/MobileFileUploader";
+import { MobileFileUploaderWithCamera } from "@/components/MobileFileUploaderWithCamera";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { PdfAttachmentActions } from "@/components/PdfAttachmentActions";
 import { ImageAttachmentActions } from "@/components/ImageAttachmentActions";
 import { format } from "date-fns";
+import { getLanguage } from "@/i18n";
 import type { Database } from "@/integrations/supabase/types";
 
 type EntityType = Database["public"]["Enums"]["entity_type"];
@@ -112,6 +113,7 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
   const { canEdit, canDelete } = useActiveProfile();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const lang = getLanguage();
 
   async function handleUpload(file: File): Promise<{ success: boolean; error?: string }> {
     console.log("[FileAttachments] handleUpload called with:", file.name, file.size, file.type);
@@ -129,7 +131,7 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
   if (!entityId) {
     return (
       <div className="text-sm text-muted-foreground">
-        Save the record first to add attachments.
+        {lang === "es" ? "Guardá el registro primero para agregar adjuntos." : "Save the record first to add attachments."}
       </div>
     );
   }
@@ -138,20 +140,18 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Paperclip className="h-4 w-4" />
-        <h3 className="text-sm font-medium">Attachments</h3>
+        <h3 className="text-sm font-medium">{lang === "es" ? "Adjuntos" : "Attachments"}</h3>
       </div>
 
       {/* Show upload controls only for users with edit permission */}
       {canEdit && (
         <>
           {isMobile ? (
-            <Alert>
-              <Monitor className="h-4 w-4" />
-              <AlertTitle>File upload not available on mobile</AlertTitle>
-              <AlertDescription>
-                For now, documents can only be uploaded from a computer. You can still view existing files on your phone.
-              </AlertDescription>
-            </Alert>
+            <MobileFileUploaderWithCamera 
+              onUpload={handleUpload}
+              uploading={uploading}
+              disabled={!entityId}
+            />
           ) : (
             <MobileFileUploader 
               onUpload={handleUpload}
