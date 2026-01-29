@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useFileAttachments } from "@/hooks/useFileAttachments";
 import { MobileFileUploader } from "@/components/MobileFileUploader";
-import { MobileFileUploaderWithCamera } from "@/components/MobileFileUploaderWithCamera";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { PdfAttachmentActions } from "@/components/PdfAttachmentActions";
 import { ImageAttachmentActions } from "@/components/ImageAttachmentActions";
@@ -112,7 +110,6 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
   const { attachments, loading, uploading, uploadFile, deleteFile, getSignedUrl } = useFileAttachments(entityType, entityId);
   const { canEdit, canDelete } = useActiveProfile();
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const isMobile = useIsMobile();
   const lang = getLanguage();
 
   async function handleUpload(file: File): Promise<{ success: boolean; error?: string }> {
@@ -145,21 +142,11 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
 
       {/* Show upload controls only for users with edit permission */}
       {canEdit && (
-        <>
-          {isMobile ? (
-            <MobileFileUploaderWithCamera 
-              onUpload={handleUpload}
-              uploading={uploading}
-              disabled={!entityId}
-            />
-          ) : (
-            <MobileFileUploader 
-              onUpload={handleUpload}
-              uploading={uploading}
-              disabled={!entityId}
-            />
-          )}
-        </>
+        <MobileFileUploader 
+          onUpload={handleUpload}
+          uploading={uploading}
+          disabled={!entityId}
+        />
       )}
 
       {loading ? (
