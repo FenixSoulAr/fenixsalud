@@ -17,5 +17,11 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Deduplicate modules to prevent multiple instances of React Router
+    dedupe: ["react", "react-dom", "react-router-dom", "@capacitor/core"],
+  },
+  optimizeDeps: {
+    // Include Capacitor packages in optimization to prevent issues
+    include: ["@capacitor/core", "@capacitor/browser", "@capacitor/camera"],
   },
 }));
