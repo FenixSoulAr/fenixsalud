@@ -61,8 +61,11 @@ export function AttachmentDownloadButton({
   }
 
   // Get the proxy URL for PDF attachments
-  function getProxyUrl(): string {
-    return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/attachment-proxy/${attachmentId}?download=1`;
+  // For mobile: use inline (no download param) so PDF opens in external viewer
+  // For desktop: use download=1 to force file save
+  function getProxyUrl(forceDownload: boolean): string {
+    const base = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/attachment-proxy/${attachmentId}`;
+    return forceDownload ? `${base}?download=1` : base;
   }
 
   // Fetch file as blob
@@ -146,8 +149,10 @@ export function AttachmentDownloadButton({
 
       // Determine URL based on attachment type
       if (attachmentId) {
-        // For PDFs: use proxy URL (this is already HTTPS)
-        downloadUrl = getProxyUrl();
+        // For PDFs: use proxy URL
+        // On mobile: use inline URL (no download param) so it opens in external PDF viewer
+        // On desktop: use download=1 to force file save
+        downloadUrl = getProxyUrl(!isNative);
       } else if (getSignedUrl) {
         // For images: get signed URL (this is already HTTPS)
         const signedUrl = await getSignedUrl();
