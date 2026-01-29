@@ -3,7 +3,6 @@ import { ExternalLink, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Browser } from "@capacitor/browser";
 
 // Detect if running in Capacitor native environment
 function isCapacitorNative(): boolean {
@@ -28,7 +27,7 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
     return download ? `${baseUrl}?download=1` : baseUrl;
   }
 
-  // Handle opening PDF - native uses Browser.open, web uses blob URL
+  // Handle opening PDF - native uses window.open with _system, web uses new tab
   async function handleOpen() {
     setLoadingOpen(true);
     try {
@@ -60,28 +59,16 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
       const blobUrl = URL.createObjectURL(blob);
 
       if (isNative) {
-        // On native Capacitor, use Browser.open to launch external app/Chrome
+        // On native Capacitor, use window.open with _system to launch external app
         try {
-          await Browser.open({ url: blobUrl });
-        } catch (browserError) {
-          console.error("Browser.open failed:", browserError);
-          // Blob URLs may not work with Browser.open, try with data URL instead
-          try {
-            const reader = new FileReader();
-            reader.onload = async () => {
-              const dataUrl = reader.result as string;
-              try {
-                await Browser.open({ url: dataUrl });
-              } catch (dataUrlError) {
-                console.error("Browser.open with data URL also failed:", dataUrlError);
-                toast.error("No se pudo abrir. Usá Descargar.");
-              }
-            };
-            reader.readAsDataURL(blob);
-          } catch (readerError) {
-            console.error("FileReader failed:", readerError);
+          const opened = window.open(blobUrl, "_system");
+          if (!opened) {
+            // If window.open returns null/undefined, it failed
             toast.error("No se pudo abrir. Usá Descargar.");
           }
+        } catch (openError) {
+          console.error("window.open _system failed:", openError);
+          toast.error("No se pudo abrir. Usá Descargar.");
         }
         // Clean up blob URL after a delay
         setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
@@ -92,7 +79,7 @@ export function PdfAttachmentActions({ attachmentId, fileName, compact = false }
       }
     } catch (error) {
       console.error("Error opening PDF:", error);
-      toast.error("No se pudo abrir el archivo. Intentá nuevamente.");
+      toast.error("No se pudo abrir. Usá Descargar.");
     } finally {
       setLoadingOpen(false);
     }
