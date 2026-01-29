@@ -1,8 +1,7 @@
 import { useCallback } from "react";
 import { FileText, Image, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PdfAttachmentActions } from "@/components/PdfAttachmentActions";
-import { ImageAttachmentActions } from "@/components/ImageAttachmentActions";
+import { AttachmentDownloadButton } from "@/components/AttachmentDownloadButton";
 import { format } from "date-fns";
 
 interface AttachmentItemProps {
@@ -40,7 +39,7 @@ export function AttachmentItem({ attachment, getSignedUrl, canDelete, onDelete }
   const FileIcon = getFileIcon(attachment.mime_type);
   const fileIsPdf = isPdf(attachment.mime_type, attachment.file_name);
 
-  // Hook called at top level - safe!
+  // Get signed URL callback for images
   const getUrl = useCallback(
     () => getSignedUrl(attachment.file_url),
     [getSignedUrl, attachment.file_url]
@@ -61,18 +60,14 @@ export function AttachmentItem({ attachment, getSignedUrl, canDelete, onDelete }
         </div>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        {fileIsPdf ? (
-          <PdfAttachmentActions
-            attachmentId={attachment.id}
-            fileName={attachment.file_name}
-            compact
-          />
-        ) : (
-          <ImageAttachmentActions
-            getSignedUrl={getUrl}
-            compact
-          />
-        )}
+        {/* Unified download button for all file types */}
+        <AttachmentDownloadButton
+          attachmentId={fileIsPdf ? attachment.id : undefined}
+          getSignedUrl={!fileIsPdf ? getUrl : undefined}
+          fileName={attachment.file_name}
+          mimeType={attachment.mime_type}
+          compact
+        />
         {canDelete && (
           <Button
             type="button"

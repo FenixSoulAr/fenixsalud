@@ -5,8 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useFileAttachments } from "@/hooks/useFileAttachments";
 import { MobileFileUploader } from "@/components/MobileFileUploader";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
-import { PdfAttachmentActions } from "@/components/PdfAttachmentActions";
-import { ImageAttachmentActions } from "@/components/ImageAttachmentActions";
+import { AttachmentDownloadButton } from "@/components/AttachmentDownloadButton";
 import { format } from "date-fns";
 import { getLanguage } from "@/i18n";
 import type { Database } from "@/integrations/supabase/types";
@@ -89,18 +88,14 @@ function AttachmentRow({ attachment, canDelete, onDelete, getSignedUrl }: Attach
         )}
       </div>
       
-      {/* Actions row */}
+      {/* Single download button for all file types */}
       <div className="pl-8">
-        {fileIsPdf ? (
-          <PdfAttachmentActions
-            attachmentId={attachment.id}
-            fileName={attachment.file_name}
-          />
-        ) : (
-          <ImageAttachmentActions
-            getSignedUrl={handleGetSignedUrl}
-          />
-        )}
+        <AttachmentDownloadButton
+          attachmentId={fileIsPdf ? attachment.id : undefined}
+          getSignedUrl={!fileIsPdf ? handleGetSignedUrl : undefined}
+          fileName={attachment.file_name}
+          mimeType={attachment.mime_type}
+        />
       </div>
     </div>
   );
