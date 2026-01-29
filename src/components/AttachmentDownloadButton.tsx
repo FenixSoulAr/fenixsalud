@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Loader2, Share2 } from "lucide-react";
+import { Download, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,15 +9,13 @@ function isCapacitorNative(): boolean {
   return !!(window as any).Capacitor?.isNativePlatform?.();
 }
 
-// Check if Web Share API with files is supported
-function canShareFiles(): boolean {
-  if (!navigator.share || !navigator.canShare) return false;
-  // Test with a dummy file to see if file sharing is supported
+// Get Capacitor Browser plugin if available
+function getCapacitorBrowser() {
   try {
-    const testFile = new File(["test"], "test.txt", { type: "text/plain" });
-    return navigator.canShare({ files: [testFile] });
+    const capacitor = (window as any).Capacitor;
+    return capacitor?.Plugins?.Browser || null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -47,7 +45,6 @@ export function AttachmentDownloadButton({
 }: AttachmentDownloadButtonProps) {
   const [loading, setLoading] = useState(false);
   const isNative = isCapacitorNative();
-  const supportsFileShare = canShareFiles();
 
   // Ensure filename has correct extension
   function ensureExtension(name: string, mime: string | null | undefined): string {
@@ -90,33 +87,7 @@ export function AttachmentDownloadButton({
     }
   }
 
-  // Share file using Web Share API (mobile)
-  async function shareFile(blob: Blob, filename: string, mime: string): Promise<boolean> {
-    try {
-      const file = new File([blob], filename, { type: mime || "application/octet-stream" });
-      
-      if (!navigator.canShare({ files: [file] })) {
-        console.log("Cannot share this file type");
-        return false;
-      }
-
-      await navigator.share({
-        files: [file],
-        title: filename,
-      });
-
-      return true;
-    } catch (error: any) {
-      // User cancelled share is not an error
-      if (error.name === "AbortError") {
-        return true; // User cancelled, but share sheet was shown
-      }
-      console.error("Share failed:", error);
-      return false;
-    }
-  }
-
-  // Download via anchor click (desktop)
+  // Download via anchor click (desktop only)
   function downloadViaAnchor(blob: Blob, filename: string): boolean {
     try {
       const blobUrl = URL.createObjectURL(blob);
@@ -137,13 +108,25 @@ export function AttachmentDownloadButton({
     }
   }
 
-  // Fallback: open URL externally (for mobile when share fails)
-  function openExternal(url: string): boolean {
+  // Open URL in external browser using Capacitor Browser plugin
+  async function openInExternalBrowser(url: string): Promise<boolean> {
+    const Browser = getCapacitorBrowser();
+    
+    if (Browser?.open) {
+      try {
+        await Browser.open({ url });
+        return true;
+      } catch (error) {
+        console.error("Capacitor Browser.open failed:", error);
+      }
+    }
+    
+    // Hard fallback: direct navigation
     try {
-      const opened = window.open(url, "_system");
-      return opened !== null;
+      window.location.href = url;
+      return true;
     } catch (error) {
-      console.error("External open failed:", error);
+      console.error("Direct navigation failed:", error);
       return false;
     }
   }
@@ -163,8 +146,10 @@ export function AttachmentDownloadButton({
 
       // Determine URL based on attachment type
       if (attachmentId) {
+        // For PDFs: use proxy URL (this is already HTTPS)
         downloadUrl = getProxyUrl();
       } else if (getSignedUrl) {
+        // For images: get signed URL (this is already HTTPS)
         const signedUrl = await getSignedUrl();
         if (!signedUrl) {
           toast.error("No se pudo obtener el archivo. Intentá nuevamente.");
@@ -172,77 +157,48 @@ export function AttachmentDownloadButton({
         }
         downloadUrl = signedUrl;
       } else {
-        toast.error("No se pudo descargar. Intentá nuevamente.");
+        toast.error("No hay URL descargable.");
         return;
       }
 
-      const finalFilename = ensureExtension(fileName, mimeType);
-      const finalMime = mimeType || "application/octet-stream";
+      // Validate URL is HTTPS
+      if (!downloadUrl.startsWith("http://") && !downloadUrl.startsWith("https://")) {
+        console.error("Invalid URL (not HTTP/HTTPS):", downloadUrl);
+        toast.error("No hay URL descargable.");
+        return;
+      }
 
-      // Fetch the file blob
+      console.log("Download URL:", downloadUrl);
+
+      const finalFilename = ensureExtension(fileName, mimeType);
+
+      // MOBILE: Open in external browser/app
+      if (isNative) {
+        toast.info("Abriendo...");
+        const success = await openInExternalBrowser(downloadUrl);
+        if (!success) {
+          toast.error("No se pudo guardar. Probá nuevamente.");
+        }
+        return;
+      }
+
+      // DESKTOP: Traditional download via fetch + blob + anchor
       const blob = await fetchFileBlob(
         downloadUrl,
         attachmentId ? session.access_token : undefined
       );
 
       if (!blob) {
-        // Fetch failed - try external fallback on mobile
-        if (isNative) {
-          const externalSuccess = openExternal(downloadUrl);
-          if (externalSuccess) {
-            toast.success("Abriendo en navegador externo...");
-            return;
-          }
-        }
-        toast.error("No se pudo guardar. Probá nuevamente.");
+        toast.error("No se pudo descargar. Probá nuevamente.");
         return;
       }
 
-      // MOBILE: Use Web Share API with files
-      if (isNative && supportsFileShare) {
-        const shareSuccess = await shareFile(blob, finalFilename, finalMime);
-        if (shareSuccess) {
-          toast.success("Elegí dónde guardar o compartir");
-          return;
-        }
-        
-        // Share failed - try external fallback
-        const blobUrl = URL.createObjectURL(blob);
-        const externalSuccess = openExternal(blobUrl);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-        
-        if (externalSuccess) {
-          toast.success("Abriendo en navegador externo...");
-          return;
-        }
-        
-        toast.error("No se pudo guardar. Probá nuevamente.");
-        return;
-      }
-
-      // MOBILE without Web Share: try external browser
-      if (isNative) {
-        const blobUrl = URL.createObjectURL(blob);
-        const externalSuccess = openExternal(blobUrl);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-        
-        if (externalSuccess) {
-          toast.success("Abriendo en navegador externo...");
-          return;
-        }
-        
-        toast.error("No se pudo guardar. Probá nuevamente.");
-        return;
-      }
-
-      // DESKTOP: Traditional download via anchor
       const downloadSuccess = downloadViaAnchor(blob, finalFilename);
       if (downloadSuccess) {
         toast.success("Descarga iniciada.");
-        return;
+      } else {
+        toast.error("No se pudo descargar. Probá nuevamente.");
       }
-
-      toast.error("No se pudo guardar. Probá nuevamente.");
     } catch (error) {
       console.error("Action error:", error);
       toast.error("No se pudo guardar. Probá nuevamente.");
@@ -252,8 +208,8 @@ export function AttachmentDownloadButton({
   }
 
   // Button label and icon based on platform
-  const buttonLabel = isNative && supportsFileShare ? "Guardar" : "Descargar";
-  const ButtonIcon = isNative && supportsFileShare ? Share2 : Download;
+  const buttonLabel = isNative ? "Guardar" : "Descargar";
+  const ButtonIcon = isNative ? ExternalLink : Download;
 
   if (compact) {
     return (
