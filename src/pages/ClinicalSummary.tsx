@@ -500,7 +500,7 @@ export default function ClinicalSummary() {
                           <tr key={m.id} className="border-b last:border-0">
                             <td className="py-2">{m.name}</td>
                             <td className="py-2">{m.dose_text}</td>
-                            <td className="py-2">{m.schedule_type}{m.times?.length ? ` (${m.times.join(", ")})` : ""}</td>
+                            <td className="py-2">{m.schedule_type === "Daily" ? t.medications.daily : m.schedule_type === "Weekly" ? t.medications.weekly : t.medications.asNeeded}</td>
                           </tr>
                         ))}
                       </tbody>

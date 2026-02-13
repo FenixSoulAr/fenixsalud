@@ -12,9 +12,6 @@ import { Label } from "@/components/ui/label";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { OrientationBanner } from "@/components/onboarding/OrientationBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { TodayMedicationIntakes } from "@/components/dashboard/TodayMedicationIntakes";
-import { useTodayMedicationIntakes } from "@/hooks/useTodayMedicationIntakes";
-import { useTimezone } from "@/hooks/useTimezone";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -27,7 +24,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const t = useTranslations();
-  const { timezone } = useTimezone();
   const { showOnboarding, completeOnboarding } = useOnboarding();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -35,7 +31,6 @@ export default function Dashboard() {
   const [medications, setMedications] = useState<any[]>([]);
   const [diagnoses, setDiagnoses] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
-  const [medicationLogs, setMedicationLogs] = useState<any[]>([]);
   
   // Detail view states
   const [selectedMedication, setSelectedMedication] = useState<any | null>(null);
@@ -48,35 +43,21 @@ export default function Dashboard() {
     const today = new Date().toISOString();
     const todayDateStr = today.split("T")[0];
 
-    // Get today's date string in user timezone for medication logs query
-    // Use the same format as how scheduled_at is stored (naive datetime)
-    const now = new Date();
-    const todayStr = now.toLocaleDateString("en-CA", { timeZone: timezone }); // YYYY-MM-DD
-    const todayStartStr = `${todayStr}T00:00:00`;
-    const todayEndStr = `${todayStr}T23:59:59`;
-
-    console.log("[Dashboard] Fetching data with todayStr:", todayStr, "timezone:", timezone);
-
-    const [apptRes, remRes, medRes, diagRes, testRes, logsRes] = await Promise.all([
+    const [apptRes, remRes, medRes, diagRes, testRes] = await Promise.all([
       supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", activeProfileId).gte("datetime_start", today).eq("status", "Upcoming").order("datetime_start").limit(5),
       supabase.from("reminders").select("*").eq("profile_id", activeProfileId).gte("due_date_time", today).eq("is_completed", false).order("due_date_time").limit(5),
       supabase.from("medications").select("*").eq("profile_id", activeProfileId).eq("status", "Active"),
       supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId),
       supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).gte("date", todayDateStr).order("date").limit(5),
-      // Use naive datetime string range that matches how scheduled_at is stored
-      supabase.from("medication_logs").select("*").eq("profile_id", activeProfileId).gte("scheduled_at", todayStartStr).lte("scheduled_at", todayEndStr),
     ]);
-
-    console.log("[Dashboard] Fetched medication_logs:", logsRes.data?.length || 0);
 
     setAppointments(apptRes.data || []);
     setReminders(remRes.data || []);
     setMedications(medRes.data || []);
     setDiagnoses(diagRes.data || []);
     setTests(testRes.data || []);
-    setMedicationLogs(logsRes.data || []);
     setLoading(false);
-  }, [activeProfileId, timezone]);
+  }, [activeProfileId]);
 
   // Refetch data when profile changes or when navigating to this page
   useEffect(() => {
@@ -89,9 +70,6 @@ export default function Dashboard() {
   
   // Group medications by diagnosis
   const medicationGroups = groupMedicationsByDiagnosis(medications, diagnoses);
-  
-  // Today's medication intakes
-  const todayIntakes = useTodayMedicationIntakes(medications, medicationLogs);
 
   if (loading) return <LoadingPage />;
 
@@ -138,9 +116,6 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="upcoming" className="space-y-6">
-            {/* Today's Medication Intakes - Always shown first */}
-            <TodayMedicationIntakes groupedIntakes={todayIntakes} onIntakeMarked={() => fetchData(false)} />
-            
             {/* Appointments */}
             {appointments.length > 0 && (
               <section className="health-card">
@@ -169,11 +144,11 @@ export default function Dashboard() {
               </section>
             )}
 
-            {/* Medications - Grouped by Diagnosis */}
+            {/* Active Medications - Simple list, no timing indicators */}
             {medications.length > 0 && (
               <section className="health-card">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold flex items-center gap-2"><Pill className="h-5 w-5 text-primary" />{t.nav.medications}</h2>
+                  <h2 className="text-lg font-semibold flex items-center gap-2"><Pill className="h-5 w-5 text-primary" />{t.dashboard.activeMedications}</h2>
                   <Link to="/medications" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                 </div>
                 <div className="space-y-4">
@@ -205,6 +180,34 @@ export default function Dashboard() {
                         ))}
                       </div>
                     </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Recent Tests */}
+            {tests.length > 0 && (
+              <section className="health-card">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2"><FlaskConical className="h-5 w-5 text-primary" />{t.nav.tests}</h2>
+                  <Link to="/tests" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
+                </div>
+                <div className="space-y-3">
+                  {tests.map((test) => (
+                    <button 
+                      key={test.id} 
+                      onClick={() => navigate(`/tests?view=${test.id}`)}
+                      className="w-full flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors text-left min-h-[56px]"
+                    >
+                      <div>
+                        <p className="font-medium">{test.type}</p>
+                        <p className="text-sm text-muted-foreground">{test.institutions?.name || ""}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{format(new Date(test.date), "MMM d, yyyy")}</p>
+                        <StatusBadge status={normalizeStatus(test.status)} />
+                      </div>
+                    </button>
                   ))}
                 </div>
               </section>
@@ -260,10 +263,7 @@ export default function Dashboard() {
           <DialogHeader><DialogTitle>{selectedMedication?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label className="text-muted-foreground text-xs">{t.medications.dose}</Label><p>{selectedMedication?.dose_text}</p></div>
-            <div><Label className="text-muted-foreground text-xs">{t.medications.schedule}</Label><p>{selectedMedication?.schedule_type}</p></div>
-            {selectedMedication?.times && selectedMedication.times.length > 0 && (
-              <div><Label className="text-muted-foreground text-xs">{t.medications.times}</Label><p>{selectedMedication.times.join(", ")}</p></div>
-            )}
+            <div><Label className="text-muted-foreground text-xs">{t.medications.frequency}</Label><p>{selectedMedication?.schedule_type === "Daily" ? t.medications.daily : selectedMedication?.schedule_type === "Weekly" ? t.medications.weekly : t.medications.asNeeded}</p></div>
             {selectedMedication?.status && (
               <div><Label className="text-muted-foreground text-xs">{t.medications.status}</Label><StatusBadge status={normalizeStatus(selectedMedication.status)} /></div>
             )}
