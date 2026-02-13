@@ -23,12 +23,7 @@ export default function About() {
             </div>
             <div>
               <h2 className="text-xl font-semibold">{t.appName}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm text-muted-foreground">{t.about.version}</span>
-                <Badge variant="secondary" className="text-xs">
-                  {t.about.betaStatus}
-                </Badge>
-              </div>
+              <span className="text-sm text-muted-foreground">{t.about.version}</span>
             </div>
           </div>
 
