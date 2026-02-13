@@ -86,14 +86,9 @@ export function AppShell({ children }: AppShellProps) {
                 alt="Mi Salud" 
                 className="h-10 w-10 rounded-xl object-contain"
               />
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-semibold text-sidebar-foreground tracking-tight">
-                  {t.appName}
-                </span>
-                <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                  Beta
-                </span>
-              </div>
+              <span className="text-xl font-semibold text-sidebar-foreground tracking-tight">
+                {t.appName}
+              </span>
             </Link>
             <Button
               variant="ghost"
@@ -198,9 +193,6 @@ export function AppShell({ children }: AppShellProps) {
               className="h-9 w-9 rounded-xl object-contain"
             />
             <span className="text-lg font-semibold tracking-tight">{t.appName}</span>
-            <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-              Beta
-            </span>
           </Link>
         </header>
 
