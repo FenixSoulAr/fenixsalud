@@ -182,13 +182,7 @@ export interface Translations {
     namePlaceholder: string;
     dose: string;
     dosePlaceholder: string;
-    schedule: string;
-    times: string;
-    timesPlaceholder: string;
-    timesHelper: string;
-    timesInvalid: string;
-    startDate: string;
-    endDate: string;
+    frequency: string;
     status: string;
     notes: string;
     active: string;
@@ -199,13 +193,13 @@ export interface Translations {
     asNeeded: string;
     nameRequired: string;
     doseRequired: string;
-    timesRequired: string;
     deleteMedication: string;
     deleteMedicationDesc: string;
     noMedicationsTab: string;
     diagnosis: string;
     selectDiagnosis: string;
     diagnosisHelper: string;
+    noRemindersMicrocopy: string;
   };
   diagnoses: {
     title: string;
@@ -529,25 +523,6 @@ export interface Translations {
     error: string;
     unexpectedError: string;
   };
-  medicationHistory: {
-    title: string;
-    allMedications: string;
-    filterToday: string;
-    filterWeek: string;
-    filterAll: string;
-    noHistory: string;
-    today: string;
-    yesterday: string;
-    intake: string;
-    intakes: string;
-    scheduledFor: string;
-    takenAt: string;
-    onTime: string;
-    takenLate: string;
-    undo: string;
-    undoSuccess: string;
-    undoError: string;
-  };
   redeemPromo: {
     title: string;
     description: string;
@@ -762,23 +737,17 @@ export const en: Translations = {
   // Medications
   medications: {
     title: "Medications",
-    description: "Manage your medications and schedules",
+    description: "Organize your medication information",
     addMedication: "Add medication",
     newMedication: "New Medication",
     editMedication: "Edit Medication",
     noMedications: "No medications yet",
-    noMedicationsDescription: "Add your first medication to track your treatment.",
+    noMedicationsDescription: "Add your first medication to organize your treatment information.",
     name: "Name",
     namePlaceholder: "e.g., Aspirin",
     dose: "Dose",
     dosePlaceholder: "e.g., 100mg",
-    schedule: "Schedule",
-    times: "Times",
-    timesPlaceholder: "e.g., 08:00, 20:00",
-    timesHelper: "Use 24h format: HH:MM (e.g., 08:00, 20:00)",
-    timesInvalid: "Invalid time format. Use HH:MM.",
-    startDate: "Start date",
-    endDate: "End date",
+    frequency: "Frequency indicated by physician",
     status: "Status",
     notes: "Notes",
     active: "Active",
@@ -789,13 +758,13 @@ export const en: Translations = {
     asNeeded: "As needed",
     nameRequired: "Name is required.",
     doseRequired: "Dose is required.",
-    timesRequired: "Add at least one time.",
     deleteMedication: "Delete medication?",
     deleteMedicationDesc: "This action cannot be undone. The medication record will be permanently removed.",
     noMedicationsTab: "No medications",
     diagnosis: "Diagnosis (optional)",
     selectDiagnosis: "Select a diagnosis",
     diagnosisHelper: "Link this medication to the condition it treats.",
+    noRemindersMicrocopy: "This app does not send medication reminders. Its function is to organize your health information.",
   },
   
   // Diagnoses
@@ -1140,27 +1109,6 @@ export const en: Translations = {
     fileUploadNotAvailable: "File upload not available on mobile",
     error: "Error",
     unexpectedError: "An unexpected error occurred. Please try again.",
-  },
-  
-  // Medication History
-  medicationHistory: {
-    title: "History",
-    allMedications: "All medications",
-    filterToday: "Today",
-    filterWeek: "Last 7 days",
-    filterAll: "All time",
-    noHistory: "No medication history yet.",
-    today: "Today",
-    yesterday: "Yesterday",
-    intake: "intake",
-    intakes: "intakes",
-    scheduledFor: "Scheduled:",
-    takenAt: "Taken:",
-    onTime: "Taken",
-    takenLate: "Taken late",
-    undo: "Undo",
-    undoSuccess: "Intake undone.",
-    undoError: "Couldn't undo intake. Please try again.",
   },
   
   // Promo Code Redemption

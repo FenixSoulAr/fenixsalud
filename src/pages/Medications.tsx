@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Plus, Pill, Pencil, Trash2, HeartPulse, History } from "lucide-react";
+import { Plus, Pill, Pencil, Trash2, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -13,65 +13,11 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
-import { MedicationHistory } from "@/components/medications/MedicationHistory";
 import { RelatedEntityPicker } from "@/components/ui/related-entity-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { useTranslations, getLanguage } from "@/i18n";
-
-/**
- * Sanitizes and validates a time string to HH:MM format.
- */
-function sanitizeTime(input: string): { valid: boolean; time: string } {
-  if (!input) return { valid: false, time: input };
-  
-  let cleaned = input.trim().toLowerCase();
-  cleaned = cleaned.replace(/\s*h[s]?\.?\s*$/i, "").trim();
-  cleaned = cleaned.replace(/^(\d{1,2})\.(\d{2})$/, "$1:$2");
-  
-  if (/^(\d{1,2})$/.test(cleaned)) {
-    const h = parseInt(cleaned, 10);
-    if (h >= 0 && h < 24) {
-      return { valid: true, time: `${h.toString().padStart(2, "0")}:00` };
-    }
-    return { valid: false, time: input };
-  }
-  
-  const match = cleaned.match(/^(\d{1,2}):(\d{2})$/);
-  if (match) {
-    const h = parseInt(match[1], 10);
-    const m = parseInt(match[2], 10);
-    if (h >= 0 && h < 24 && m >= 0 && m < 60) {
-      return { valid: true, time: `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}` };
-    }
-  }
-  
-  return { valid: false, time: input };
-}
-
-function processTimesInput(input: string): { valid: boolean; times: string[]; invalidEntries: string[] } {
-  if (!input.trim()) return { valid: true, times: [], invalidEntries: [] };
-  
-  const entries = input.split(",").map(e => e.trim()).filter(e => e.length > 0);
-  const validTimes: string[] = [];
-  const invalidEntries: string[] = [];
-  
-  for (const entry of entries) {
-    const result = sanitizeTime(entry);
-    if (result.valid) {
-      validTimes.push(result.time);
-    } else {
-      invalidEntries.push(entry);
-    }
-  }
-  
-  return {
-    valid: invalidEntries.length === 0,
-    times: validTimes,
-    invalidEntries,
-  };
-}
 
 export default function Medications() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
@@ -86,7 +32,7 @@ export default function Medications() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active", diagnosis_id: "" });
+  const [form, setForm] = useState({ name: "", dose_text: "", schedule_type: "Daily", notes: "", status: "Active", diagnosis_id: "" });
   
   const justSavedRef = useRef(false);
 
@@ -125,7 +71,6 @@ export default function Medications() {
       name: med.name || "",
       dose_text: med.dose_text || "",
       schedule_type: med.schedule_type || "Daily",
-      times: med.times ? med.times.join(", ") : "",
       notes: med.notes || "",
       status: med.status || "Active",
       diagnosis_id: med.diagnosis_id || "",
@@ -135,7 +80,7 @@ export default function Medications() {
 
   function resetForm() {
     setEditingId(null);
-    setForm({ name: "", dose_text: "", schedule_type: "Daily", times: "", notes: "", status: "Active", diagnosis_id: "" });
+    setForm({ name: "", dose_text: "", schedule_type: "Daily", notes: "", status: "Active", diagnosis_id: "" });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -143,13 +88,6 @@ export default function Medications() {
     if (!canEdit) { toast.error("You have view-only access to this profile."); return; }
     if (!form.name) { toast.error(t.medications.nameRequired); return; }
     if (!form.dose_text) { toast.error(t.medications.doseRequired); return; }
-    if (form.schedule_type === "Daily" && !form.times) { toast.error(t.medications.timesRequired); return; }
-    
-    const timesResult = processTimesInput(form.times);
-    if (!timesResult.valid) {
-      toast.error(t.medications.timesInvalid);
-      return;
-    }
     
     setIsSaving(true);
     
@@ -157,7 +95,7 @@ export default function Medications() {
       name: form.name,
       dose_text: form.dose_text,
       schedule_type: form.schedule_type as any,
-      times: timesResult.times,
+      times: [], // No longer used - kept for schema compatibility
       notes: form.notes || null,
       status: form.status as any,
       diagnosis_id: form.diagnosis_id || null,
@@ -263,9 +201,6 @@ export default function Medications() {
           <div>
             <p className="font-medium">{m.name}</p>
             <p className="text-sm text-muted-foreground">{m.dose_text} • {m.schedule_type === "Daily" ? t.medications.daily : m.schedule_type === "Weekly" ? t.medications.weekly : t.medications.asNeeded}</p>
-            {m.times && m.times.length > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">{t.medications.times}: {m.times.join(", ")}</p>
-            )}
             {diagName && (
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                 <HeartPulse className="h-3 w-3" />
@@ -322,7 +257,7 @@ export default function Medications() {
           <div className="form-field"><Label>{t.medications.name} *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.medications.namePlaceholder} required /></div>
           <div className="form-field"><Label>{t.medications.dose} *</Label><Input value={form.dose_text} onChange={(e) => setForm({ ...form, dose_text: e.target.value })} placeholder={t.medications.dosePlaceholder} required /></div>
           <div className="form-field">
-            <Label>{t.medications.schedule}</Label>
+            <Label>{t.medications.frequency}</Label>
             <Select value={form.schedule_type} onValueChange={(v) => setForm({ ...form, schedule_type: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -332,13 +267,6 @@ export default function Medications() {
               </SelectContent>
             </Select>
           </div>
-          {form.schedule_type === "Daily" && (
-            <div className="form-field">
-              <Label>{t.medications.times}</Label>
-              <Input value={form.times} onChange={(e) => setForm({ ...form, times: e.target.value })} placeholder={t.medications.timesPlaceholder} />
-              <p className="text-xs text-muted-foreground mt-1">{t.medications.timesHelper}</p>
-            </div>
-          )}
           {editingId && (
             <div className="form-field">
               <Label>{t.medications.status}</Label>
@@ -389,39 +317,24 @@ export default function Medications() {
       </AlertDialog>
 
       {medications.length === 0 ? (
-        <Tabs defaultValue="history" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="active">{t.medications.active}</TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
-              <History className="h-4 w-4" />
-              {lang === "es" ? "Historial" : "History"}
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="active">
-            <EmptyState icon={Pill} title={t.medications.noMedications} description={t.medications.noMedicationsDescription} action={canEdit ? { label: t.medications.addMedication, onClick: () => setDialogOpen(true) } : undefined} />
-          </TabsContent>
-          <TabsContent value="history">
-            <MedicationHistory />
-          </TabsContent>
-        </Tabs>
+        <div>
+          <EmptyState icon={Pill} title={t.medications.noMedications} description={t.medications.noMedicationsDescription} action={canEdit ? { label: t.medications.addMedication, onClick: () => setDialogOpen(true) } : undefined} />
+          <p className="text-xs text-muted-foreground text-center mt-6">{t.medications.noRemindersMicrocopy}</p>
+        </div>
       ) : (
-        <Tabs defaultValue="active" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="active">{t.medications.active} ({active.length})</TabsTrigger>
-            <TabsTrigger value="paused">{t.medications.paused} ({paused.length})</TabsTrigger>
-            <TabsTrigger value="completed">{t.medications.completed} ({completed.length})</TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
-              <History className="h-4 w-4" />
-              {lang === "es" ? "Historial" : "History"}
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="active"><MedList meds={active} /></TabsContent>
-          <TabsContent value="paused"><MedList meds={paused} /></TabsContent>
-          <TabsContent value="completed"><MedList meds={completed} /></TabsContent>
-          <TabsContent value="history">
-            <MedicationHistory />
-          </TabsContent>
-        </Tabs>
+        <div>
+          <Tabs defaultValue="active" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="active">{t.medications.active} ({active.length})</TabsTrigger>
+              <TabsTrigger value="paused">{t.medications.paused} ({paused.length})</TabsTrigger>
+              <TabsTrigger value="completed">{t.medications.completed} ({completed.length})</TabsTrigger>
+            </TabsList>
+            <TabsContent value="active"><MedList meds={active} /></TabsContent>
+            <TabsContent value="paused"><MedList meds={paused} /></TabsContent>
+            <TabsContent value="completed"><MedList meds={completed} /></TabsContent>
+          </Tabs>
+          <p className="text-xs text-muted-foreground text-center mt-6">{t.medications.noRemindersMicrocopy}</p>
+        </div>
       )}
     </div>
   );
