@@ -335,6 +335,39 @@
   }
 }
 
+/* Print styles - hide all app chrome, show only document content */
+@media print {
+  /* Hide all app UI */
+  .app-shell > aside,
+  .app-shell > div > header,
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  /* Remove sidebar offset */
+  .app-shell > div.lg\\:pl-72 {
+    padding-left: 0 !important;
+  }
+
+  /* Remove safe-area padding and app shell constraints */
+  .app-shell {
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+
+  /* Remove container padding for clean margins */
+  .app-shell main .container {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Ensure clean page background */
+  body, html, #root {
+    background: white !important;
+    min-height: auto !important;
+  }
+}
+
 @layer utilities {
   /* Animation utilities */
   .animate-fade-in {
