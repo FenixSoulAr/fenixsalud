@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { useTranslations, getLanguage } from "@/i18n";
+import { sortByName } from "@/lib/utils";
 
 const SPECIALTY_KEYS = [
   "cardiology", "dermatology", "endocrinology", "gastroenterology",
@@ -168,7 +169,7 @@ export default function Doctors() {
 
   // Filtered doctors
   const filteredDoctors = useMemo(() => {
-    return doctors.filter(d => {
+    const filtered = doctors.filter(d => {
       if (filterStatus === "active" && !d.is_active) return false;
       if (filterStatus === "inactive" && d.is_active) return false;
       if (filterSpecialty !== "all" && d.specialty !== filterSpecialty) return false;
@@ -178,6 +179,7 @@ export default function Doctors() {
       }
       return true;
     });
+    return sortByName(filtered, "full_name");
   }, [doctors, filterStatus, filterSpecialty, searchQuery]);
 
   if (loading) return <LoadingPage />;

@@ -19,6 +19,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTranslations, getLanguage } from "@/i18n";
+import { sortByName } from "@/lib/utils";
 
 const UNASSIGNED_ID = "__unassigned__";
 
@@ -197,7 +198,7 @@ export default function Tests() {
 
   /** Build options for professional picker: active doctors + "No asignado" */
   const doctorOptions = [
-    ...doctors.map((d) => ({ id: d.id, label: d.full_name })),
+    ...sortByName(doctors, "full_name").map((d) => ({ id: d.id, label: d.full_name })),
     { id: UNASSIGNED_ID, label: t.doctors.unassigned },
   ];
 
