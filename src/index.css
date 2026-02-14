@@ -401,11 +401,9 @@
     page-break-after: avoid;
   }
 
-  /* Document typography overrides */
-  .clinical-doc-header {
-    border-bottom: 2px solid #333 !important;
-    padding-bottom: 12px !important;
-    margin-bottom: 16px !important;
+  /* Repeating print header styling */
+  .clinical-print-header-row {
+    border-bottom: 1px solid #999 !important;
   }
 
   /* Page margins - professional clinical document */
