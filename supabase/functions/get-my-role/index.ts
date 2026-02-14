@@ -41,7 +41,9 @@ serve(async (req) => {
       .eq("user_id", data.user.id)
       .maybeSingle();
 
-    return new Response(JSON.stringify({ role: roleRow?.role ?? null }), {
+    const role = roleRow?.role ?? null;
+    // Normalize: return 'superadmin', 'admin', or null
+    return new Response(JSON.stringify({ role }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch {

@@ -8,12 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export function useAdmin() {
   const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<"superadmin" | "admin" | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
-      setIsAdmin(false);
+      setRole(null);
       setLoading(false);
       return;
     }
@@ -24,10 +24,11 @@ export function useAdmin() {
       try {
         const { data, error } = await supabase.functions.invoke("get-my-role");
         if (!cancelled) {
-          setIsAdmin(!error && data?.role === "admin");
+          const r = !error && data?.role ? data.role : null;
+          setRole(r === "superadmin" || r === "admin" ? r : null);
         }
       } catch {
-        if (!cancelled) setIsAdmin(false);
+        if (!cancelled) setRole(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -37,5 +38,8 @@ export function useAdmin() {
     return () => { cancelled = true; };
   }, [user?.id]);
 
-  return { isAdmin, loading };
+  const isAdmin = role === "admin" || role === "superadmin";
+  const isSuperadmin = role === "superadmin";
+
+  return { isAdmin, isSuperadmin, role, loading };
 }
