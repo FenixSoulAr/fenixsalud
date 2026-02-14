@@ -9,6 +9,7 @@ import { getLanguage } from "@/i18n";
 import { UsersSection } from "@/components/admin/UsersSection";
 import { PromoCodesSection } from "@/components/admin/PromoCodesSection";
 import { DataAuditSection } from "@/components/admin/DataAuditSection";
+import { ProfileAuditSection } from "@/components/admin/ProfileAuditSection";
 
 interface AdminUser {
   user_id: string;
@@ -122,6 +123,7 @@ export default function Admin() {
           <TabsTrigger value="users">{lang === "es" ? "Usuarios" : "Users"}</TabsTrigger>
           <TabsTrigger value="promo">{lang === "es" ? "Códigos Promo" : "Promo Codes"}</TabsTrigger>
           <TabsTrigger value="audit">{lang === "es" ? "Auditoría" : "Audit"}</TabsTrigger>
+          <TabsTrigger value="profile-audit">{lang === "es" ? "Auditoría por perfil" : "Profile Audit"}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
@@ -134,6 +136,10 @@ export default function Admin() {
 
         <TabsContent value="audit" className="space-y-4">
           <DataAuditSection />
+        </TabsContent>
+
+        <TabsContent value="profile-audit" className="space-y-4">
+          <ProfileAuditSection />
         </TabsContent>
       </Tabs>
     </div>

@@ -84,6 +84,33 @@ export type Database = {
           },
         ]
       }
+      audit_runs: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          details_json: Json
+          id: string
+          profile_id: string
+          totals_json: Json
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          details_json?: Json
+          id?: string
+          profile_id: string
+          totals_json?: Json
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          details_json?: Json
+          id?: string
+          profile_id?: string
+          totals_json?: Json
+        }
+        Relationships: []
+      }
       diagnoses: {
         Row: {
           condition: string
