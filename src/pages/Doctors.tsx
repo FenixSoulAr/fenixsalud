@@ -155,10 +155,12 @@ export default function Doctors() {
     };
 
     try {
+      const duplicateMsg = lang === "es" ? "Ya existe un profesional con ese nombre en este perfil." : "A professional with that name already exists in this profile.";
       if (editingId) {
         const { error } = await supabase.from("doctors").update(payload).eq("id", editingId);
         if (error) {
           console.error("Update error:", error);
+          if (error.code === "23505") { toast.error(duplicateMsg); return; }
           toast.error(error.code === "42501" ? (lang === "es" ? "No tenés permisos para editar." : "No permission to edit.") : t.toast.error);
           return;
         }
@@ -167,6 +169,7 @@ export default function Doctors() {
         const { error } = await supabase.from("doctors").insert({ profile_id: dataProfileId, user_id: currentUserId, ...payload });
         if (error) {
           console.error("Insert error:", error);
+          if (error.code === "23505") { toast.error(duplicateMsg); return; }
           toast.error(t.toast.error);
           return;
         }

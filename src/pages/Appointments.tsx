@@ -201,7 +201,10 @@ export default function Appointments() {
       .insert({ full_name: values.full_name.trim(), specialty: values.specialty?.trim() || null, profile_id: dataProfileId, user_id: currentUserId })
       .select("id")
       .single();
-    if (error) { toast.error(t.toast.error); return null; }
+    if (error) {
+      if (error.code === "23505") { toast.error(lang === "es" ? "Ya existe un profesional con ese nombre en este perfil." : "A professional with that name already exists."); return null; }
+      toast.error(t.toast.error); return null;
+    }
     const { data: updated } = await supabase.from("doctors").select("id, full_name").eq("profile_id", dataProfileId).eq("is_active", true);
     setDoctors(updated || []);
     toast.success(t.toast.doctorAdded);
