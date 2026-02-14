@@ -259,6 +259,11 @@ export interface Translations {
     deactivateDescription: string;
     searchPlaceholder: string;
     hasLinkedRecords: string;
+    linkedAppointments: string;
+    linkedProcedures: string;
+    linkedTests: string;
+    noLinkedRecords: string;
+    goToRecord: string;
     professionalStatus: string;
     assigned: string;
     unassigned: string;
@@ -865,6 +870,11 @@ export const en: Translations = {
     deactivateDescription: "This professional will no longer appear in selection lists but their historical records will be preserved.",
     searchPlaceholder: "Search professionals...",
     hasLinkedRecords: "This professional has linked records and cannot be deleted.",
+    linkedAppointments: "Associated appointments",
+    linkedProcedures: "Associated procedures",
+    linkedTests: "Associated tests",
+    noLinkedRecords: "No linked records.",
+    goToRecord: "View",
     professionalStatus: "Professional",
     assigned: "Assigned",
     unassigned: "Not assigned",
