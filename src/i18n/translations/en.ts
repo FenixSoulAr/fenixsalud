@@ -269,6 +269,19 @@ export interface Translations {
     unassigned: string;
     unknown: string;
     notRecorded: string;
+    migrateLinks: string;
+    migrateLinksDescription: string;
+    selectTargetProfessional: string;
+    migrationPreview: string;
+    migrationWarning: string;
+    confirmMigration: string;
+    migrationConfirmLabel: string;
+    migrationConfirmPlaceholder: string;
+    migrationConfirmWord: string;
+    markSourceInactive: string;
+    migrationSuccess: string;
+    migrationError: string;
+    cannotMigrateSelf: string;
     specialtyOptions: {
       cardiology: string;
       dermatology: string;
@@ -880,6 +893,19 @@ export const en: Translations = {
     unassigned: "Not assigned",
     unknown: "Unknown",
     notRecorded: "Not recorded",
+    migrateLinks: "Migrate links",
+    migrateLinksDescription: "Move all linked records to another professional.",
+    selectTargetProfessional: "Select target professional",
+    migrationPreview: "The following records will be migrated:",
+    migrationWarning: "This action will move all associated records to the target professional. This operation cannot be easily undone.",
+    confirmMigration: "Confirm migration",
+    migrationConfirmLabel: "Type REPLACE to confirm:",
+    migrationConfirmPlaceholder: "REPLACE",
+    migrationConfirmWord: "REPLACE",
+    markSourceInactive: "Mark source professional as inactive",
+    migrationSuccess: "Migration completed successfully.",
+    migrationError: "An error occurred during migration.",
+    cannotMigrateSelf: "Cannot migrate to the same professional.",
     specialtyOptions: {
       cardiology: "Cardiology",
       dermatology: "Dermatology",
