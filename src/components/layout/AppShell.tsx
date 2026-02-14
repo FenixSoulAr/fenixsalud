@@ -48,6 +48,7 @@ export function AppShell({ children }: AppShellProps) {
     { name: t.nav.medications, href: "/medications", icon: Pill },
     { name: t.nav.diagnoses, href: "/diagnoses", icon: HeartPulse },
     { name: t.nav.procedures, href: "/procedures", icon: Syringe },
+    { name: t.nav.doctors, href: "/doctors", icon: Stethoscope },
     { name: t.nav.institutions, href: "/institutions", icon: Building2 },
     { name: t.nav.clinicalSummary, href: "/clinical-summary", icon: FileText },
     { name: t.nav.settings, href: "/settings", icon: Settings },

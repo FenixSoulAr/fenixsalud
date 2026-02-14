@@ -23,6 +23,7 @@ export type Database = {
           id: string
           institution_id: string | null
           notes: string | null
+          professional_status: Database["public"]["Enums"]["professional_status"]
           profile_id: string | null
           reason: string | null
           status: Database["public"]["Enums"]["appointment_status"] | null
@@ -37,6 +38,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           notes?: string | null
+          professional_status?: Database["public"]["Enums"]["professional_status"]
           profile_id?: string | null
           reason?: string | null
           status?: Database["public"]["Enums"]["appointment_status"] | null
@@ -51,6 +53,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           notes?: string | null
+          professional_status?: Database["public"]["Enums"]["professional_status"]
           profile_id?: string | null
           reason?: string | null
           status?: Database["public"]["Enums"]["appointment_status"] | null
@@ -192,10 +195,15 @@ export type Database = {
       }
       doctors: {
         Row: {
+          address: string | null
           created_at: string | null
+          deactivated_at: string | null
           email: string | null
           full_name: string
           id: string
+          institution_id: string | null
+          is_active: boolean
+          license_number: string | null
           notes: string | null
           phone: string | null
           profile_id: string | null
@@ -204,10 +212,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          address?: string | null
           created_at?: string | null
+          deactivated_at?: string | null
           email?: string | null
           full_name: string
           id?: string
+          institution_id?: string | null
+          is_active?: boolean
+          license_number?: string | null
           notes?: string | null
           phone?: string | null
           profile_id?: string | null
@@ -216,10 +229,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          address?: string | null
           created_at?: string | null
+          deactivated_at?: string | null
           email?: string | null
           full_name?: string
           id?: string
+          institution_id?: string | null
+          is_active?: boolean
+          license_number?: string | null
           notes?: string | null
           phone?: string | null
           profile_id?: string | null
@@ -228,6 +246,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "doctors_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "doctors_profile_id_fkey"
             columns: ["profile_id"]
@@ -607,6 +632,7 @@ export type Database = {
           id: string
           institution_id: string | null
           notes: string | null
+          professional_status: Database["public"]["Enums"]["professional_status"]
           profile_id: string | null
           title: string
           type: Database["public"]["Enums"]["procedure_type"]
@@ -620,6 +646,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           notes?: string | null
+          professional_status?: Database["public"]["Enums"]["professional_status"]
           profile_id?: string | null
           title: string
           type: Database["public"]["Enums"]["procedure_type"]
@@ -633,6 +660,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           notes?: string | null
+          professional_status?: Database["public"]["Enums"]["professional_status"]
           profile_id?: string | null
           title?: string
           type?: Database["public"]["Enums"]["procedure_type"]
@@ -1035,9 +1063,11 @@ export type Database = {
         Row: {
           created_at: string | null
           date: string
+          doctor_id: string | null
           id: string
           institution_id: string | null
           notes: string | null
+          professional_status: Database["public"]["Enums"]["professional_status"]
           profile_id: string | null
           status: Database["public"]["Enums"]["test_status"] | null
           type: string
@@ -1047,9 +1077,11 @@ export type Database = {
         Insert: {
           created_at?: string | null
           date: string
+          doctor_id?: string | null
           id?: string
           institution_id?: string | null
           notes?: string | null
+          professional_status?: Database["public"]["Enums"]["professional_status"]
           profile_id?: string | null
           status?: Database["public"]["Enums"]["test_status"] | null
           type: string
@@ -1059,9 +1091,11 @@ export type Database = {
         Update: {
           created_at?: string | null
           date?: string
+          doctor_id?: string | null
           id?: string
           institution_id?: string | null
           notes?: string | null
+          professional_status?: Database["public"]["Enums"]["professional_status"]
           profile_id?: string | null
           status?: Database["public"]["Enums"]["test_status"] | null
           type?: string
@@ -1069,6 +1103,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tests_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tests_institution_id_fkey"
             columns: ["institution_id"]
@@ -1190,6 +1231,11 @@ export type Database = {
       medication_schedule_type: "Daily" | "Weekly" | "As needed"
       medication_status: "Active" | "Paused" | "Completed"
       procedure_type: "Surgery" | "Hospitalization" | "Vaccine"
+      professional_status:
+        | "assigned"
+        | "unassigned"
+        | "unknown"
+        | "not_recorded"
       reminder_type:
         | "Checkup"
         | "Appointment follow-up"
@@ -1333,6 +1379,12 @@ export const Constants = {
       medication_schedule_type: ["Daily", "Weekly", "As needed"],
       medication_status: ["Active", "Paused", "Completed"],
       procedure_type: ["Surgery", "Hospitalization", "Vaccine"],
+      professional_status: [
+        "assigned",
+        "unassigned",
+        "unknown",
+        "not_recorded",
+      ],
       reminder_type: [
         "Checkup",
         "Appointment follow-up",
