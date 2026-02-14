@@ -55,6 +55,7 @@ export default function ClinicalSummary() {
   const [totalAttachmentCount, setTotalAttachmentCount] = useState(0);
 
   const twelveMonthsAgo = subMonths(new Date(), 12);
+  const twentyFourMonthsAgo = subMonths(new Date(), 24);
 
   useEffect(() => {
     if (activeProfileId) fetchAllData();
@@ -88,8 +89,10 @@ export default function ClinicalSummary() {
     setTests(recentTests);
     
     const allProcedures = proceduresRes.data || [];
+    // Surgeries: full history. Hospitalizations: last 24 months. Vaccines: last 12 months.
     const filteredProcedures = allProcedures.filter(p => {
       if (p.type === "Surgery") return true;
+      if (p.type === "Hospitalization") return isAfter(new Date(p.date), twentyFourMonthsAgo);
       return isAfter(new Date(p.date), twelveMonthsAgo);
     });
     setProcedures(filteredProcedures);
@@ -311,14 +314,25 @@ export default function ClinicalSummary() {
     );
   }
 
-  const today = format(new Date(), "MMMM d, yyyy");
+  const todayFormatted = format(new Date(), "dd/MM/yyyy");
+  const todayLong = format(new Date(), "MMMM d, yyyy");
   const fullName = profile?.full_name || [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || t.misc.patient;
 
-  const formatProfessional = (record: any) => {
-    if (record.professional_status !== "assigned" || !record.doctors?.full_name) return "—";
+  /** Returns professional string or null if unassigned */
+  const formatProfessional = (record: any): string | null => {
+    if (record.professional_status !== "assigned" || !record.doctors?.full_name) return null;
     const name = record.doctors.full_name;
     const spec = record.doctors.specialty;
     return spec ? `${name} (${spec})` : name;
+  };
+
+  /** Returns institution · professional secondary line, or null */
+  const formatSecondaryLine = (record: any): string | null => {
+    const parts: string[] = [];
+    if (record.institutions?.name) parts.push(record.institutions.name);
+    const prof = formatProfessional(record);
+    if (prof) parts.push(prof);
+    return parts.length > 0 ? parts.join(" · ") : null;
   };
 
   const surgeries = procedures.filter(p => p.type === "Surgery");
@@ -335,7 +349,7 @@ export default function ClinicalSummary() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 print:hidden">
         <div>
           <h1 className="text-2xl font-bold">{t.clinicalSummary.title}</h1>
-          <p className="text-muted-foreground">{t.clinicalSummary.generatedOn} {today}</p>
+          <p className="text-muted-foreground">{t.clinicalSummary.generatedOn} {todayLong}</p>
         </div>
         <div className="flex flex-col items-stretch sm:items-end gap-3">
           {/* PDF export action */}
@@ -484,12 +498,20 @@ export default function ClinicalSummary() {
 
       {/* Printable Content */}
       <div ref={printRef} className="space-y-6 max-w-3xl">
-        {/* Header */}
-        <div className="health-card print:shadow-none print:border">
+        {/* Document Header */}
+        <div className="clinical-doc-header flex items-center justify-between border-b-2 border-foreground/20 pb-3 mb-4">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Mi Salud" className="h-8 w-8 rounded-lg object-contain" />
+            <span className="text-lg font-semibold tracking-tight">{t.appName}</span>
+          </div>
+          <span className="text-sm text-muted-foreground">{todayFormatted}</span>
+        </div>
+
+        {/* Patient Info */}
+        <div className="clinical-section">
           <h1 className="text-2xl font-bold mb-1">{fullName}</h1>
-          <p className="text-sm text-muted-foreground mb-4">{t.clinicalSummary.generatedOn}: {today}</p>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mt-3">
             {profile?.national_id && (
               <div><span className="font-medium">{t.clinicalSummary.nationalId}:</span> {profile.national_id}</div>
             )}
@@ -509,9 +531,9 @@ export default function ClinicalSummary() {
           </div>
           
           {profile?.allergies && (
-            <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-900">
-              <span className="font-medium text-red-800 dark:text-red-300">{t.clinicalSummary.allergies}:</span>
-              <span className="ml-2 text-red-700 dark:text-red-400">{profile.allergies}</span>
+            <div className="mt-4 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+              <span className="font-medium text-destructive">{t.clinicalSummary.allergies}:</span>
+              <span className="ml-2 text-destructive/80">{profile.allergies}</span>
             </div>
           )}
           
@@ -523,8 +545,8 @@ export default function ClinicalSummary() {
         </div>
 
         {/* Current Medications - Grouped by Diagnosis */}
-        <div className="section">
-          <h2 className="flex items-center gap-2 text-lg font-semibold mb-3">
+        <div className="clinical-section">
+          <h2 className="flex items-center gap-2 text-lg font-semibold mb-3 border-b border-border pb-2">
             <Pill className="h-5 w-5" />{t.clinicalSummary.currentMedications}
           </h2>
           {medications.length === 0 ? (
@@ -532,7 +554,7 @@ export default function ClinicalSummary() {
           ) : (
             <div className="space-y-4">
               {medicationGroups.map((group) => (
-                <div key={group.diagnosis?.id || "unlinked"}>
+                <div key={group.diagnosis?.id || "unlinked"} className="clinical-item">
                   <div className="flex items-center gap-2 mb-2">
                     <HeartPulse className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium text-muted-foreground">
@@ -542,21 +564,21 @@ export default function ClinicalSummary() {
                       }
                     </span>
                   </div>
-                  <div className="health-card print:shadow-none print:border">
+                  <div className="border rounded-lg overflow-hidden print:shadow-none">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 font-medium">{t.clinicalSummary.medication}</th>
-                          <th className="text-left py-2 font-medium">{t.clinicalSummary.dose}</th>
-                          <th className="text-left py-2 font-medium">{t.clinicalSummary.schedule}</th>
+                        <tr className="border-b bg-muted/30">
+                          <th className="text-left py-2 px-3 font-medium">{t.clinicalSummary.medication}</th>
+                          <th className="text-left py-2 px-3 font-medium">{t.clinicalSummary.dose}</th>
+                          <th className="text-left py-2 px-3 font-medium">{t.clinicalSummary.schedule}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {group.medications.map(m => (
                           <tr key={m.id} className="border-b last:border-0">
-                            <td className="py-2">{m.name}</td>
-                            <td className="py-2">{m.dose_text}</td>
-                            <td className="py-2">{m.schedule_type === "Daily" ? t.medications.daily : m.schedule_type === "Weekly" ? t.medications.weekly : t.medications.asNeeded}</td>
+                            <td className="py-2 px-3">{m.name}</td>
+                            <td className="py-2 px-3">{m.dose_text}</td>
+                            <td className="py-2 px-3">{m.schedule_type === "Daily" ? t.medications.daily : m.schedule_type === "Weekly" ? t.medications.weekly : t.medications.asNeeded}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -569,132 +591,109 @@ export default function ClinicalSummary() {
         </div>
 
         {/* Tests (Last 12 months) */}
-        <div className="section">
-          <h2 className="flex items-center gap-2 text-lg font-semibold mb-3">
-            <FlaskConical className="h-5 w-5" />{t.clinicalSummary.testsLast12} <span className="text-sm font-normal text-muted-foreground">{t.clinicalSummary.last12months}</span>
+        <div className="clinical-section">
+          <h2 className="flex items-center gap-2 text-lg font-semibold mb-3 border-b border-border pb-2">
+            <FlaskConical className="h-5 w-5" />{t.clinicalSummary.testsLast12}
+            <span className="text-sm font-normal text-muted-foreground">({t.clinicalSummary.last12months})</span>
           </h2>
           {tests.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t.clinicalSummary.noTestsLast12}</p>
           ) : (
-            <div className="health-card print:shadow-none print:border">
-              <table className="w-full text-sm">
-                 <thead>
-                  <tr className="border-b">
-                     <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
-                     <th className="text-left py-2 font-medium">{t.clinicalSummary.type}</th>
-                     <th className="text-left py-2 font-medium">{t.clinicalSummary.doctor}</th>
-                     <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
-                     <th className="text-left py-2 font-medium">{t.clinicalSummary.files}</th>
-                   </tr>
-                </thead>
-                <tbody>
-                  {tests.map(test => (
-                    <tr key={test.id} className="border-b last:border-0">
-                      <td className="py-2">{format(new Date(test.date), "MMM d, yyyy")}</td>
-                       <td className="py-2">{test.type}</td>
-                       <td className="py-2">{formatProfessional(test)}</td>
-                       <td className="py-2">{test.institutions?.name || "—"}</td>
-                      <td className="py-2">
-                        {testAttachments[test.id]?.length ? (
-                          <span className="text-xs text-muted-foreground">
-                            {testAttachments[test.id].join(", ")}
-                          </span>
-                        ) : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-2">
+              {tests.map(test => {
+                const secondary = formatSecondaryLine(test);
+                return (
+                  <div key={test.id} className="clinical-item border-b border-border/50 pb-2 last:border-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-medium text-sm">{test.type}</span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(test.date), "dd/MM/yyyy")}</span>
+                    </div>
+                    {secondary && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{secondary}</p>
+                    )}
+                    {testAttachments[test.id]?.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        📎 {testAttachments[test.id].join(", ")}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
         {/* Procedures */}
-        <div className="section">
-          <h2 className="flex items-center gap-2 text-lg font-semibold mb-3">
+        <div className="clinical-section">
+          <h2 className="flex items-center gap-2 text-lg font-semibold mb-3 border-b border-border pb-2">
             <Syringe className="h-5 w-5" />{t.nav.procedures}
           </h2>
           
           {surgeries.length > 0 && (
-            <div className="mb-4">
+            <div className="mb-4 clinical-item">
               <h3 className="text-sm font-medium mb-2 text-muted-foreground">{t.clinicalSummary.surgeriesFullHistory}</h3>
-              <div className="health-card print:shadow-none print:border">
-                <table className="w-full text-sm">
-                 <thead>
-                    <tr className="border-b">
-                       <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
-                       <th className="text-left py-2 font-medium">{t.clinicalSummary.procedure}</th>
-                       <th className="text-left py-2 font-medium">{t.clinicalSummary.doctor}</th>
-                       <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {surgeries.map(p => (
-                       <tr key={p.id} className="border-b last:border-0">
-                         <td className="py-2">{format(new Date(p.date), "MMM d, yyyy")}</td>
-                         <td className="py-2">{p.title}</td>
-                         <td className="py-2">{formatProfessional(p)}</td>
-                         <td className="py-2">{p.institutions?.name || "—"}</td>
-                       </tr>
-                     ))}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                {surgeries.map(p => {
+                  const secondary = formatSecondaryLine(p);
+                  return (
+                    <div key={p.id} className="clinical-item border-b border-border/50 pb-2 last:border-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-medium text-sm">{p.title}</span>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(p.date), "dd/MM/yyyy")}</span>
+                      </div>
+                      {secondary && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{secondary}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
           
           {hospitalizations.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-sm font-medium mb-2 text-muted-foreground">{t.clinicalSummary.hospitalizationsLast12}</h3>
-               <div className="health-card print:shadow-none print:border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.reason}</th>
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.doctor}</th>
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {hospitalizations.map(p => (
-                      <tr key={p.id} className="border-b last:border-0">
-                        <td className="py-2">{format(new Date(p.date), "MMM d, yyyy")}</td>
-                        <td className="py-2">{p.title}</td>
-                        <td className="py-2">{formatProfessional(p)}</td>
-                        <td className="py-2">{p.institutions?.name || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="mb-4 clinical-item">
+              <h3 className="text-sm font-medium mb-2 text-muted-foreground">
+                {t.clinicalSummary.hospitalizationsLast12}
+                <span className="text-xs ml-1">({lang === "es" ? "últimos 24 meses" : "last 24 months"})</span>
+              </h3>
+              <div className="space-y-2">
+                {hospitalizations.map(p => {
+                  const secondary = formatSecondaryLine(p);
+                  return (
+                    <div key={p.id} className="clinical-item border-b border-border/50 pb-2 last:border-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-medium text-sm">{p.title}</span>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(p.date), "dd/MM/yyyy")}</span>
+                      </div>
+                      {secondary && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{secondary}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
           
           {vaccines.length > 0 && (
-            <div className="mb-4">
+            <div className="mb-4 clinical-item">
               <h3 className="text-sm font-medium mb-2 text-muted-foreground">{t.clinicalSummary.vaccinesLast12}</h3>
-              <div className="health-card print:shadow-none print:border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
-                      <th className="text-left py-2 font-medium">{t.procedures.vaccine}</th>
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.doctor}</th>
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {vaccines.map(p => (
-                      <tr key={p.id} className="border-b last:border-0">
-                        <td className="py-2">{format(new Date(p.date), "MMM d, yyyy")}</td>
-                        <td className="py-2">{p.title}</td>
-                        <td className="py-2">{formatProfessional(p)}</td>
-                        <td className="py-2">{p.institutions?.name || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                {vaccines.map(p => {
+                  const secondary = formatSecondaryLine(p);
+                  return (
+                    <div key={p.id} className="clinical-item border-b border-border/50 pb-2 last:border-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-medium text-sm">{p.title}</span>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(p.date), "dd/MM/yyyy")}</span>
+                      </div>
+                      {secondary && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{secondary}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -706,34 +705,29 @@ export default function ClinicalSummary() {
 
         {/* Visits (Optional) */}
         {includeVisits && (
-          <div className="section">
-            <h2 className="flex items-center gap-2 text-lg font-semibold mb-3">
-              <Calendar className="h-5 w-5" />{t.clinicalSummary.visitsLast12} <span className="text-sm font-normal text-muted-foreground">{t.clinicalSummary.last12months}</span>
+          <div className="clinical-section">
+            <h2 className="flex items-center gap-2 text-lg font-semibold mb-3 border-b border-border pb-2">
+              <Calendar className="h-5 w-5" />{t.clinicalSummary.visitsLast12}
+              <span className="text-sm font-normal text-muted-foreground">({t.clinicalSummary.last12months})</span>
             </h2>
             {appointments.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t.clinicalSummary.noVisitsLast12}</p>
             ) : (
-              <div className="health-card print:shadow-none print:border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.reason}</th>
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.doctor}</th>
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {appointments.map(a => (
-                      <tr key={a.id} className="border-b last:border-0">
-                        <td className="py-2">{format(new Date(a.datetime_start), "MMM d, yyyy")}</td>
-                        <td className="py-2">{a.reason || "—"}</td>
-                        <td className="py-2">{formatProfessional(a)}</td>
-                        <td className="py-2">{a.institutions?.name || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                {appointments.map(a => {
+                  const secondary = formatSecondaryLine(a);
+                  return (
+                    <div key={a.id} className="clinical-item border-b border-border/50 pb-2 last:border-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-medium text-sm">{a.reason || "—"}</span>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(a.datetime_start), "dd/MM/yyyy")}</span>
+                      </div>
+                      {secondary && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{secondary}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -741,20 +735,20 @@ export default function ClinicalSummary() {
 
         {/* Available Attachments listing (print-visible) */}
         {totalAttachmentCount > 0 && (
-          <div className="section">
-            <h2 className="flex items-center gap-2 text-lg font-semibold mb-3">
+          <div className="clinical-section">
+            <h2 className="flex items-center gap-2 text-lg font-semibold mb-3 border-b border-border pb-2">
               <Archive className="h-5 w-5" />{t.clinicalSummary.availableAttachments}
               <span className="text-sm font-normal text-muted-foreground">({totalAttachmentCount})</span>
             </h2>
             
             {/* Tests with attachments */}
             {tests.some(test => testAttachments[test.id]?.length > 0) && (
-              <div className="mb-3">
+              <div className="mb-3 clinical-item">
                 <h3 className="text-sm font-medium mb-1 text-muted-foreground">{t.clinicalSummary.testsLast12}</h3>
                 <div className="space-y-1 text-sm">
                   {tests.filter(test => testAttachments[test.id]?.length > 0).map(test => (
                     <div key={test.id}>
-                      <span className="font-medium">{format(new Date(test.date), "yyyy-MM-dd")} — {test.type}</span>
+                      <span className="font-medium">{format(new Date(test.date), "dd/MM/yyyy")} — {test.type}</span>
                       <ul className="ml-4 text-xs text-muted-foreground">
                         {testAttachments[test.id].map((fname, i) => (
                           <li key={i}>→ {fname}</li>
@@ -768,12 +762,12 @@ export default function ClinicalSummary() {
 
             {/* Procedures with attachments */}
             {procedures.some(p => procedureAttachments[p.id]?.length > 0) && (
-              <div className="mb-3">
+              <div className="mb-3 clinical-item">
                 <h3 className="text-sm font-medium mb-1 text-muted-foreground">{t.nav.procedures}</h3>
                 <div className="space-y-1 text-sm">
                   {procedures.filter(p => procedureAttachments[p.id]?.length > 0).map(p => (
                     <div key={p.id}>
-                      <span className="font-medium">{format(new Date(p.date), "yyyy-MM-dd")} — {p.title}</span>
+                      <span className="font-medium">{format(new Date(p.date), "dd/MM/yyyy")} — {p.title}</span>
                       <ul className="ml-4 text-xs text-muted-foreground">
                         {procedureAttachments[p.id].map((fname, i) => (
                           <li key={i}>→ {fname}</li>

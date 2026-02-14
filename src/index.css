@@ -366,6 +366,35 @@
     background: white !important;
     min-height: auto !important;
   }
+
+  /* Clinical document pagination */
+  .clinical-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .clinical-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .clinical-section h2,
+  .clinical-section h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Document typography overrides */
+  .clinical-doc-header {
+    border-bottom: 2px solid #333 !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 1.5cm 1.5cm;
+  }
 }
 
 @layer utilities {
