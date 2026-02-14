@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Stethoscope, Pencil, Trash2, Eye, Phone, Mail, Search, Filter, ArrowLeft, Building2, ToggleLeft, ToggleRight, Calendar, FlaskConical, Syringe, ExternalLink, ArrowRightLeft } from "lucide-react";
+import { Plus, Stethoscope, Pencil, Trash2, Eye, Phone, Mail, Search, Filter, ArrowLeft, Building2, ToggleLeft, ToggleRight, Calendar, FlaskConical, Syringe, ExternalLink, ArrowRightLeft, Merge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -54,6 +54,16 @@ export default function Doctors() {
   const [migrateConfirmText, setMigrateConfirmText] = useState("");
   const [migrateMarkInactive, setMigrateMarkInactive] = useState(true);
   const [isMigrating, setIsMigrating] = useState(false);
+  
+  // Merge state
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [mergeSecondaryId, setMergeSecondaryId] = useState("");
+  const [mergeSecondary, setMergeSecondary] = useState<any>(null);
+  const [mergeSecondaryLinked, setMergeSecondaryLinked] = useState({ appointments: 0, procedures: 0, tests: 0 });
+  const [mergeFieldOverrides, setMergeFieldOverrides] = useState<Record<string, boolean>>({});
+  const [mergeConfirmChecked, setMergeConfirmChecked] = useState(false);
+  const [mergeConfirmText, setMergeConfirmText] = useState("");
+  const [isMerging, setIsMerging] = useState(false);
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -242,6 +252,110 @@ export default function Doctors() {
     }
   }
 
+  // Merge: when secondary professional is selected, fetch their data and linked counts
+  async function onMergeSecondaryChange(doctorId: string) {
+    if (!activeProfileId || !doctorId) {
+      setMergeSecondaryId("");
+      setMergeSecondary(null);
+      return;
+    }
+    if (doctorId === viewDialog?.id) {
+      toast.error(t.doctors.cannotMergeSelf);
+      return;
+    }
+    setMergeSecondaryId(doctorId);
+    const doctor = doctors.find(d => d.id === doctorId);
+    if (doctor && !doctor.is_active) {
+      toast.error(t.doctors.cannotMergeInactive);
+      setMergeSecondaryId("");
+      setMergeSecondary(null);
+      return;
+    }
+    setMergeSecondary(doctor || null);
+    setMergeFieldOverrides({});
+    // Fetch linked counts for the secondary
+    const [apptRes, procRes, testRes] = await Promise.all([
+      supabase.from("appointments").select("id", { count: "exact", head: true }).eq("doctor_id", doctorId).eq("profile_id", activeProfileId),
+      supabase.from("procedures").select("id", { count: "exact", head: true }).eq("doctor_id", doctorId).eq("profile_id", activeProfileId),
+      supabase.from("tests").select("id", { count: "exact", head: true }).eq("doctor_id", doctorId).eq("profile_id", activeProfileId),
+    ]);
+    setMergeSecondaryLinked({
+      appointments: apptRes.count || 0,
+      procedures: procRes.count || 0,
+      tests: testRes.count || 0,
+    });
+  }
+
+  // Merge handler
+  async function handleMerge() {
+    if (!viewDialog || !mergeSecondaryId || mergeSecondaryId === viewDialog.id) return;
+    const confirmWord = lang === "es" ? "FUSIONAR" : "MERGE";
+    if (mergeConfirmText !== confirmWord || !mergeConfirmChecked) return;
+    
+    setIsMerging(true);
+    try {
+      const primaryId = viewDialog.id;
+      const secondaryId = mergeSecondaryId;
+
+      // 1. Migrate all links from secondary to primary
+      const [apptRes, procRes, testRes] = await Promise.all([
+        supabase.from("appointments").update({ doctor_id: primaryId }).eq("doctor_id", secondaryId).eq("profile_id", activeProfileId!),
+        supabase.from("procedures").update({ doctor_id: primaryId }).eq("doctor_id", secondaryId).eq("profile_id", activeProfileId!),
+        supabase.from("tests").update({ doctor_id: primaryId }).eq("doctor_id", secondaryId).eq("profile_id", activeProfileId!),
+      ]);
+
+      if (apptRes.error || procRes.error || testRes.error) {
+        console.error("Merge migration errors:", apptRes.error, procRes.error, testRes.error);
+        toast.error(t.doctors.mergeError);
+        return;
+      }
+
+      // 2. Fill empty fields on primary from secondary (or override if user selected)
+      const mergeFields = ["specialty", "phone", "email", "notes", "license_number", "address", "institution_id"] as const;
+      const updatePayload: Record<string, any> = {};
+      for (const field of mergeFields) {
+        const primaryVal = viewDialog[field];
+        const secondaryVal = mergeSecondary?.[field];
+        if (mergeFieldOverrides[field] && secondaryVal) {
+          // User explicitly chose secondary value
+          updatePayload[field] = secondaryVal;
+        } else if (!primaryVal && secondaryVal) {
+          // Primary empty, fill from secondary
+          updatePayload[field] = secondaryVal;
+        }
+      }
+      if (Object.keys(updatePayload).length > 0) {
+        await supabase.from("doctors").update(updatePayload).eq("id", primaryId);
+      }
+
+      // 3. Mark secondary as inactive
+      await supabase.from("doctors").update({ is_active: false, deactivated_at: new Date().toISOString() }).eq("id", secondaryId);
+
+      toast.success(t.doctors.mergeSuccess);
+      setMergeDialogOpen(false);
+      resetMergeState();
+
+      // Refresh
+      await fetchData();
+      const { data: updatedDoctor } = await supabase.from("doctors").select("*, institutions(name)").eq("id", primaryId).single();
+      if (updatedDoctor) {
+        setViewDialog(updatedDoctor);
+        fetchLinkedRecords(primaryId);
+      }
+    } finally {
+      setIsMerging(false);
+    }
+  }
+
+  function resetMergeState() {
+    setMergeSecondaryId("");
+    setMergeSecondary(null);
+    setMergeSecondaryLinked({ appointments: 0, procedures: 0, tests: 0 });
+    setMergeFieldOverrides({});
+    setMergeConfirmChecked(false);
+    setMergeConfirmText("");
+  }
+
   // Get unique specialties for filter
   const uniqueSpecialties = useMemo(() => {
     const specs = new Set(doctors.map(d => d.specialty).filter(Boolean));
@@ -330,6 +444,11 @@ export default function Doctors() {
                 {canEdit && (linkedAppointments.length + linkedProcedures.length + linkedTests.length) > 0 && (
                   <Button variant="outline" onClick={() => setMigrateDialogOpen(true)}>
                     <ArrowRightLeft className="h-4 w-4 mr-2" />{t.doctors.migrateLinks}
+                  </Button>
+                )}
+                {canEdit && (
+                  <Button variant="outline" onClick={() => setMergeDialogOpen(true)}>
+                    <Merge className="h-4 w-4 mr-2" />{t.doctors.mergeWith}
                   </Button>
                 )}
               </div>
@@ -522,6 +641,146 @@ export default function Doctors() {
                 placeholder={t.doctors.migrationConfirmPlaceholder}
               />
             </div>
+          </div>
+        </ResponsiveFormModal>
+        
+        {/* Merge Modal */}
+        <ResponsiveFormModal
+          open={mergeDialogOpen}
+          onOpenChange={(open) => {
+            setMergeDialogOpen(open);
+            if (!open) resetMergeState();
+          }}
+          title={t.doctors.mergeWith}
+          maxWidth="lg"
+          footer={
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+              <Button variant="outline" onClick={() => setMergeDialogOpen(false)} disabled={isMerging}>{t.actions.cancel}</Button>
+              <Button
+                variant="destructive"
+                disabled={isMerging || !mergeSecondaryId || !mergeConfirmChecked || mergeConfirmText !== (lang === "es" ? "FUSIONAR" : "MERGE")}
+                onClick={handleMerge}
+              >
+                {isMerging ? t.actions.saving : t.doctors.confirmMerge}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-6">
+            <p className="text-sm text-muted-foreground">{t.doctors.mergeDescription}</p>
+            
+            {/* Primary info */}
+            <div className="rounded-lg border p-3 bg-primary/5">
+              <p className="text-xs font-medium text-muted-foreground mb-1">{t.doctors.mergePrimary}</p>
+              <p className="font-semibold">{viewDialog?.full_name}</p>
+              {viewDialog?.specialty && <p className="text-sm text-muted-foreground">{viewDialog.specialty}</p>}
+            </div>
+
+            {/* Secondary selector */}
+            <div className="space-y-2">
+              <Label>{t.doctors.mergeSecondary}</Label>
+              <Select value={mergeSecondaryId} onValueChange={onMergeSecondaryChange}>
+                <SelectTrigger><SelectValue placeholder={t.doctors.selectTargetProfessional} /></SelectTrigger>
+                <SelectContent>
+                  {sortByName(doctors.filter(d => d.is_active && d.id !== viewDialog?.id), "full_name").map(d => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.full_name}{d.specialty ? ` — ${d.specialty}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {mergeSecondary && (
+              <>
+                {/* Data comparison table */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">{t.doctors.mergeDataComparison}</p>
+                  <div className="rounded-lg border overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-muted/50">
+                          <th className="text-left p-2 font-medium">{t.doctors.mergeField}</th>
+                          <th className="text-left p-2 font-medium">{t.doctors.mergePrimaryValue}</th>
+                          <th className="text-left p-2 font-medium">{t.doctors.mergeSecondaryValue}</th>
+                          <th className="text-center p-2 font-medium w-20">{t.doctors.mergeKeepSecondary}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {([
+                          { key: "full_name", label: t.doctors.fullName },
+                          { key: "specialty", label: t.doctors.specialty },
+                          { key: "institution_id", label: t.doctors.institution },
+                          { key: "phone", label: t.doctors.phone },
+                          { key: "email", label: t.doctors.email },
+                          { key: "license_number", label: t.doctors.licenseNumber },
+                          { key: "address", label: t.doctors.address },
+                          { key: "notes", label: t.doctors.notes },
+                        ] as const).map(({ key, label }) => {
+                          const primaryVal = key === "institution_id" ? viewDialog?.institutions?.name : viewDialog?.[key];
+                          const secondaryVal = key === "institution_id"
+                            ? (mergeSecondary.institution_id ? institutions.find(i => i.id === mergeSecondary.institution_id)?.name : null)
+                            : mergeSecondary[key];
+                          // full_name is not overridable
+                          const canOverride = key !== "full_name" && !!secondaryVal;
+                          return (
+                            <tr key={key} className="border-t">
+                              <td className="p-2 font-medium text-muted-foreground">{label}</td>
+                              <td className="p-2">{primaryVal || <span className="text-muted-foreground/50">—</span>}</td>
+                              <td className="p-2">{secondaryVal || <span className="text-muted-foreground/50">—</span>}</td>
+                              <td className="p-2 text-center">
+                                {canOverride && (
+                                  <Checkbox
+                                    checked={mergeFieldOverrides[key] || false}
+                                    onCheckedChange={(checked) =>
+                                      setMergeFieldOverrides(prev => ({ ...prev, [key]: checked === true }))
+                                    }
+                                  />
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Records to migrate */}
+                <div className="rounded-lg border p-4 space-y-2 bg-muted/30">
+                  <p className="text-sm font-medium">{t.doctors.mergeRecordsToMigrate}</p>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    <li className="flex items-center gap-2"><Calendar className="h-4 w-4" />{t.doctors.linkedAppointments}: <span className="font-semibold text-foreground">{mergeSecondaryLinked.appointments}</span></li>
+                    <li className="flex items-center gap-2"><Syringe className="h-4 w-4" />{t.doctors.linkedProcedures}: <span className="font-semibold text-foreground">{mergeSecondaryLinked.procedures}</span></li>
+                    <li className="flex items-center gap-2"><FlaskConical className="h-4 w-4" />{t.doctors.linkedTests}: <span className="font-semibold text-foreground">{mergeSecondaryLinked.tests}</span></li>
+                  </ul>
+                </div>
+
+                {/* Warning */}
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                  <p className="text-sm text-destructive">{t.doctors.mergeWarning}</p>
+                </div>
+
+                {/* Double confirmation */}
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="merge-confirm-check"
+                    checked={mergeConfirmChecked}
+                    onCheckedChange={(checked) => setMergeConfirmChecked(checked === true)}
+                  />
+                  <Label htmlFor="merge-confirm-check" className="text-sm cursor-pointer">{t.doctors.mergeConfirmCheckbox}</Label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t.doctors.mergeConfirmLabel}</Label>
+                  <Input
+                    value={mergeConfirmText}
+                    onChange={(e) => setMergeConfirmText(e.target.value)}
+                    placeholder={t.doctors.mergeConfirmPlaceholder}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </ResponsiveFormModal>
       </div>
