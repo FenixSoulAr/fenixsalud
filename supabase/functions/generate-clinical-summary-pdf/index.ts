@@ -90,9 +90,9 @@ Deno.serve(async (req) => {
       serviceClient.from("profiles").select("*").eq("id", profileId).maybeSingle(),
       serviceClient.from("medications").select("*").eq("profile_id", profileId).eq("status", "Active").order("name"),
       serviceClient.from("diagnoses").select("*").eq("profile_id", profileId),
-      serviceClient.from("tests").select("*, institutions(name)").eq("profile_id", profileId).gte("date", twelveMonthsAgoStr).order("date", { ascending: false }),
-      serviceClient.from("procedures").select("*, institutions(name), doctors(full_name)").eq("profile_id", profileId).order("date", { ascending: false }),
-      serviceClient.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", profileId).gte("datetime_start", twelveMonthsAgo.toISOString()).order("datetime_start", { ascending: false }),
+      serviceClient.from("tests").select("*, institutions(name), doctors(full_name, specialty)").eq("profile_id", profileId).gte("date", twelveMonthsAgoStr).order("date", { ascending: false }),
+      serviceClient.from("procedures").select("*, institutions(name), doctors(full_name, specialty)").eq("profile_id", profileId).order("date", { ascending: false }),
+      serviceClient.from("appointments").select("*, doctors(full_name, specialty), institutions(name)").eq("profile_id", profileId).gte("datetime_start", twelveMonthsAgo.toISOString()).order("datetime_start", { ascending: false }),
     ]);
 
     const profile = profileRes.data;
@@ -137,6 +137,7 @@ Deno.serve(async (req) => {
       visits: "Consultas (últimos 12 meses)",
       noVisits: "Sin consultas en los últimos 12 meses.",
       doctor: "Médico",
+      professional: "Profesional",
       reason: "Motivo",
       attachments: "Adjuntos",
       filesNotIncluded: "Archivos no incluidos en este PDF",
@@ -164,9 +165,18 @@ Deno.serve(async (req) => {
       visits: "Visits (last 12 months)",
       noVisits: "No visits in the last 12 months.",
       doctor: "Doctor",
+      professional: "Professional",
       reason: "Reason",
       attachments: "Attachments",
       filesNotIncluded: "Files not included in this PDF",
+    };
+
+    // Helper: format professional string from a record
+    const formatProfessional = (record: any): string | null => {
+      if (record.professional_status !== "assigned" || !record.doctors?.full_name) return null;
+      const name = record.doctors.full_name;
+      const spec = record.doctors.specialty;
+      return spec ? `${name} (${spec})` : name;
     };
 
     // Create base PDF
@@ -265,7 +275,10 @@ Deno.serve(async (req) => {
       for (const test of tests) {
         const dateStr = new Date(test.date).toLocaleDateString(language === "es" ? "es-AR" : "en-US");
         const inst = test.institutions?.name || "—";
-        drawText(`• ${dateStr} - ${test.type} - ${inst}`);
+        const prof = formatProfessional(test);
+        let line = `• ${dateStr} - ${test.type} - ${inst}`;
+        if (prof) line += ` - ${labels.professional}: ${prof}`;
+        drawText(line);
       }
     }
     currentY -= 15;
@@ -277,7 +290,10 @@ Deno.serve(async (req) => {
       for (const p of surgeries) {
         const dateStr = new Date(p.date).toLocaleDateString(language === "es" ? "es-AR" : "en-US");
         const inst = p.institutions?.name || "—";
-        drawText(`• ${dateStr} - ${p.title} - ${inst}`);
+        const prof = formatProfessional(p);
+        let line = `• ${dateStr} - ${p.title} - ${inst}`;
+        if (prof) line += ` - ${labels.professional}: ${prof}`;
+        drawText(line);
       }
       currentY -= 15;
     }
@@ -289,7 +305,10 @@ Deno.serve(async (req) => {
       for (const p of hospitalizations) {
         const dateStr = new Date(p.date).toLocaleDateString(language === "es" ? "es-AR" : "en-US");
         const inst = p.institutions?.name || "—";
-        drawText(`• ${dateStr} - ${p.title} - ${inst}`);
+        const prof = formatProfessional(p);
+        let line = `• ${dateStr} - ${p.title} - ${inst}`;
+        if (prof) line += ` - ${labels.professional}: ${prof}`;
+        drawText(line);
       }
       currentY -= 15;
     }
@@ -301,7 +320,10 @@ Deno.serve(async (req) => {
       for (const p of vaccines) {
         const dateStr = new Date(p.date).toLocaleDateString(language === "es" ? "es-AR" : "en-US");
         const inst = p.institutions?.name || "—";
-        drawText(`• ${dateStr} - ${p.title} - ${inst}`);
+        const prof = formatProfessional(p);
+        let line = `• ${dateStr} - ${p.title} - ${inst}`;
+        if (prof) line += ` - ${labels.professional}: ${prof}`;
+        drawText(line);
       }
       currentY -= 15;
     }
@@ -312,9 +334,11 @@ Deno.serve(async (req) => {
       currentY -= 5;
       for (const a of appointments) {
         const dateStr = new Date(a.datetime_start).toLocaleDateString(language === "es" ? "es-AR" : "en-US");
-        const doc = a.doctors?.full_name || "—";
+        const prof = formatProfessional(a);
         const reason = a.reason || "—";
-        drawText(`• ${dateStr} - ${reason} - ${doc}`);
+        let line = `• ${dateStr} - ${reason}`;
+        if (prof) line += ` - ${labels.professional}: ${prof}`;
+        drawText(line);
       }
       currentY -= 15;
     }

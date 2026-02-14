@@ -68,9 +68,9 @@ export default function ClinicalSummary() {
       supabase.from("profiles").select("*").eq("id", activeProfileId).maybeSingle(),
       supabase.from("medications").select("*").eq("profile_id", activeProfileId).eq("status", "Active").order("name"),
       supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId),
-      supabase.from("tests").select("*, institutions(name), doctors(full_name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
-      supabase.from("procedures").select("*, institutions(name), doctors(full_name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
-      supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", activeProfileId).order("datetime_start", { ascending: false }),
+      supabase.from("tests").select("*, institutions(name), doctors(full_name, specialty)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
+      supabase.from("procedures").select("*, institutions(name), doctors(full_name, specialty)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
+      supabase.from("appointments").select("*, doctors(full_name, specialty), institutions(name)").eq("profile_id", activeProfileId).order("datetime_start", { ascending: false }),
     ]);
 
     setProfile(profileRes.data);
@@ -233,6 +233,14 @@ export default function ClinicalSummary() {
 
   const today = format(new Date(), "MMMM d, yyyy");
   const fullName = profile?.full_name || [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || t.misc.patient;
+
+  // Helper: format professional display respecting professional_status
+  const formatProfessional = (record: any) => {
+    if (record.professional_status !== "assigned" || !record.doctors?.full_name) return "—";
+    const name = record.doctors.full_name;
+    const spec = record.doctors.specialty;
+    return spec ? `${name} (${spec})` : name;
+  };
 
   // Group procedures by type for display
   const surgeries = procedures.filter(p => p.type === "Surgery");
@@ -536,7 +544,7 @@ export default function ClinicalSummary() {
                     <tr key={test.id} className="border-b last:border-0">
                       <td className="py-2">{format(new Date(test.date), "MMM d, yyyy")}</td>
                        <td className="py-2">{test.type}</td>
-                       <td className="py-2">{test.doctors?.full_name || "—"}</td>
+                       <td className="py-2">{formatProfessional(test)}</td>
                        <td className="py-2">{test.institutions?.name || "—"}</td>
                       <td className="py-2">
                         {testAttachments[test.id]?.length ? (
@@ -578,7 +586,7 @@ export default function ClinicalSummary() {
                        <tr key={p.id} className="border-b last:border-0">
                          <td className="py-2">{format(new Date(p.date), "MMM d, yyyy")}</td>
                          <td className="py-2">{p.title}</td>
-                         <td className="py-2">{p.doctors?.full_name || "—"}</td>
+                         <td className="py-2">{formatProfessional(p)}</td>
                          <td className="py-2">{p.institutions?.name || "—"}</td>
                        </tr>
                      ))}
@@ -592,12 +600,13 @@ export default function ClinicalSummary() {
           {hospitalizations.length > 0 && (
             <div className="mb-4">
               <h3 className="text-sm font-medium mb-2 text-muted-foreground">{t.clinicalSummary.hospitalizationsLast12}</h3>
-              <div className="health-card print:shadow-none print:border">
+               <div className="health-card print:shadow-none print:border">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
                       <th className="text-left py-2 font-medium">{t.clinicalSummary.reason}</th>
+                      <th className="text-left py-2 font-medium">{t.clinicalSummary.doctor}</th>
                       <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
                     </tr>
                   </thead>
@@ -606,6 +615,7 @@ export default function ClinicalSummary() {
                       <tr key={p.id} className="border-b last:border-0">
                         <td className="py-2">{format(new Date(p.date), "MMM d, yyyy")}</td>
                         <td className="py-2">{p.title}</td>
+                        <td className="py-2">{formatProfessional(p)}</td>
                         <td className="py-2">{p.institutions?.name || "—"}</td>
                       </tr>
                     ))}
@@ -625,6 +635,7 @@ export default function ClinicalSummary() {
                     <tr className="border-b">
                       <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
                       <th className="text-left py-2 font-medium">{t.procedures.vaccine}</th>
+                      <th className="text-left py-2 font-medium">{t.clinicalSummary.doctor}</th>
                       <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
                     </tr>
                   </thead>
@@ -633,6 +644,7 @@ export default function ClinicalSummary() {
                       <tr key={p.id} className="border-b last:border-0">
                         <td className="py-2">{format(new Date(p.date), "MMM d, yyyy")}</td>
                         <td className="py-2">{p.title}</td>
+                        <td className="py-2">{formatProfessional(p)}</td>
                         <td className="py-2">{p.institutions?.name || "—"}</td>
                       </tr>
                     ))}
@@ -671,7 +683,7 @@ export default function ClinicalSummary() {
                       <tr key={a.id} className="border-b last:border-0">
                         <td className="py-2">{format(new Date(a.datetime_start), "MMM d, yyyy")}</td>
                         <td className="py-2">{a.reason || "—"}</td>
-                        <td className="py-2">{a.doctors?.full_name || "—"}</td>
+                        <td className="py-2">{formatProfessional(a)}</td>
                         <td className="py-2">{a.institutions?.name || "—"}</td>
                       </tr>
                     ))}
