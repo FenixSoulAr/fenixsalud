@@ -163,28 +163,25 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
   };
 
   const deleteFile = async (attachmentId: string): Promise<boolean> => {
-    const attachment = attachments.find(a => a.id === attachmentId);
-    if (!attachment) return false;
+    if (!dataProfileId) {
+      toast.error("No se pudo determinar el perfil activo.");
+      return false;
+    }
 
     try {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from("health-files")
-        .remove([attachment.file_url]);
+      const { data, error } = await supabase.functions.invoke("delete-attachment", {
+        body: { attachment_id: attachmentId, profile_id: dataProfileId },
+      });
 
-      if (storageError) {
-        console.error("Storage delete error:", storageError);
+      if (error) {
+        console.error("Delete attachment error:", error);
+        toast.error("No se pudo eliminar el archivo. Intentá nuevamente.");
+        return false;
       }
 
-      // Delete from database
-      const { error: dbError } = await supabase
-        .from("file_attachments")
-        .delete()
-        .eq("id", attachmentId);
-
-      if (dbError) {
-        console.error("DB delete error:", dbError);
-        toast.error("No se pudo eliminar el archivo. Intentá nuevamente.");
+      if (data?.error) {
+        console.error("Delete attachment server error:", data.error);
+        toast.error(data.error);
         return false;
       }
 

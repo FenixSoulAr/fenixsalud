@@ -497,17 +497,23 @@ serve(async (req) => {
       }
 
       case "data_audit": {
-        logStep("Running data audit");
+        // Scope to profile_id if provided (owner-self mode)
+        const { profile_id: auditProfileId } = params;
+        logStep("Running data audit", { profile_id: auditProfileId || "all" });
+
+        // Build profile filter
+        const profileFilter = auditProfileId
+          ? (q: any) => q.eq("profile_id", auditProfileId)
+          : (q: any) => q;
 
         // --- Professionals ---
-        const { data: allDoctors } = await serviceClient
-          .from("doctors")
-          .select("id, full_name, is_active, profile_id");
+        let doctorQuery = serviceClient.from("doctors").select("id, full_name, is_active, profile_id");
+        if (auditProfileId) doctorQuery = doctorQuery.eq("profile_id", auditProfileId);
+        const { data: allDoctors } = await doctorQuery;
         const doctors = allDoctors || [];
         const activeDoctors = doctors.filter((d: any) => d.is_active);
         const inactiveDoctors = doctors.filter((d: any) => !d.is_active);
         const inactiveDoctorIds = new Set(inactiveDoctors.map((d: any) => d.id));
-        const activeDoctorIds = new Set(activeDoctors.map((d: any) => d.id));
 
         // Duplicate detection (normalized name)
         const nameMap: Record<string, any[]> = {};
@@ -519,11 +525,15 @@ serve(async (req) => {
         const duplicateProfessionals = Object.values(nameMap).filter(arr => arr.length > 1);
 
         // Links per doctor
-        const [apptLinks, testLinks, procLinks] = await Promise.all([
-          serviceClient.from("appointments").select("id, doctor_id").not("doctor_id", "is", null),
-          serviceClient.from("tests").select("id, doctor_id").not("doctor_id", "is", null),
-          serviceClient.from("procedures").select("id, doctor_id").not("doctor_id", "is", null),
-        ]);
+        let apptLinksQ = serviceClient.from("appointments").select("id, doctor_id").not("doctor_id", "is", null);
+        let testLinksQ = serviceClient.from("tests").select("id, doctor_id").not("doctor_id", "is", null);
+        let procLinksQ = serviceClient.from("procedures").select("id, doctor_id").not("doctor_id", "is", null);
+        if (auditProfileId) {
+          apptLinksQ = apptLinksQ.eq("profile_id", auditProfileId);
+          testLinksQ = testLinksQ.eq("profile_id", auditProfileId);
+          procLinksQ = procLinksQ.eq("profile_id", auditProfileId);
+        }
+        const [apptLinks, testLinks, procLinks] = await Promise.all([apptLinksQ, testLinksQ, procLinksQ]);
         const allLinks = [
           ...(apptLinks.data || []),
           ...(testLinks.data || []),
@@ -542,12 +552,16 @@ serve(async (req) => {
           .filter((d: any) => (linkCountByDoctor[d.id] || 0) === 0)
           .map((d: any) => ({ id: d.id, full_name: d.full_name }));
 
-        // --- Consistency checks across appointments/tests/procedures ---
-        const [apptAll, testAll, procAll] = await Promise.all([
-          serviceClient.from("appointments").select("id, doctor_id, professional_status, institution_id"),
-          serviceClient.from("tests").select("id, doctor_id, professional_status, institution_id"),
-          serviceClient.from("procedures").select("id, doctor_id, professional_status, institution_id"),
-        ]);
+        // --- Consistency checks ---
+        let apptAllQ = serviceClient.from("appointments").select("id, doctor_id, professional_status, institution_id");
+        let testAllQ = serviceClient.from("tests").select("id, doctor_id, professional_status, institution_id");
+        let procAllQ = serviceClient.from("procedures").select("id, doctor_id, professional_status, institution_id");
+        if (auditProfileId) {
+          apptAllQ = apptAllQ.eq("profile_id", auditProfileId);
+          testAllQ = testAllQ.eq("profile_id", auditProfileId);
+          procAllQ = procAllQ.eq("profile_id", auditProfileId);
+        }
+        const [apptAll, testAll, procAll] = await Promise.all([apptAllQ, testAllQ, procAllQ]);
 
         interface InconsistencyRecord {
           id: string;
@@ -561,15 +575,12 @@ serve(async (req) => {
 
         const checkRecords = (records: any[], tableName: string) => {
           for (const r of records) {
-            // doctor_id set but pointing to inactive doctor
             if (r.doctor_id && inactiveDoctorIds.has(r.doctor_id)) {
               inconsistencies.push({ id: r.id, table: tableName, issue: "points_to_inactive_professional", doctor_id: r.doctor_id });
             }
-            // doctor_id NULL but status = assigned
             if (!r.doctor_id && r.professional_status === "assigned") {
               inconsistencies.push({ id: r.id, table: tableName, issue: "null_id_but_assigned", professional_status: r.professional_status });
             }
-            // doctor_id set but status != assigned
             if (r.doctor_id && r.professional_status !== "assigned") {
               inconsistencies.push({ id: r.id, table: tableName, issue: "has_id_but_not_assigned", doctor_id: r.doctor_id, professional_status: r.professional_status });
             }
@@ -581,14 +592,12 @@ serve(async (req) => {
         checkRecords(procAll.data || [], "procedures");
 
         // --- Institutions ---
-        const { data: allInstitutions } = await serviceClient
-          .from("institutions")
-          .select("id, name, is_active");
+        let instQuery = serviceClient.from("institutions").select("id, name, is_active");
+        if (auditProfileId) instQuery = instQuery.eq("profile_id", auditProfileId);
+        const { data: allInstitutions } = await instQuery;
         const institutions = allInstitutions || [];
-        const activeInstitutionIds = new Set(institutions.filter((i: any) => i.is_active).map((i: any) => i.id));
         const inactiveInstitutionIds = new Set(institutions.filter((i: any) => !i.is_active).map((i: any) => i.id));
 
-        // Institution usage
         const allRecordsWithInst = [
           ...(apptAll.data || []),
           ...(testAll.data || []),
@@ -610,9 +619,9 @@ serve(async (req) => {
           .map(r => ({ id: r.id, institution_id: r.institution_id }));
 
         // --- Orphan attachments ---
-        const { data: allAttachments } = await serviceClient
-          .from("file_attachments")
-          .select("id, entity_id, entity_type, file_name");
+        let attQuery = serviceClient.from("file_attachments").select("id, entity_id, entity_type, file_name, file_url");
+        if (auditProfileId) attQuery = attQuery.eq("profile_id", auditProfileId);
+        const { data: allAttachments } = await attQuery;
 
         const attachments = allAttachments || [];
         const testIds = new Set((testAll.data || []).map((t: any) => t.id));
@@ -623,8 +632,8 @@ serve(async (req) => {
           if (att.entity_type === "TestStudy") return !testIds.has(att.entity_id);
           if (att.entity_type === "Procedure") return !procIds.has(att.entity_id);
           if (att.entity_type === "Appointment") return !apptIds.has(att.entity_id);
-          return true; // unknown type = orphan
-        }).map((att: any) => ({ id: att.id, entity_id: att.entity_id, entity_type: att.entity_type, file_name: att.file_name }));
+          return true;
+        }).map((att: any) => ({ id: att.id, entity_id: att.entity_id, entity_type: att.entity_type, file_name: att.file_name, file_url: att.file_url }));
 
         const auditResult = {
           professionals: {
@@ -652,6 +661,93 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({ audit: auditResult }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      case "cleanup_orphan_attachments": {
+        const { profile_id: cleanupProfileId } = params;
+        if (!cleanupProfileId) {
+          return new Response(JSON.stringify({ error: "profile_id is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify the calling user owns this profile
+        const { data: ownerProfile } = await serviceClient
+          .from("profiles")
+          .select("owner_user_id")
+          .eq("id", cleanupProfileId)
+          .single();
+
+        if (!ownerProfile || ownerProfile.owner_user_id !== userData.user.id) {
+          return new Response(JSON.stringify({ error: "You can only clean up your own profile's orphan attachments" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        logStep("Cleanup orphan attachments", { profile_id: cleanupProfileId });
+
+        // Recalculate orphans server-side for this profile
+        const [cAppts, cTests, cProcs, cAtts] = await Promise.all([
+          serviceClient.from("appointments").select("id").eq("profile_id", cleanupProfileId),
+          serviceClient.from("tests").select("id").eq("profile_id", cleanupProfileId),
+          serviceClient.from("procedures").select("id").eq("profile_id", cleanupProfileId),
+          serviceClient.from("file_attachments").select("id, entity_id, entity_type, file_url, file_name").eq("profile_id", cleanupProfileId),
+        ]);
+
+        const cApptIds = new Set((cAppts.data || []).map((a: any) => a.id));
+        const cTestIds = new Set((cTests.data || []).map((t: any) => t.id));
+        const cProcIds = new Set((cProcs.data || []).map((p: any) => p.id));
+
+        const orphans = (cAtts.data || []).filter((att: any) => {
+          if (att.entity_type === "TestStudy") return !cTestIds.has(att.entity_id);
+          if (att.entity_type === "Procedure") return !cProcIds.has(att.entity_id);
+          if (att.entity_type === "Appointment") return !cApptIds.has(att.entity_id);
+          return true;
+        });
+
+        let deletedCount = 0;
+        let failedCount = 0;
+        const failedItems: Array<{ id: string; file_url: string; error: string }> = [];
+
+        for (const orphan of orphans) {
+          try {
+            // Delete from storage
+            if (orphan.file_url) {
+              const { error: storageErr } = await serviceClient.storage
+                .from("health-files")
+                .remove([orphan.file_url]);
+              if (storageErr) {
+                logStep("Storage delete warning for orphan", { id: orphan.id, error: storageErr.message });
+                // Continue - still try to remove the DB record
+              }
+            }
+
+            // Delete DB record
+            const { error: dbErr } = await serviceClient
+              .from("file_attachments")
+              .delete()
+              .eq("id", orphan.id);
+
+            if (dbErr) {
+              failedCount++;
+              failedItems.push({ id: orphan.id, file_url: orphan.file_url, error: dbErr.message });
+            } else {
+              deletedCount++;
+            }
+          } catch (err) {
+            failedCount++;
+            failedItems.push({ id: orphan.id, file_url: orphan.file_url, error: err instanceof Error ? err.message : String(err) });
+          }
+        }
+
+        logStep("Cleanup complete", { deletedCount, failedCount, total: orphans.length });
+
+        return new Response(
+          JSON.stringify({ ok: true, deleted_count: deletedCount, failed_count: failedCount, failed_items: failedItems }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
