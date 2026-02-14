@@ -9,15 +9,7 @@ const corsHeaders = {
 interface SummaryOptions {
   profileId: string;
   includeVisits?: boolean;
-  includeTestAttachments?: boolean;
-  includeProcedureAttachments?: boolean;
   language?: "en" | "es";
-}
-
-interface NotIncludedFile {
-  fileName: string;
-  mimeType: string;
-  reason: string;
 }
 
 Deno.serve(async (req) => {
@@ -38,23 +30,20 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Create user client to verify auth
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
     const { data: { user }, error: authError } = await userClient.auth.getUser();
     if (authError || !user) {
-      console.error("Auth error:", authError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Parse request body
     const body = await req.json() as SummaryOptions;
-    const { profileId, includeVisits, includeTestAttachments, includeProcedureAttachments, language = "es" } = body;
+    const { profileId, includeVisits, language = "es" } = body;
 
     if (!profileId) {
       return new Response(JSON.stringify({ error: "profileId is required" }), {
@@ -65,10 +54,8 @@ Deno.serve(async (req) => {
 
     console.log(`Generating PDF for profile ${profileId}, user ${user.id}`);
 
-    // Create service client for privileged operations
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify user has access to profile
     const { data: canAccess } = await serviceClient.rpc("can_access_profile_by_id", {
       _profile_id: profileId,
       _user_id: user.id,
@@ -102,7 +89,6 @@ Deno.serve(async (req) => {
     const allProcedures = proceduresRes.data || [];
     const appointments = appointmentsRes.data || [];
 
-    // Filter procedures
     const procedures = allProcedures.filter((p: any) => {
       if (p.type === "Surgery") return true;
       return new Date(p.date) >= twelveMonthsAgo;
@@ -112,7 +98,32 @@ Deno.serve(async (req) => {
     const hospitalizations = procedures.filter((p: any) => p.type === "Hospitalization");
     const vaccines = procedures.filter((p: any) => p.type === "Vaccine");
 
-    // Labels
+    // Fetch attachments for textual listing
+    const entityIds = [
+      ...tests.map((t: any) => t.id),
+      ...procedures.map((p: any) => p.id),
+    ];
+
+    let attachmentsByEntity: Record<string, { file_name: string; mime_type: string | null }[]> = {};
+    let totalAttachmentCount = 0;
+
+    if (entityIds.length > 0) {
+      const { data: attachments } = await serviceClient
+        .from("file_attachments")
+        .select("entity_id, entity_type, file_name, mime_type")
+        .eq("profile_id", profileId)
+        .in("entity_id", entityIds)
+        .in("entity_type", ["TestStudy", "Procedure"]);
+
+      if (attachments) {
+        totalAttachmentCount = attachments.length;
+        for (const att of attachments) {
+          if (!attachmentsByEntity[att.entity_id]) attachmentsByEntity[att.entity_id] = [];
+          attachmentsByEntity[att.entity_id].push({ file_name: att.file_name, mime_type: att.mime_type });
+        }
+      }
+    }
+
     const labels = language === "es" ? {
       title: "Resumen Clínico",
       generatedOn: "Generado el",
@@ -123,24 +134,21 @@ Deno.serve(async (req) => {
       notes: "Notas",
       currentMedications: "Medicación Actual",
       noActiveMedications: "Sin medicación activa.",
-      medication: "Medicación",
-      dose: "Dosis",
-      schedule: "Frecuencia",
       tests: "Estudios (últimos 12 meses)",
       noTests: "Sin estudios en los últimos 12 meses.",
       date: "Fecha",
       type: "Tipo",
       institution: "Institución",
+      professional: "Profesional",
       surgeries: "Cirugías (historial completo)",
       hospitalizations: "Internaciones (últimos 12 meses)",
       vaccines: "Vacunas (últimos 12 meses)",
       visits: "Consultas (últimos 12 meses)",
       noVisits: "Sin consultas en los últimos 12 meses.",
-      doctor: "Médico",
-      professional: "Profesional",
       reason: "Motivo",
-      attachments: "Adjuntos",
-      filesNotIncluded: "Archivos no incluidos en este PDF",
+      availableAttachments: "Adjuntos disponibles",
+      totalAttachments: "Total adjuntos",
+      noAttachments: "Sin adjuntos.",
     } : {
       title: "Clinical Summary",
       generatedOn: "Generated on",
@@ -151,27 +159,23 @@ Deno.serve(async (req) => {
       notes: "Notes",
       currentMedications: "Current Medications",
       noActiveMedications: "No active medications.",
-      medication: "Medication",
-      dose: "Dose",
-      schedule: "Schedule",
       tests: "Tests (last 12 months)",
       noTests: "No tests in the last 12 months.",
       date: "Date",
       type: "Type",
       institution: "Institution",
+      professional: "Professional",
       surgeries: "Surgeries (full history)",
       hospitalizations: "Hospitalizations (last 12 months)",
       vaccines: "Vaccines (last 12 months)",
       visits: "Visits (last 12 months)",
       noVisits: "No visits in the last 12 months.",
-      doctor: "Doctor",
-      professional: "Professional",
       reason: "Reason",
-      attachments: "Attachments",
-      filesNotIncluded: "Files not included in this PDF",
+      availableAttachments: "Available Attachments",
+      totalAttachments: "Total attachments",
+      noAttachments: "No attachments.",
     };
 
-    // Helper: format professional string from a record
     const formatProfessional = (record: any): string | null => {
       if (record.professional_status !== "assigned" || !record.doctors?.full_name) return null;
       const name = record.doctors.full_name;
@@ -179,12 +183,12 @@ Deno.serve(async (req) => {
       return spec ? `${name} (${spec})` : name;
     };
 
-    // Create base PDF
+    // Create PDF
     const pdfDoc = await PDFDocument.create();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    
-    const pageWidth = 595.28; // A4
+
+    const pageWidth = 595.28;
     const pageHeight = 841.89;
     const margin = 50;
     const lineHeight = 14;
@@ -197,19 +201,37 @@ Deno.serve(async (req) => {
     };
 
     const checkSpace = (needed: number) => {
-      if (currentY - needed < margin) {
-        addNewPage();
-      }
+      if (currentY - needed < margin) addNewPage();
     };
 
-    const drawText = (text: string, options: { bold?: boolean; size?: number; color?: any } = {}) => {
+    const drawText = (text: string, options: { bold?: boolean; size?: number; color?: any; indent?: number } = {}) => {
       const size = options.size || 10;
       const usedFont = options.bold ? boldFont : font;
       const color = options.color || rgb(0, 0, 0);
-      
-      checkSpace(lineHeight);
-      page.drawText(text, { x: margin, y: currentY, size, font: usedFont, color });
-      currentY -= lineHeight;
+      const x = margin + (options.indent || 0);
+
+      // Word wrap for long lines
+      const maxWidth = pageWidth - x - margin;
+      const words = text.split(" ");
+      let currentLine = "";
+
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const testWidth = usedFont.widthOfTextAtSize(testLine, size);
+        if (testWidth > maxWidth && currentLine) {
+          checkSpace(lineHeight);
+          page.drawText(currentLine, { x, y: currentY, size, font: usedFont, color });
+          currentY -= lineHeight;
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) {
+        checkSpace(lineHeight);
+        page.drawText(currentLine, { x, y: currentY, size, font: usedFont, color });
+        currentY -= lineHeight;
+      }
     };
 
     const drawLine = () => {
@@ -225,8 +247,8 @@ Deno.serve(async (req) => {
 
     // Header
     const fullName = profile?.full_name || [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Patient";
-    const today = new Date().toLocaleDateString(language === "es" ? "es-AR" : "en-US", { 
-      year: "numeric", month: "long", day: "numeric" 
+    const today = new Date().toLocaleDateString(language === "es" ? "es-AR" : "en-US", {
+      year: "numeric", month: "long", day: "numeric",
     });
 
     drawText(labels.title, { bold: true, size: 18 });
@@ -250,10 +272,9 @@ Deno.serve(async (req) => {
       drawText(`[!] ${labels.allergies}: ${profile.allergies}`, { color: rgb(0.8, 0, 0) });
     }
     if (profile?.notes) drawText(`${labels.notes}: ${profile.notes}`);
-    
     currentY -= 15;
 
-    // Medications section
+    // Medications
     drawText(labels.currentMedications, { bold: true, size: 12 });
     currentY -= 5;
     if (medications.length === 0) {
@@ -266,7 +287,7 @@ Deno.serve(async (req) => {
     }
     currentY -= 15;
 
-    // Tests section
+    // Tests
     drawText(labels.tests, { bold: true, size: 12 });
     currentY -= 5;
     if (tests.length === 0) {
@@ -343,181 +364,40 @@ Deno.serve(async (req) => {
       currentY -= 15;
     }
 
-    // Track files not included
-    const notIncludedFiles: NotIncludedFile[] = [];
+    // Available Attachments section (textual listing only)
+    if (totalAttachmentCount > 0) {
+      drawLine();
+      drawText(labels.availableAttachments, { bold: true, size: 12 });
+      drawText(`${labels.totalAttachments}: ${totalAttachmentCount}`, { size: 9, color: rgb(0.4, 0.4, 0.4) });
+      currentY -= 5;
 
-    // Process attachments
-    if (includeTestAttachments || includeProcedureAttachments) {
-      const entityIds: string[] = [];
-      const entityTypes: string[] = [];
-      
-      if (includeTestAttachments && tests.length > 0) {
-        entityIds.push(...tests.map((t: any) => t.id));
-        entityTypes.push("TestStudy");
-      }
-      if (includeProcedureAttachments && procedures.length > 0) {
-        entityIds.push(...procedures.map((p: any) => p.id));
-        entityTypes.push("Procedure");
-      }
-
-      if (entityIds.length > 0) {
-        // Fetch attachments owned by this user
-        const { data: attachments } = await serviceClient
-          .from("file_attachments")
-          .select("id, entity_id, entity_type, file_name, file_url, mime_type, user_id")
-          .in("entity_id", entityIds)
-          .in("entity_type", entityTypes);
-
-        const validAttachments = (attachments || []).filter((a: any) => a.user_id === user.id);
-        console.log(`Found ${validAttachments.length} attachments to process`);
-
-        for (const attachment of validAttachments) {
-          try {
-            // Extract storage path
-            let storagePath = attachment.file_url;
-            if (storagePath.startsWith("http")) {
-              const match = storagePath.match(/\/storage\/v1\/object\/(?:public|authenticated)\/health-files\/(.+)/);
-              if (match) storagePath = match[1];
-            }
-
-            console.log(`Fetching attachment: ${attachment.file_name} from ${storagePath}`);
-
-            // Download file
-            const { data: fileData, error: storageError } = await serviceClient.storage
-              .from("health-files")
-              .download(storagePath);
-
-            if (storageError || !fileData) {
-              console.error(`Failed to download ${attachment.file_name}:`, storageError);
-              notIncludedFiles.push({
-                fileName: attachment.file_name,
-                mimeType: attachment.mime_type || "unknown",
-                reason: "Download failed",
-              });
-              continue;
-            }
-
-            const bytes = new Uint8Array(await fileData.arrayBuffer());
-            const mimeType = attachment.mime_type || "";
-
-            if (mimeType === "application/pdf") {
-              // Merge PDF
-              try {
-                const attachmentPdf = await PDFDocument.load(bytes);
-                const copiedPages = await pdfDoc.copyPages(attachmentPdf, attachmentPdf.getPageIndices());
-                for (const copiedPage of copiedPages) {
-                  pdfDoc.addPage(copiedPage);
-                }
-                console.log(`Merged PDF: ${attachment.file_name}`);
-              } catch (pdfError) {
-                console.error(`Failed to merge PDF ${attachment.file_name}:`, pdfError);
-                notIncludedFiles.push({
-                  fileName: attachment.file_name,
-                  mimeType,
-                  reason: "Invalid PDF format",
-                });
-              }
-            } else if (mimeType.startsWith("image/")) {
-              // Embed image as a page
-              try {
-                let image;
-                if (mimeType === "image/png") {
-                  image = await pdfDoc.embedPng(bytes);
-                } else if (mimeType === "image/jpeg" || mimeType === "image/jpg") {
-                  image = await pdfDoc.embedJpg(bytes);
-                } else {
-                  // Unsupported image format
-                  notIncludedFiles.push({
-                    fileName: attachment.file_name,
-                    mimeType,
-                    reason: "Unsupported image format",
-                  });
-                  continue;
-                }
-
-                // Scale to fit A4
-                const imgWidth = image.width;
-                const imgHeight = image.height;
-                const maxWidth = pageWidth - margin * 2;
-                const maxHeight = pageHeight - margin * 2;
-                
-                let scale = Math.min(maxWidth / imgWidth, maxHeight / imgHeight, 1);
-                const scaledWidth = imgWidth * scale;
-                const scaledHeight = imgHeight * scale;
-
-                const imagePage = pdfDoc.addPage([pageWidth, pageHeight]);
-                const x = (pageWidth - scaledWidth) / 2;
-                const y = (pageHeight - scaledHeight) / 2;
-
-                imagePage.drawImage(image, {
-                  x,
-                  y,
-                  width: scaledWidth,
-                  height: scaledHeight,
-                });
-
-                // Add filename caption
-                imagePage.drawText(attachment.file_name, {
-                  x: margin,
-                  y: margin - 15,
-                  size: 8,
-                  font,
-                  color: rgb(0.5, 0.5, 0.5),
-                });
-
-                console.log(`Embedded image: ${attachment.file_name}`);
-              } catch (imgError) {
-                console.error(`Failed to embed image ${attachment.file_name}:`, imgError);
-                notIncludedFiles.push({
-                  fileName: attachment.file_name,
-                  mimeType,
-                  reason: "Image processing failed",
-                });
-              }
-            } else {
-              // Unsupported file type
-              notIncludedFiles.push({
-                fileName: attachment.file_name,
-                mimeType,
-                reason: "Unsupported format",
-              });
-            }
-          } catch (error) {
-            console.error(`Error processing ${attachment.file_name}:`, error);
-            notIncludedFiles.push({
-              fileName: attachment.file_name,
-              mimeType: attachment.mime_type || "unknown",
-              reason: "Processing error",
-            });
+      // List test attachments
+      const testsWithAttachments = tests.filter((t: any) => attachmentsByEntity[t.id]);
+      if (testsWithAttachments.length > 0) {
+        drawText(language === "es" ? "Estudios:" : "Tests:", { bold: true, size: 10 });
+        for (const test of testsWithAttachments) {
+          const dateStr = new Date(test.date).toLocaleDateString(language === "es" ? "es-AR" : "en-US");
+          drawText(`${dateStr} - ${test.type}`, { indent: 10, size: 9 });
+          for (const att of attachmentsByEntity[test.id]) {
+            const ext = att.mime_type ? ` (${att.mime_type.split("/").pop()})` : "";
+            drawText(`→ ${att.file_name}${ext}`, { indent: 20, size: 8, color: rgb(0.3, 0.3, 0.3) });
           }
         }
+        currentY -= 5;
       }
-    }
 
-    // Add "Files not included" page if needed
-    if (notIncludedFiles.length > 0) {
-      const notIncludedPage = pdfDoc.addPage([pageWidth, pageHeight]);
-      let y = pageHeight - margin;
-
-      notIncludedPage.drawText(labels.filesNotIncluded, {
-        x: margin,
-        y,
-        size: 14,
-        font: boldFont,
-        color: rgb(0.6, 0.4, 0),
-      });
-      y -= 25;
-
-      for (const file of notIncludedFiles) {
-        notIncludedPage.drawText(`• ${file.fileName} (${file.mimeType}) - ${file.reason}`, {
-          x: margin,
-          y,
-          size: 10,
-          font,
-          color: rgb(0.4, 0.4, 0.4),
-        });
-        y -= lineHeight;
-        if (y < margin) break; // Prevent overflow
+      // List procedure attachments
+      const procsWithAttachments = procedures.filter((p: any) => attachmentsByEntity[p.id]);
+      if (procsWithAttachments.length > 0) {
+        drawText(language === "es" ? "Procedimientos:" : "Procedures:", { bold: true, size: 10 });
+        for (const proc of procsWithAttachments) {
+          const dateStr = new Date(proc.date).toLocaleDateString(language === "es" ? "es-AR" : "en-US");
+          drawText(`${dateStr} - ${proc.title}`, { indent: 10, size: 9 });
+          for (const att of attachmentsByEntity[proc.id]) {
+            const ext = att.mime_type ? ` (${att.mime_type.split("/").pop()})` : "";
+            drawText(`→ ${att.file_name}${ext}`, { indent: 20, size: 8, color: rgb(0.3, 0.3, 0.3) });
+          }
+        }
       }
     }
 
@@ -525,7 +405,7 @@ Deno.serve(async (req) => {
     const pdfBytes = await pdfDoc.save();
     console.log(`PDF generated: ${pdfBytes.length} bytes`);
 
-    // Upload to exports bucket
+    // Upload
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
     const fileName = `clinical_summary_${timestamp}.pdf`;
     const filePath = `${user.id}/${fileName}`;
@@ -545,10 +425,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Generate signed URL (24 hours)
     const { data: signedData, error: signedError } = await serviceClient.storage
       .from("exports")
-      .createSignedUrl(filePath, 86400); // 24 hours
+      .createSignedUrl(filePath, 86400);
 
     if (signedError || !signedData?.signedUrl) {
       console.error("Signed URL error:", signedError);
@@ -564,7 +443,6 @@ Deno.serve(async (req) => {
       success: true,
       downloadUrl: signedData.signedUrl,
       fileName,
-      notIncludedFiles: notIncludedFiles.length > 0 ? notIncludedFiles : undefined,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
