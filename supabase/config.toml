@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.delete-attachment]
 verify_jwt = false
+
+[functions.admin-audit-profile]
+verify_jwt = false
