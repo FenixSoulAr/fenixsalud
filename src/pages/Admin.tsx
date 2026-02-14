@@ -9,6 +9,7 @@ import { getLanguage } from "@/i18n";
 import { UsersSection } from "@/components/admin/UsersSection";
 import { PromoCodesSection } from "@/components/admin/PromoCodesSection";
 import { ProfileAuditSection } from "@/components/admin/ProfileAuditSection";
+import { RolesSection } from "@/components/admin/RolesSection";
 
 interface AdminUser {
   user_id: string;
@@ -44,7 +45,7 @@ interface PromoCode {
 }
 
 export default function Admin() {
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { isAdmin, isSuperadmin, loading: adminLoading } = useAdmin();
   const navigate = useNavigate();
   const lang = getLanguage();
 
@@ -53,24 +54,20 @@ export default function Admin() {
   const [usersLoading, setUsersLoading] = useState(true);
   const [promoLoading, setPromoLoading] = useState(true);
 
-  // Check admin access and redirect if not
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
       navigate("/", { replace: true });
     }
   }, [isAdmin, adminLoading, navigate]);
 
-  // Fetch users
   const fetchUsers = async () => {
     setUsersLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-actions", {
         body: { action: "list_users" },
       });
-
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-
       setUsers(data.users || []);
     } catch (err) {
       console.error("Failed to fetch users:", err);
@@ -80,17 +77,14 @@ export default function Admin() {
     }
   };
 
-  // Fetch promo codes
   const fetchPromoCodes = async () => {
     setPromoLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-actions", {
         body: { action: "list_promo_codes" },
       });
-
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-
       setPromoCodes(data.promoCodes || []);
     } catch (err) {
       console.error("Failed to fetch promo codes:", err);
@@ -131,6 +125,9 @@ export default function Admin() {
           <TabsTrigger value="users">{lang === "es" ? "Usuarios" : "Users"}</TabsTrigger>
           <TabsTrigger value="promo">{lang === "es" ? "Códigos Promo" : "Promo Codes"}</TabsTrigger>
           <TabsTrigger value="profile-audit">{lang === "es" ? "Auditoría" : "Audit"}</TabsTrigger>
+          {isSuperadmin && (
+            <TabsTrigger value="roles">{lang === "es" ? "Roles" : "Roles"}</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
@@ -144,6 +141,12 @@ export default function Admin() {
         <TabsContent value="profile-audit" className="space-y-4">
           <ProfileAuditSection />
         </TabsContent>
+
+        {isSuperadmin && (
+          <TabsContent value="roles" className="space-y-4">
+            <RolesSection />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

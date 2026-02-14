@@ -12,7 +12,18 @@ async function checkAdminRole(sc: any, userId: string): Promise<boolean> {
     .from("admin_roles")
     .select("role")
     .eq("user_id", userId)
-    .eq("role", "admin")
+    .in("role", ["admin", "superadmin"])
+    .maybeSingle();
+  return !!data;
+}
+
+// Check if user is superadmin
+async function checkSuperadminRole(sc: any, userId: string): Promise<boolean> {
+  const { data } = await sc
+    .from("admin_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "superadmin")
     .maybeSingle();
   return !!data;
 }
@@ -872,6 +883,196 @@ serve(async (req) => {
           JSON.stringify({ ok: true, deleted_count: deletedCount, failed_count: failedCount, failed_items: failedItems }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+      case "list_admin_roles": {
+        const { data: roles, error } = await serviceClient
+          .from("admin_roles")
+          .select("user_id, role, created_at, created_by")
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          return new Response(JSON.stringify({ error: "Failed to fetch roles" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Enrich with emails
+        const userIds = (roles || []).map((r: any) => r.user_id);
+        const { data: { users: authUsers } } = await serviceClient.auth.admin.listUsers({ perPage: 1000 });
+        const emailMap: Record<string, string> = {};
+        for (const u of (authUsers || [])) {
+          emailMap[u.id] = u.email || "";
+        }
+
+        const enriched = (roles || []).map((r: any) => ({
+          ...r,
+          email: emailMap[r.user_id] || "unknown",
+          created_by_email: r.created_by ? (emailMap[r.created_by] || r.created_by) : null,
+        }));
+
+        return new Response(JSON.stringify({ roles: enriched }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "set_user_role": {
+        const { userId: targetUserId, role: targetRole } = params;
+
+        if (!targetUserId || !targetRole || !["admin", "superadmin"].includes(targetRole)) {
+          return new Response(JSON.stringify({ error: "userId and valid role required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Only superadmin can manage roles
+        if (!(await checkSuperadminRole(serviceClient, userData.user.id))) {
+          return new Response(JSON.stringify({ error: "Solo superadmins pueden gestionar roles" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify target user exists
+        const { data: targetUser } = await serviceClient.auth.admin.getUserById(targetUserId);
+        if (!targetUser?.user) {
+          return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Upsert role
+        const { error: upsertErr } = await serviceClient
+          .from("admin_roles")
+          .upsert({
+            user_id: targetUserId,
+            role: targetRole,
+            created_by: userData.user.id,
+          }, { onConflict: "user_id" });
+
+        if (upsertErr) {
+          return new Response(JSON.stringify({ error: "Error al asignar rol" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        logStep("Role set", { targetUserId, role: targetRole, by: userEmail });
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "remove_user_role": {
+        const { userId: removeUserId } = params;
+
+        if (!removeUserId) {
+          return new Response(JSON.stringify({ error: "userId is required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (!(await checkSuperadminRole(serviceClient, userData.user.id))) {
+          return new Response(JSON.stringify({ error: "Solo superadmins pueden gestionar roles" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if target is a superadmin - can't remove superadmin directly
+        const { data: targetRoleData } = await serviceClient
+          .from("admin_roles")
+          .select("role")
+          .eq("user_id", removeUserId)
+          .maybeSingle();
+
+        if (targetRoleData?.role === "superadmin") {
+          return new Response(JSON.stringify({ error: "No se puede quitar un superadmin directamente. Usá la transferencia de ownership." }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { error: delErr } = await serviceClient
+          .from("admin_roles")
+          .delete()
+          .eq("user_id", removeUserId);
+
+        if (delErr) {
+          return new Response(JSON.stringify({ error: "Error al quitar rol" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        logStep("Role removed", { removeUserId, by: userEmail });
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "transfer_superadmin": {
+        const { toUserId } = params;
+
+        if (!toUserId) {
+          return new Response(JSON.stringify({ error: "toUserId is required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (!(await checkSuperadminRole(serviceClient, userData.user.id))) {
+          return new Response(JSON.stringify({ error: "Solo superadmins pueden transferir ownership" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (toUserId === userData.user.id) {
+          return new Response(JSON.stringify({ error: "No podés transferir a vos mismo" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify target user exists
+        const { data: toUser } = await serviceClient.auth.admin.getUserById(toUserId);
+        if (!toUser?.user) {
+          return new Response(JSON.stringify({ error: "Usuario destino no encontrado" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Set target as superadmin
+        await serviceClient
+          .from("admin_roles")
+          .upsert({
+            user_id: toUserId,
+            role: "superadmin",
+            created_by: userData.user.id,
+          }, { onConflict: "user_id" });
+
+        // Demote caller to admin
+        await serviceClient
+          .from("admin_roles")
+          .update({ role: "admin" })
+          .eq("user_id", userData.user.id);
+
+        logStep("Superadmin transferred", { from: userData.user.id, to: toUserId });
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "search_users_by_email": {
+        const { query } = params;
+        if (!query || query.length < 2) {
+          return new Response(JSON.stringify({ users: [] }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data: { users: allUsers } } = await serviceClient.auth.admin.listUsers({ perPage: 1000 });
+        const filtered = (allUsers || [])
+          .filter((u: any) => u.email?.toLowerCase().includes(query.toLowerCase()))
+          .slice(0, 10)
+          .map((u: any) => ({ user_id: u.id, email: u.email }));
+
+        return new Response(JSON.stringify({ users: filtered }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       default:
