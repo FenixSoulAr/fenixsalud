@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { Plus, Stethoscope, Pencil, Trash2, Eye, Phone, Mail, Search, Filter, ArrowLeft, Building2, ToggleLeft, ToggleRight } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Plus, Stethoscope, Pencil, Trash2, Eye, Phone, Mail, Search, Filter, ArrowLeft, Building2, ToggleLeft, ToggleRight, Calendar, FlaskConical, Syringe, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +17,8 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { useTranslations, getLanguage } from "@/i18n";
 import { sortByName } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 
 const SPECIALTY_KEYS = [
   "cardiology", "dermatology", "endocrinology", "gastroenterology",
@@ -28,6 +30,7 @@ export default function Doctors() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
   const lang = getLanguage();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<any[]>([]);
@@ -37,6 +40,12 @@ export default function Doctors() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deactivateId, setDeactivateId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Linked records
+  const [linkedAppointments, setLinkedAppointments] = useState<any[]>([]);
+  const [linkedProcedures, setLinkedProcedures] = useState<any[]>([]);
+  const [linkedTests, setLinkedTests] = useState<any[]>([]);
+  const [linkedLoading, setLinkedLoading] = useState(false);
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,6 +69,32 @@ export default function Doctors() {
     setDoctors(docRes.data || []);
     setInstitutions(instRes.data || []);
     setLoading(false);
+  }
+
+  const fetchLinkedRecords = useCallback(async (doctorId: string) => {
+    if (!activeProfileId) return;
+    setLinkedLoading(true);
+    const [apptRes, procRes, testRes] = await Promise.all([
+      supabase.from("appointments").select("id, datetime_start, reason, status, institutions(name)")
+        .eq("doctor_id", doctorId).eq("profile_id", activeProfileId)
+        .order("datetime_start", { ascending: false }),
+      supabase.from("procedures").select("id, date, title, type, institutions(name)")
+        .eq("doctor_id", doctorId).eq("profile_id", activeProfileId)
+        .order("date", { ascending: false }),
+      supabase.from("tests").select("id, date, type, institutions(name)")
+        .eq("doctor_id", doctorId).eq("profile_id", activeProfileId)
+        .order("date", { ascending: false }),
+    ]);
+    setLinkedAppointments(apptRes.data || []);
+    setLinkedProcedures(procRes.data || []);
+    setLinkedTests(testRes.data || []);
+    setLinkedLoading(false);
+  }, [activeProfileId]);
+
+  function openDetailView(doctor: any) {
+    setViewDialog(doctor);
+    setShowContactInfo(false);
+    fetchLinkedRecords(doctor.id);
   }
 
   function openEdit(doctor: any) {
@@ -192,16 +227,17 @@ export default function Doctors() {
           <ArrowLeft className="h-4 w-4 mr-2" />{lang === "es" ? "Volver a Profesionales" : "Back to Professionals"}
         </Button>
         
-        <div className="max-w-2xl space-y-6">
+        <div className="max-w-3xl space-y-6">
+          {/* Section 1: Professional data */}
           <div className="health-card">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold">{viewDialog.full_name}</h1>
                 {viewDialog.specialty && <p className="text-primary">{viewDialog.specialty}</p>}
               </div>
-              {!viewDialog.is_active && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">{t.doctors.inactive}</span>
-              )}
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${viewDialog.is_active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                {viewDialog.is_active ? t.doctors.active : t.doctors.inactive}
+              </span>
             </div>
             
             <div className="space-y-3 text-sm">
@@ -209,7 +245,6 @@ export default function Doctors() {
               {viewDialog.institutions?.name && <div><span className="font-medium">{t.doctors.institution}:</span> {viewDialog.institutions.name}</div>}
               {viewDialog.address && <div><span className="font-medium">{t.doctors.address}:</span> {viewDialog.address}</div>}
               
-              {/* Contact info gated behind button */}
               {(viewDialog.phone || viewDialog.email) && !showContactInfo && (
                 <Button variant="outline" size="sm" onClick={() => setShowContactInfo(true)} className="min-h-[44px]">
                   <Phone className="h-4 w-4 mr-2" />{t.doctors.revealContact}
@@ -241,6 +276,100 @@ export default function Doctors() {
               </div>
             )}
           </div>
+
+          {/* Section 2: Linked records */}
+          {linkedLoading ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
+              <LoadingPage />
+            </div>
+          ) : (
+            <>
+              {/* A) Appointments */}
+              <div className="health-card">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  {t.doctors.linkedAppointments} ({linkedAppointments.length})
+                </h2>
+                {linkedAppointments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t.doctors.noLinkedRecords}</p>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {linkedAppointments.map((a) => (
+                      <div key={a.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/40">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{a.reason || "—"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(a.datetime_start), "dd/MM/yyyy")}
+                            {a.institutions?.name && ` · ${a.institutions.name}`}
+                            {a.status && ` · ${a.status}`}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => navigate("/appointments")}>
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* B) Procedures */}
+              <div className="health-card">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Syringe className="h-5 w-5 text-primary" />
+                  {t.doctors.linkedProcedures} ({linkedProcedures.length})
+                </h2>
+                {linkedProcedures.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t.doctors.noLinkedRecords}</p>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {linkedProcedures.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/40">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{p.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(p.date), "dd/MM/yyyy")}
+                            {p.institutions?.name && ` · ${p.institutions.name}`}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => navigate("/procedures")}>
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* C) Tests */}
+              <div className="health-card">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <FlaskConical className="h-5 w-5 text-primary" />
+                  {t.doctors.linkedTests} ({linkedTests.length})
+                </h2>
+                {linkedTests.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t.doctors.noLinkedRecords}</p>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {linkedTests.map((te) => (
+                      <div key={te.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/40">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{te.type}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(te.date), "dd/MM/yyyy")}
+                            {te.institutions?.name && ` · ${te.institutions.name}`}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => navigate("/tests")}>
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
         
         {/* Deactivate Confirmation */}
@@ -385,7 +514,7 @@ export default function Doctors() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredDoctors.map((d) => (
-            <div key={d.id} className={`health-card cursor-pointer hover:shadow-md transition-shadow ${!d.is_active ? "opacity-60" : ""}`} onClick={() => setViewDialog(d)}>
+            <div key={d.id} className={`health-card cursor-pointer hover:shadow-md transition-shadow ${!d.is_active ? "opacity-60" : ""}`} onClick={() => openDetailView(d)}>
               <div className="flex items-start justify-between">
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold">{d.full_name}</h3>
