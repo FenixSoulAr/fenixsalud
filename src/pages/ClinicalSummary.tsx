@@ -498,13 +498,16 @@ export default function ClinicalSummary() {
 
       {/* Printable Content */}
       <div ref={printRef} className="clinical-print-area max-w-3xl">
-        {/* Repeating print header (table-header-group trick) */}
+        {/* Repeating print header on all pages */}
         <table className="clinical-print-table w-full">
           <thead className="clinical-repeating-header">
             <tr>
               <th className="font-normal text-left p-0">
-                <div className="flex items-center justify-between pb-2 mb-0 border-b border-muted-foreground/30">
-                  <span className="text-xs text-muted-foreground">Mi Salud — {t.clinicalSummary.title}</span>
+                <div className="clinical-print-header-row flex items-center justify-between pb-2 mb-3 border-b border-muted-foreground/30">
+                  <div className="flex items-center gap-2">
+                    <img src="/logo.png" alt="Mi Salud" className="h-5 w-5 rounded object-contain" />
+                    <span className="text-xs font-medium">Mi Salud — {t.clinicalSummary.title}</span>
+                  </div>
                   <span className="text-xs text-muted-foreground">{fullName} · {todayFormatted}</span>
                 </div>
               </th>
@@ -512,15 +515,6 @@ export default function ClinicalSummary() {
           </thead>
           <tbody>
             <tr><td className="p-0">
-
-        {/* Document Header (first page only, prominent) */}
-        <div className="clinical-doc-header flex items-center justify-between border-b-2 border-foreground/20 pb-3 mb-4 mt-2">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Mi Salud" className="h-8 w-8 rounded-lg object-contain" />
-            <span className="text-lg font-semibold tracking-tight">{t.appName}</span>
-          </div>
-          <span className="text-sm text-muted-foreground">{todayFormatted}</span>
-        </div>
 
         <div className="space-y-6">
 
