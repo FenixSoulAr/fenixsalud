@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTranslations, getLanguage } from "@/i18n";
 
+const UNASSIGNED_ID = "__unassigned__";
+
 export default function Tests() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const t = useTranslations();
@@ -33,21 +35,11 @@ export default function Tests() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewingTest, setViewingTest] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [form, setForm] = useState({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled", doctor_id: "", professional_status: "assigned" });
+  const [form, setForm] = useState({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled", doctor_id: "" });
   
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
 
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
-
-  async function fetchInstitutions() {
-    const { data } = await supabase
-      .from("institutions")
-      .select("id, name")
-      .eq("profile_id", activeProfileId)
-      .eq("is_active", true)
-      .order("name");
-    setInstitutions(data || []);
-  }
 
   async function fetchData() {
     if (!activeProfileId) return;
@@ -62,7 +54,6 @@ export default function Tests() {
     setInstitutions(instRes.data || []);
     setDoctors(docRes.data || []);
     
-    // Fetch attachment counts for all tests
     if (testsData.length > 0) {
       const { data: attachments } = await supabase
         .from("file_attachments")
@@ -89,7 +80,6 @@ export default function Tests() {
       institution_id: test.institution_id || "",
       status: test.status || "Scheduled",
       doctor_id: test.doctor_id || "",
-      professional_status: test.professional_status || "assigned",
     });
     setViewingTest(null);
     setDialogOpen(true);
@@ -97,9 +87,8 @@ export default function Tests() {
 
   function resetForm() {
     setEditingId(null);
-    setForm({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled", doctor_id: "", professional_status: "assigned" });
+    setForm({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled", doctor_id: "" });
   }
-
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -108,7 +97,7 @@ export default function Tests() {
     
     setIsSaving(true);
     
-    const professionalStatus = form.doctor_id ? "assigned" : form.professional_status;
+    const professionalStatus = form.doctor_id ? "assigned" : "unassigned";
     const payload = {
       type: form.type,
       date: form.date,
@@ -129,11 +118,9 @@ export default function Tests() {
         }
       } else {
         if (!dataProfileId || !currentUserId) { 
-          console.error("Missing IDs:", { dataProfileId, currentUserId });
           toast.error("Falta el perfil activo o usuario."); 
           return; 
         }
-        console.log("Inserting test:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
         const { error } = await supabase.from("tests").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
         if (error) { 
           console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
@@ -144,7 +131,6 @@ export default function Tests() {
         }
       }
       
-      // Success: close modal immediately, then show toast
       setDialogOpen(false);
       resetForm();
       toast.success(editingId ? t.toast.changesUpdated : t.toast.testCreated);
@@ -171,11 +157,7 @@ export default function Tests() {
       .insert({ name: values.name.trim(), profile_id: dataProfileId, user_id: currentUserId })
       .select("id")
       .single();
-    if (error) { 
-      console.error("Institution insert error:", error);
-      toast.error(t.toast.error);
-      return null;
-    }
+    if (error) { toast.error(t.toast.error); return null; }
     const { data: updated } = await supabase
       .from("institutions")
       .select("id, name")
@@ -204,15 +186,22 @@ export default function Tests() {
     return data?.id || null;
   }
 
-  function getProfessionalStatusLabel(status: string) {
-    switch (status) {
-      case "assigned": return t.doctors.assigned;
-      case "unassigned": return t.doctors.unassigned;
-      case "unknown": return t.doctors.unknown;
-      case "not_recorded": return t.doctors.notRecorded;
-      default: return "—";
+  /** Handles professional picker value: sentinel __unassigned__ or real doctor ID */
+  function handleDoctorChange(value: string) {
+    if (value === UNASSIGNED_ID || value === "") {
+      setForm(f => ({ ...f, doctor_id: "" }));
+    } else {
+      setForm(f => ({ ...f, doctor_id: value }));
     }
   }
+
+  /** Build options for professional picker: active doctors + "No asignado" */
+  const doctorOptions = [
+    ...doctors.map((d) => ({ id: d.id, label: d.full_name })),
+    { id: UNASSIGNED_ID, label: t.doctors.unassigned },
+  ];
+
+  const doctorPickerValue = form.doctor_id || "";
 
   if (loading) return <LoadingPage />;
 
@@ -236,7 +225,7 @@ export default function Tests() {
             
             <div className="space-y-3 text-sm">
               <div><span className="font-medium">{t.tests.institution}:</span> {viewingTest.institutions?.name || "—"}</div>
-              <div><span className="font-medium">{t.doctors.professionalStatus}:</span> {viewingTest.doctors?.full_name || getProfessionalStatusLabel(viewingTest.professional_status)}</div>
+              <div><span className="font-medium">{t.appointments.doctor}:</span> {viewingTest.doctors?.full_name || t.doctors.unassigned}</div>
               {viewingTest.notes && <div><span className="font-medium">{t.tests.notes}:</span> {viewingTest.notes}</div>}
             </div>
             
@@ -323,58 +312,25 @@ export default function Tests() {
               onCreate={handleCreateInstitution}
             />
           </div>
-          {/* Professional picker or status */}
+          {/* Professional picker - unified */}
           <div className="form-field">
-            <Label>{t.doctors.professionalStatus}</Label>
-            {form.doctor_id ? (
-              <RelatedEntityPicker
-                value={form.doctor_id}
-                onValueChange={(v) => setForm({ ...form, doctor_id: v, professional_status: v ? "assigned" : form.professional_status })}
-                options={doctors.map((d) => ({ id: d.id, label: d.full_name }))}
-                placeholder={lang === "es" ? "Seleccionar profesional..." : "Select professional..."}
-                searchPlaceholder={lang === "es" ? "Buscar..." : "Search..."}
-                emptyText={lang === "es" ? "Sin resultados." : "No results."}
-                addNewLabel={t.doctors.addDoctor}
-                modalTitle={t.doctors.newDoctor}
-                modalIcon={<Stethoscope className="h-5 w-5" />}
-                fields={[{ key: "full_name", label: t.doctors.fullName, required: true }, { key: "specialty", label: t.doctors.specialty, placeholder: t.doctors.specialtyPlaceholder }]}
-                onCreate={handleCreateDoctor}
-              />
-            ) : (
-              <div className="space-y-2">
-                <Select value={form.professional_status} onValueChange={(v) => {
-                  if (v === "select_professional") {
-                    // Switch to professional picker mode - keep it empty to trigger picker
-                    setForm({ ...form, professional_status: "assigned", doctor_id: "" });
-                  } else {
-                    setForm({ ...form, professional_status: v, doctor_id: "" });
-                  }
-                }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="select_professional">{lang === "es" ? "Seleccionar profesional..." : "Select professional..."}</SelectItem>
-                    <SelectItem value="unassigned">{t.doctors.unassigned}</SelectItem>
-                    <SelectItem value="unknown">{t.doctors.unknown}</SelectItem>
-                    <SelectItem value="not_recorded">{t.doctors.notRecorded}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {form.professional_status === "assigned" && !form.doctor_id && (
-              <RelatedEntityPicker
-                value={form.doctor_id}
-                onValueChange={(v) => setForm({ ...form, doctor_id: v, professional_status: v ? "assigned" : "unassigned" })}
-                options={doctors.map((d) => ({ id: d.id, label: d.full_name }))}
-                placeholder={lang === "es" ? "Seleccionar profesional..." : "Select professional..."}
-                searchPlaceholder={lang === "es" ? "Buscar..." : "Search..."}
-                emptyText={lang === "es" ? "Sin resultados." : "No results."}
-                addNewLabel={t.doctors.addDoctor}
-                modalTitle={t.doctors.newDoctor}
-                modalIcon={<Stethoscope className="h-5 w-5" />}
-                fields={[{ key: "full_name", label: t.doctors.fullName, required: true }, { key: "specialty", label: t.doctors.specialty, placeholder: t.doctors.specialtyPlaceholder }]}
-                onCreate={handleCreateDoctor}
-              />
-            )}
+            <Label>{t.appointments.doctor}</Label>
+            <RelatedEntityPicker
+              value={doctorPickerValue}
+              onValueChange={handleDoctorChange}
+              options={doctorOptions}
+              placeholder={lang === "es" ? "Seleccionar profesional..." : "Select professional..."}
+              searchPlaceholder={lang === "es" ? "Buscar..." : "Search..."}
+              emptyText={lang === "es" ? "Sin resultados." : "No results."}
+              addNewLabel={t.doctors.addDoctor}
+              modalTitle={t.doctors.newDoctor}
+              modalIcon={<Stethoscope className="h-5 w-5" />}
+              fields={[
+                { key: "full_name", label: t.doctors.fullName, required: true },
+                { key: "specialty", label: t.doctors.specialty, placeholder: t.doctors.specialtyPlaceholder },
+              ]}
+              onCreate={handleCreateDoctor}
+            />
           </div>
           <div className="form-field">
             <Label>{t.tests.status}</Label>
@@ -404,7 +360,6 @@ export default function Tests() {
         </AlertDialogContent>
       </AlertDialog>
 
-
       {tests.length === 0 ? (
         <EmptyState icon={FlaskConical} title={t.tests.noTests} description={t.tests.noTestsDescription} action={canEdit ? { label: t.tests.addTest, onClick: () => setDialogOpen(true) } : undefined} />
       ) : (
@@ -414,37 +369,14 @@ export default function Tests() {
             {tests.map((test) => {
               const attachCount = attachmentCounts[test.id] || 0;
               return (
-                <div key={test.id} className="health-card">
+                <div key={test.id} className="health-card cursor-pointer" onClick={() => setViewingTest(test)}>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{test.type}</p>
-                      <p className="text-sm text-muted-foreground">{format(new Date(test.date), "MMM d, yyyy")}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {attachCount > 0 && (
-                        <AttachmentIndicator entityType="TestStudy" entityId={test.id} count={attachCount} />
-                      )}
-                      <StatusBadge status={normalizeStatus(test.status)} />
-                    </div>
+                    <h3 className="font-semibold">{test.type}</h3>
+                    <StatusBadge status={normalizeStatus(test.status)} />
                   </div>
-                  {test.institutions?.name && (
-                    <p className="text-sm text-muted-foreground">{t.tests.institution}: {test.institutions.name}</p>
-                  )}
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                    <Button variant="ghost" size="sm" onClick={() => setViewingTest(test)}>
-                      <Eye className="h-4 w-4 mr-1" />{t.actions.view}
-                    </Button>
-                    {canEdit && (
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(test)}>
-                        <Pencil className="h-4 w-4 mr-1" />{t.actions.edit}
-                      </Button>
-                    )}
-                    {canDelete && (
-                      <Button variant="ghost" size="sm" onClick={() => setDeleteId(test.id)}>
-                        <Trash2 className="h-4 w-4 mr-1 text-destructive" />{t.actions.delete}
-                      </Button>
-                    )}
-                  </div>
+                  <p className="text-sm text-muted-foreground">{format(new Date(test.date), "MMM d, yyyy")}</p>
+                  {test.institutions?.name && <p className="text-sm text-muted-foreground">{test.institutions.name}</p>}
+                  {attachCount > 0 && <div className="mt-2"><AttachmentIndicator entityType="TestStudy" entityId={test.id} count={attachCount} /></div>}
                 </div>
               );
             })}
@@ -453,7 +385,15 @@ export default function Tests() {
           {/* Desktop Table Layout */}
           <div className="hidden md:block data-grid overflow-x-auto">
             <table className="w-full">
-              <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">{t.tests.type}</th><th className="text-left p-4 font-medium">{t.tests.date}</th><th className="text-left p-4 font-medium">{t.tests.institution}</th><th className="text-left p-4 font-medium">{t.tests.status}</th><th className="text-right p-4 font-medium">{t.actions.view}</th></tr></thead>
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left p-4 font-medium">{t.tests.type}</th>
+                  <th className="text-left p-4 font-medium">{t.tests.date}</th>
+                  <th className="text-left p-4 font-medium">{t.tests.institution}</th>
+                  <th className="text-left p-4 font-medium">{t.tests.status}</th>
+                  <th className="text-right p-4 font-medium">{t.actions.view}</th>
+                </tr>
+              </thead>
               <tbody>
                 {tests.map((test) => {
                   const attachCount = attachmentCounts[test.id] || 0;
@@ -462,9 +402,7 @@ export default function Tests() {
                       <td className="p-4">
                         <div className="flex items-center gap-2">
                           <span>{test.type}</span>
-                          {attachCount > 0 && (
-                            <AttachmentIndicator entityType="TestStudy" entityId={test.id} count={attachCount} />
-                          )}
+                          {attachCount > 0 && <AttachmentIndicator entityType="TestStudy" entityId={test.id} count={attachCount} />}
                         </div>
                       </td>
                       <td className="p-4">{format(new Date(test.date), "MMM d, yyyy")}</td>
@@ -472,19 +410,9 @@ export default function Tests() {
                       <td className="p-4"><StatusBadge status={normalizeStatus(test.status)} /></td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => setViewingTest(test)} aria-label={t.actions.view}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {canEdit && (
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(test)} aria-label={t.actions.edit}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canDelete && (
-                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(test.id)} aria-label={t.actions.delete}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
+                          <Button variant="ghost" size="icon" onClick={() => setViewingTest(test)}><Eye className="h-4 w-4" /></Button>
+                          {canEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(test)}><Pencil className="h-4 w-4" /></Button>}
+                          {canDelete && <Button variant="ghost" size="icon" onClick={() => setDeleteId(test.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
                         </div>
                       </td>
                     </tr>

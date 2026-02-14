@@ -1,30 +1,29 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Calendar, Pencil, Trash2, Stethoscope, Building2, Eye, ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Calendar, Pencil, Trash2, Stethoscope, Building2, Eye, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, normalizeStatus } from "@/components/ui/status-badge";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { FileAttachments } from "@/components/FileAttachments";
 import { AttachmentIndicator } from "@/components/AttachmentIndicator";
+import { RelatedEntityPicker } from "@/components/ui/related-entity-picker";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useTimezone } from "@/hooks/useTimezone";
 import { toast } from "sonner";
 import { isPast } from "date-fns";
-import { cn } from "@/lib/utils";
-import { useTranslations } from "@/i18n";
+import { useTranslations, getLanguage } from "@/i18n";
+
+const UNASSIGNED_ID = "__unassigned__";
 
 // Helper to compute display status based on date
 function getDisplayStatus(apt: any): "Upcoming" | "Past" | "Completed" | "Cancelled" {
@@ -38,6 +37,7 @@ export default function Appointments() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const { localToISO, isoToLocal, formatDateTime, formatTime } = useTimezone();
   const t = useTranslations();
+  const lang = getLanguage();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -50,15 +50,7 @@ export default function Appointments() {
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({ date: "", time: "", reason: "", notes: "", doctor_id: "", institution_id: "", status: "Upcoming" });
   
-  // Quick add dialogs
-  const [addDoctorOpen, setAddDoctorOpen] = useState(false);
-  const [addInstitutionOpen, setAddInstitutionOpen] = useState(false);
-  const [newDoctor, setNewDoctor] = useState({ full_name: "", specialty: "" });
-  const [newInstitution, setNewInstitution] = useState({ name: "", type: "Clinic" });
-  
-  // Combobox open states
-  const [doctorOpen, setDoctorOpen] = useState(false);
-  const [institutionOpen, setInstitutionOpen] = useState(false);
+  const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
   
@@ -71,14 +63,12 @@ export default function Appointments() {
     }
   }, [searchParams, appointments]);
 
-  const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
-
   async function fetchData() {
     if (!activeProfileId) return;
     setLoading(true);
     const [apptRes, docRes, instRes] = await Promise.all([
       supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", activeProfileId).order("datetime_start", { ascending: true }),
-      supabase.from("doctors").select("id, full_name").eq("profile_id", activeProfileId),
+      supabase.from("doctors").select("id, full_name").eq("profile_id", activeProfileId).eq("is_active", true),
       supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId).eq("is_active", true),
     ]);
     const appts = apptRes.data || [];
@@ -106,7 +96,6 @@ export default function Appointments() {
 
   function openEdit(apt: any) {
     setEditingId(apt.id);
-    // Use timezone-aware parsing to get local date/time
     const { date, time, hasTime } = isoToLocal(apt.datetime_start);
     setForm({
       date,
@@ -128,7 +117,6 @@ export default function Appointments() {
 
   function buildDateTime() {
     if (!form.date) return "";
-    // Use timezone-aware conversion to ISO string
     return localToISO(form.date, form.time || undefined);
   }
 
@@ -167,7 +155,6 @@ export default function Appointments() {
           toast.error("Falta el perfil activo o usuario."); 
           return; 
         }
-        console.log("Inserting appointment:", { profile_id: dataProfileId, user_id: currentUserId, ...payload });
         const { error } = await supabase.from("appointments").insert({ ...payload, profile_id: dataProfileId, user_id: currentUserId });
         if (error) { 
           console.error("Insert error:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
@@ -178,7 +165,6 @@ export default function Appointments() {
         }
       }
       
-      // Success: close modal immediately, then show toast
       setDialogOpen(false);
       resetForm();
       toast.success(editingId ? t.toast.changesUpdated : t.toast.appointmentCreated);
@@ -207,53 +193,51 @@ export default function Appointments() {
     fetchData();
   }
 
-  async function handleAddDoctor(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newDoctor.full_name) { toast.error(t.doctors.nameRequired); return; }
-    if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
-    
-    const { data, error } = await supabase.from("doctors").insert({ 
-      profile_id: dataProfileId,
-      user_id: currentUserId, 
-      full_name: newDoctor.full_name, 
-      specialty: newDoctor.specialty || null 
-    }).select().single();
-    
-    if (error) { toast.error(t.toast.failedAddDoctor); return; }
-    
+  async function handleCreateDoctor(values: Record<string, string>): Promise<string | null> {
+    if (!dataProfileId || !currentUserId) return null;
+    const { data, error } = await supabase
+      .from("doctors")
+      .insert({ full_name: values.full_name.trim(), specialty: values.specialty?.trim() || null, profile_id: dataProfileId, user_id: currentUserId })
+      .select("id")
+      .single();
+    if (error) { toast.error(t.toast.error); return null; }
+    const { data: updated } = await supabase.from("doctors").select("id, full_name").eq("profile_id", dataProfileId).eq("is_active", true);
+    setDoctors(updated || []);
     toast.success(t.toast.doctorAdded);
-    setAddDoctorOpen(false);
-    setNewDoctor({ full_name: "", specialty: "" });
-    
-    // Refresh doctors and auto-select
-    const { data: docs } = await supabase.from("doctors").select("id, full_name");
-    setDoctors(docs || []);
-    setForm(f => ({ ...f, doctor_id: data.id }));
+    return data?.id || null;
   }
 
-  async function handleAddInstitution(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newInstitution.name) { toast.error(t.institutions.nameRequired); return; }
-    if (!dataProfileId || !currentUserId) { toast.error("No active profile or user"); return; }
-    
-    const { data, error } = await supabase.from("institutions").insert({ 
-      profile_id: dataProfileId,
-      user_id: currentUserId, 
-      name: newInstitution.name, 
-      type: newInstitution.type as any
-    }).select().single();
-    
-    if (error) { toast.error(t.toast.failedAddInstitution); return; }
-    
+  async function handleCreateInstitution(values: Record<string, string>): Promise<string | null> {
+    if (!dataProfileId || !currentUserId) return null;
+    const { data, error } = await supabase
+      .from("institutions")
+      .insert({ name: values.name.trim(), profile_id: dataProfileId, user_id: currentUserId })
+      .select("id")
+      .single();
+    if (error) { toast.error(t.toast.error); return null; }
+    const { data: updated } = await supabase.from("institutions").select("id, name").eq("profile_id", dataProfileId).eq("is_active", true);
+    setInstitutions(updated || []);
     toast.success(t.toast.institutionAdded);
-    setAddInstitutionOpen(false);
-    setNewInstitution({ name: "", type: "Clinic" });
-    
-    // Refresh institutions and auto-select (only active)
-    const { data: insts } = await supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId).eq("is_active", true);
-    setInstitutions(insts || []);
-    setForm(f => ({ ...f, institution_id: data.id }));
+    return data?.id || null;
   }
+
+  /** Handles professional picker value: sentinel __unassigned__ or real doctor ID */
+  function handleDoctorChange(value: string) {
+    if (value === UNASSIGNED_ID || value === "") {
+      setForm(f => ({ ...f, doctor_id: "" }));
+    } else {
+      setForm(f => ({ ...f, doctor_id: value }));
+    }
+  }
+
+  /** Build options for professional picker: active doctors + "No asignado" */
+  const doctorOptions = [
+    ...doctors.map((d) => ({ id: d.id, label: d.full_name })),
+    { id: UNASSIGNED_ID, label: t.doctors.unassigned },
+  ];
+
+  /** Current picker value: real doctor_id or empty string (shows placeholder) */
+  const doctorPickerValue = form.doctor_id || "";
 
   if (loading) return <LoadingPage />;
 
@@ -290,7 +274,7 @@ export default function Appointments() {
             </div>
             
             <div className="space-y-3 text-sm">
-              <div><span className="font-medium">{t.appointments.doctor}:</span> {viewingAppointment.doctors?.full_name || "—"}</div>
+              <div><span className="font-medium">{t.appointments.doctor}:</span> {viewingAppointment.doctors?.full_name || t.doctors.unassigned}</div>
               <div><span className="font-medium">{t.appointments.institution}:</span> {viewingAppointment.institutions?.name || "—"}</div>
               {viewingAppointment.notes && <div><span className="font-medium">{t.appointments.notes}:</span> {viewingAppointment.notes}</div>}
             </div>
@@ -377,79 +361,44 @@ export default function Appointments() {
             <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t.appointments.reasonPlaceholder} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {/* Doctor Combobox */}
+            {/* Professional picker */}
             <div className="form-field">
               <Label>{t.appointments.doctor}</Label>
-              <Popover open={doctorOpen} onOpenChange={setDoctorOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" aria-expanded={doctorOpen} className="w-full justify-between font-normal">
-                    {form.doctor_id ? doctors.find(d => d.id === form.doctor_id)?.full_name : t.appointments.selectDoctor}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
-                  <Command>
-                    <CommandInput placeholder={t.appointments.searchDoctor} />
-                    <CommandList>
-                      <CommandEmpty>{t.appointments.noDoctor}</CommandEmpty>
-                      <CommandGroup>
-                        {doctors.map((d) => (
-                          <CommandItem
-                            key={d.id}
-                            value={d.full_name}
-                            onSelect={() => { setForm({ ...form, doctor_id: d.id }); setDoctorOpen(false); }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", form.doctor_id === d.id ? "opacity-100" : "opacity-0")} />
-                            {d.full_name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                  <div className="border-t p-2">
-                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setDoctorOpen(false); setAddDoctorOpen(true); }}>
-                      <Plus className="h-4 w-4 mr-2" />{t.appointments.addNewDoctor}
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <RelatedEntityPicker
+                value={doctorPickerValue}
+                onValueChange={handleDoctorChange}
+                options={doctorOptions}
+                placeholder={lang === "es" ? "Seleccionar profesional..." : "Select professional..."}
+                searchPlaceholder={lang === "es" ? "Buscar..." : "Search..."}
+                emptyText={lang === "es" ? "Sin resultados." : "No results."}
+                addNewLabel={t.doctors.addDoctor}
+                modalTitle={t.doctors.newDoctor}
+                modalIcon={<Stethoscope className="h-5 w-5" />}
+                fields={[
+                  { key: "full_name", label: t.doctors.fullName, required: true },
+                  { key: "specialty", label: t.doctors.specialty, placeholder: t.doctors.specialtyPlaceholder },
+                ]}
+                onCreate={handleCreateDoctor}
+              />
             </div>
-            {/* Institution Combobox */}
+            {/* Institution picker */}
             <div className="form-field">
               <Label>{t.appointments.institution}</Label>
-              <Popover open={institutionOpen} onOpenChange={setInstitutionOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" aria-expanded={institutionOpen} className="w-full justify-between font-normal">
-                    {form.institution_id ? institutions.find(i => i.id === form.institution_id)?.name : t.appointments.selectInstitution}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
-                  <Command>
-                    <CommandInput placeholder={t.appointments.searchInstitution} />
-                    <CommandList>
-                      <CommandEmpty>{t.appointments.noInstitution}</CommandEmpty>
-                      <CommandGroup>
-                        {institutions.map((i) => (
-                          <CommandItem
-                            key={i.id}
-                            value={i.name}
-                            onSelect={() => { setForm({ ...form, institution_id: i.id }); setInstitutionOpen(false); }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", form.institution_id === i.id ? "opacity-100" : "opacity-0")} />
-                            {i.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                  <div className="border-t p-2">
-                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setInstitutionOpen(false); setAddInstitutionOpen(true); }}>
-                      <Plus className="h-4 w-4 mr-2" />{t.appointments.addNewInstitution}
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <RelatedEntityPicker
+                value={form.institution_id}
+                onValueChange={(v) => setForm({ ...form, institution_id: v })}
+                options={institutions.map((i) => ({ id: i.id, label: i.name }))}
+                placeholder={t.appointments.selectInstitution}
+                searchPlaceholder={lang === "es" ? "Buscar institución..." : "Search institution..."}
+                emptyText={lang === "es" ? "Sin resultados." : "No results."}
+                addNewLabel={t.institutions.addNewInstitution}
+                modalTitle={t.institutions.newInstitution}
+                modalIcon={<Building2 className="h-5 w-5" />}
+                fields={[
+                  { key: "name", label: t.institutions.name, placeholder: lang === "es" ? "Nombre de la institución" : "Institution name", required: true },
+                ]}
+                onCreate={handleCreateInstitution}
+              />
             </div>
           </div>
           {editingId && (
@@ -485,41 +434,6 @@ export default function Appointments() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Quick Add Doctor Dialog */}
-      <Dialog open={addDoctorOpen} onOpenChange={setAddDoctorOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Stethoscope className="h-5 w-5" />{t.doctors.newDoctor}</DialogTitle></DialogHeader>
-          <form onSubmit={handleAddDoctor} className="space-y-4">
-            <div className="form-field"><Label>{t.doctors.fullName} *</Label><Input value={newDoctor.full_name} onChange={(e) => setNewDoctor({ ...newDoctor, full_name: e.target.value })} required /></div>
-            <div className="form-field"><Label>{t.doctors.specialty}</Label><Input value={newDoctor.specialty} onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })} placeholder={t.doctors.specialtyPlaceholder} /></div>
-            <Button type="submit" className="w-full">{t.doctors.addDoctor}</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Quick Add Institution Dialog */}
-      <Dialog open={addInstitutionOpen} onOpenChange={setAddInstitutionOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" />{t.institutions.addNewInstitution}</DialogTitle></DialogHeader>
-          <form onSubmit={handleAddInstitution} className="space-y-4">
-            <div className="form-field"><Label>{t.institutions.name} *</Label><Input value={newInstitution.name} onChange={(e) => setNewInstitution({ ...newInstitution, name: e.target.value })} required /></div>
-            <div className="form-field">
-              <Label>{t.institutions.type}</Label>
-              <Select value={newInstitution.type} onValueChange={(v) => setNewInstitution({ ...newInstitution, type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Clinic">{t.institutions.clinic}</SelectItem>
-                  <SelectItem value="Lab">{t.institutions.lab}</SelectItem>
-                  <SelectItem value="Hospital">{t.institutions.hospital}</SelectItem>
-                  <SelectItem value="Other">{t.institutions.other}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" className="w-full">{t.institutions.addInstitution}</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {appointments.length === 0 ? (
         <EmptyState icon={Calendar} title={t.appointments.noAppointments} description={t.appointments.noAppointmentsDescription} action={canEdit ? { label: t.appointments.addAppointment, onClick: () => setDialogOpen(true) } : undefined} />

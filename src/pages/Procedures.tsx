@@ -49,6 +49,7 @@ export default function Procedures() {
   const [viewingProcedure, setViewingProcedure] = useState<any | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
   const [isSaving, setIsSaving] = useState(false);
+const UNASSIGNED_ID = "__unassigned__";
   const [form, setForm] = useState({ type: "Surgery" as ProcedureType, title: "", date: "", notes: "", institution_id: "", doctor_id: "" });
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
@@ -78,6 +79,7 @@ export default function Procedures() {
       .from("doctors")
       .select("id, full_name")
       .eq("profile_id", activeProfileId)
+      .eq("is_active", true)
       .order("full_name");
     setDoctors(data || []);
   }
@@ -87,8 +89,8 @@ export default function Procedures() {
     setLoading(true);
     const [procRes, instRes, docRes] = await Promise.all([
       supabase.from("procedures").select("*, institutions(name), doctors(full_name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
-      supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId),
-      supabase.from("doctors").select("id, full_name").eq("profile_id", activeProfileId),
+      supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId).eq("is_active", true),
+      supabase.from("doctors").select("id, full_name").eq("profile_id", activeProfileId).eq("is_active", true),
     ]);
     setProcedures(procRes.data || []);
     setInstitutions(instRes.data || []);
@@ -160,7 +162,7 @@ export default function Procedures() {
     if (!dataProfileId || !currentUserId) return null;
     const { data, error } = await supabase.from("doctors").insert({ full_name: values.full_name.trim(), specialty: values.specialty?.trim() || null, profile_id: dataProfileId, user_id: currentUserId }).select("id").single();
     if (error) { toast.error(t.toast.error); return null; }
-    const { data: updated } = await supabase.from("doctors").select("id, full_name").eq("profile_id", dataProfileId);
+    const { data: updated } = await supabase.from("doctors").select("id, full_name").eq("profile_id", dataProfileId).eq("is_active", true);
     setDoctors(updated || []);
     toast.success(t.toast.doctorAdded);
     return data?.id || null;
@@ -227,7 +229,28 @@ export default function Procedures() {
           </div>
           <div className="form-field">
             <Label>{t.procedures.doctor}</Label>
-            <RelatedEntityPicker value={form.doctor_id} onValueChange={(v) => setForm({ ...form, doctor_id: v })} options={doctors.map((d) => ({ id: d.id, label: d.full_name }))} placeholder={t.procedures.selectDoctor} searchPlaceholder={lang === "es" ? "Buscar..." : "Search..."} emptyText={lang === "es" ? "Sin resultados." : "No results."} addNewLabel={t.doctors.addDoctor} modalTitle={t.doctors.newDoctor} modalIcon={<Stethoscope className="h-5 w-5" />} fields={[{ key: "full_name", label: t.doctors.fullName, required: true }, { key: "specialty", label: t.doctors.specialty, placeholder: t.doctors.specialtyPlaceholder }]} onCreate={handleCreateDoctor} />
+            <RelatedEntityPicker
+              value={form.doctor_id}
+              onValueChange={(v) => {
+                if (v === UNASSIGNED_ID || v === "") {
+                  setForm({ ...form, doctor_id: "" });
+                } else {
+                  setForm({ ...form, doctor_id: v });
+                }
+              }}
+              options={[
+                ...doctors.map((d) => ({ id: d.id, label: d.full_name })),
+                { id: UNASSIGNED_ID, label: t.doctors.unassigned },
+              ]}
+              placeholder={lang === "es" ? "Seleccionar profesional..." : "Select professional..."}
+              searchPlaceholder={lang === "es" ? "Buscar..." : "Search..."}
+              emptyText={lang === "es" ? "Sin resultados." : "No results."}
+              addNewLabel={t.doctors.addDoctor}
+              modalTitle={t.doctors.newDoctor}
+              modalIcon={<Stethoscope className="h-5 w-5" />}
+              fields={[{ key: "full_name", label: t.doctors.fullName, required: true }, { key: "specialty", label: t.doctors.specialty, placeholder: t.doctors.specialtyPlaceholder }]}
+              onCreate={handleCreateDoctor}
+            />
           </div>
           <div className="form-field"><Label>{t.procedures.notes}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
         </form>
