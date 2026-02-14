@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTranslations, getLanguage } from "@/i18n";
 import { useNavigate } from "react-router-dom";
+import { sortByName } from "@/lib/utils";
 
 type ProcedureType = "Surgery" | "Hospitalization" | "Vaccine";
 const PROCEDURE_TYPES: ProcedureType[] = ["Surgery", "Hospitalization", "Vaccine"];
@@ -239,7 +240,7 @@ const UNASSIGNED_ID = "__unassigned__";
                 }
               }}
               options={[
-                ...doctors.map((d) => ({ id: d.id, label: d.full_name })),
+                ...sortByName(doctors, "full_name").map((d) => ({ id: d.id, label: d.full_name })),
                 { id: UNASSIGNED_ID, label: t.doctors.unassigned },
               ]}
               placeholder={lang === "es" ? "Seleccionar profesional..." : "Select professional..."}
