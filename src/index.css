@@ -387,9 +387,9 @@
     margin-bottom: 16px !important;
   }
 
-  /* Page margins */
+  /* Page margins - professional clinical document */
   @page {
-    margin: 1.5cm 1.5cm;
+    margin: 2cm;
   }
 }
 
