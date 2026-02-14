@@ -148,8 +148,11 @@ export function ActiveProfileIndicator() {
           <span className="text-xs text-muted-foreground">
             {lang === "es" ? "Perfil" : "Profile"}
           </span>
-          <span className="text-sm font-medium text-sidebar-foreground truncate">
-            {profileName} <span className="text-muted-foreground font-normal">({roleLabel})</span>
+          <span className="text-sm font-medium text-sidebar-foreground truncate block">
+            {profileName}
+          </span>
+          <span className="text-[10px] text-muted-foreground font-normal">
+            {roleLabel}
           </span>
         </div>
         <PlanBadgeWithTooltip />
@@ -179,12 +182,15 @@ export function ActiveProfileIndicator() {
             ) : (
               <Users className="h-4 w-4 flex-shrink-0 text-primary" />
             )}
-            <div className="flex flex-col items-start min-w-0 flex-1">
+            <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
               <span className="text-xs text-muted-foreground">
                 {lang === "es" ? "Perfil" : "Profile"}
               </span>
-              <span className="text-sm font-medium truncate">
-                {profileName} <span className="text-muted-foreground font-normal">({roleLabel})</span>
+              <span className="text-sm font-medium truncate w-full block">
+                {profileName}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-normal">
+                {roleLabel}
               </span>
             </div>
           </div>
