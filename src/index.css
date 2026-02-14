@@ -357,16 +357,16 @@
     visibility: visible;
   }
 
-  /* Position the print area at the top of the page */
+  /* Position the print area at the top with real padding for margins */
   .clinical-print-area {
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
     width: 100%;
-    max-width: 100% !important;
-    padding: 0 !important;
+    box-sizing: border-box;
+    padding: 15mm 18mm !important;
     margin: 0 !important;
+    max-width: 100% !important;
   }
 
   /* Repeating table header for pages 2+ */
@@ -383,6 +383,7 @@
     display: revert;
     border: none;
     visibility: visible;
+    width: 100%;
   }
 
   /* Ensure nothing from UI leaks through */
@@ -417,6 +418,8 @@
   body, html, #root {
     background: white !important;
     min-height: auto !important;
+    width: auto !important;
+    margin: 0 !important;
   }
 
   /* Pagination: avoid breaking items */
@@ -436,9 +439,10 @@
     border-bottom: 1px solid #999 !important;
   }
 
-  /* Professional A4 margins */
+  /* Page setup: margins handled by container padding */
   @page {
-    margin: 20mm 18mm;
+    size: A4;
+    margin: 10mm 0;
   }
 }
 
