@@ -440,6 +440,10 @@ export const es: Translations = {
     attachmentNotEmbeddable: "Adjunto no embebible. Archivo disponible para descarga.",
     attachmentLoadFailed: "No se pudo cargar este adjunto",
     loadingAttachments: "Cargando adjuntos...",
+    exportPdf: "Exportar PDF",
+    downloadAttachmentsZip: "Descargar adjuntos (ZIP)",
+    downloadAttachmentsZipHelper: "Descarga todos los adjuntos de estudios y procedimientos en un ZIP.",
+    availableAttachments: "Adjuntos disponibles",
   },
   
   // Settings

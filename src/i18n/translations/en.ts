@@ -414,6 +414,10 @@ export interface Translations {
     attachmentNotEmbeddable: string;
     attachmentLoadFailed: string;
     loadingAttachments: string;
+    exportPdf: string;
+    downloadAttachmentsZip: string;
+    downloadAttachmentsZipHelper: string;
+    availableAttachments: string;
   };
   settings: {
     title: string;
@@ -1065,6 +1069,10 @@ export const en: Translations = {
     attachmentNotEmbeddable: "Attachment cannot be embedded. File available for download.",
     attachmentLoadFailed: "Could not load this attachment",
     loadingAttachments: "Loading attachments...",
+    exportPdf: "Export PDF",
+    downloadAttachmentsZip: "Download attachments (ZIP)",
+    downloadAttachmentsZipHelper: "Downloads all study and procedure attachments in a ZIP file.",
+    availableAttachments: "Available Attachments",
   },
   
   // Settings
