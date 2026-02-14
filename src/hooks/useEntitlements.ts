@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ensureSubscriptionRow } from "@/lib/subscriptions";
-import { isAdminEmail } from "@/lib/adminAllowlist";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 
 interface EntitlementValues {
   maxProfiles: number;
@@ -80,9 +80,14 @@ export function useEntitlements(): UseEntitlementsReturn {
       return;
     }
 
-    // Check if user is admin - admins get full Plus access without plan restrictions
-    const userIsAdmin = isAdminEmail(user.email);
-    
+    // Check if user is admin via server-side admin_roles table
+    let userIsAdmin = false;
+    try {
+      const { data: roleData } = await supabaseClient.functions.invoke("get-my-role");
+      userIsAdmin = roleData?.role === "admin";
+    } catch {
+      // If check fails, proceed as non-admin
+    }
     if (userIsAdmin) {
       // Set admin state with full entitlements immediately
       setIsAdmin(true);

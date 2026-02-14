@@ -6,18 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Admin allowlist - admins have full access, no promos needed
-const ADMIN_EMAILS = [
-  "jorge.perez.ar@gmail.com",
-  "leandro.perez.ar@gmail.com",
-  "agustina.laterza@gmail.com",
-];
-
-function isAdminEmail(email: string | undefined): boolean {
-  if (!email) return false;
-  return ADMIN_EMAILS.some(
-    (adminEmail) => adminEmail.toLowerCase() === email.toLowerCase()
-  );
+// Check admin role via admin_roles table (service_role bypasses RLS)
+async function checkAdminRole(sc: any, userId: string): Promise<boolean> {
+  const { data } = await sc
+    .from("admin_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  return !!data;
 }
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
@@ -71,7 +68,7 @@ serve(async (req) => {
     logStep("User authenticated", { userId, email: userEmail });
 
     // Admins don't need promos - they have full access by role
-    if (isAdminEmail(userEmail)) {
+    if (await checkAdminRole(serviceClient, userData.user.id)) {
       logStep("Admin user - no promo needed", { email: userEmail });
       return new Response(
         JSON.stringify({ error: "Admins have full access without promo codes" }),

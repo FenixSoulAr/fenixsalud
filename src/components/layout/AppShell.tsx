@@ -38,7 +38,7 @@ export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { signOut, user } = useAuth();
-  const { isAdmin } = useAdmin();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const t = useTranslations();
 
   const primaryNavigation = [
@@ -58,7 +58,7 @@ export function AppShell({ children }: AppShellProps) {
     { name: t.nav.about, href: "/about", icon: Info },
     { name: t.nav.contact, href: "/contact", icon: Mail },
     // Admin item - only shown for admins
-    ...(isAdmin ? [{ name: "Admin", href: "/admin", icon: Shield }] : []),
+    ...(isAdmin && !adminLoading ? [{ name: "Admin", href: "/admin", icon: Shield }] : []),
   ];
 
   return (

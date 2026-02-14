@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.admin-audit-profile]
 verify_jwt = false
+
+[functions.get-my-role]
+verify_jwt = false

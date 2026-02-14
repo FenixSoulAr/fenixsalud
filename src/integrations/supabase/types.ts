@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           created_at: string | null
@@ -1229,6 +1253,7 @@ export type Database = {
         Returns: string
       }
       has_active_override: { Args: { _user_id: string }; Returns: boolean }
+      has_admin_role: { Args: { _user_id: string }; Returns: boolean }
       is_authenticated_user: { Args: never; Returns: boolean }
       is_data_owner: {
         Args: { _data_owner_id: string; _user_id: string }
