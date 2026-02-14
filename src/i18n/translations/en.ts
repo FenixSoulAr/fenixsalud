@@ -282,6 +282,27 @@ export interface Translations {
     migrationSuccess: string;
     migrationError: string;
     cannotMigrateSelf: string;
+    // Merge
+    mergeWith: string;
+    mergeDescription: string;
+    mergePrimary: string;
+    mergeSecondary: string;
+    mergeDataComparison: string;
+    mergeField: string;
+    mergePrimaryValue: string;
+    mergeSecondaryValue: string;
+    mergeKeepSecondary: string;
+    mergeRecordsToMigrate: string;
+    mergeWarning: string;
+    mergeConfirmCheckbox: string;
+    mergeConfirmLabel: string;
+    mergeConfirmPlaceholder: string;
+    mergeConfirmWord: string;
+    confirmMerge: string;
+    mergeSuccess: string;
+    mergeError: string;
+    cannotMergeSelf: string;
+    cannotMergeInactive: string;
     specialtyOptions: {
       cardiology: string;
       dermatology: string;
@@ -906,6 +927,27 @@ export const en: Translations = {
     migrationSuccess: "Migration completed successfully.",
     migrationError: "An error occurred during migration.",
     cannotMigrateSelf: "Cannot migrate to the same professional.",
+    // Merge
+    mergeWith: "Merge with another professional",
+    mergeDescription: "Combine two duplicate professionals into one, migrating all linked records.",
+    mergePrimary: "Primary (current)",
+    mergeSecondary: "Secondary (to merge)",
+    mergeDataComparison: "Data comparison",
+    mergeField: "Field",
+    mergePrimaryValue: "Primary",
+    mergeSecondaryValue: "Secondary",
+    mergeKeepSecondary: "Use secondary value",
+    mergeRecordsToMigrate: "Records that will be migrated from the secondary:",
+    mergeWarning: "This action will consolidate records. The secondary professional will be marked as inactive.",
+    mergeConfirmCheckbox: "I understand that this action consolidates records",
+    mergeConfirmLabel: "Type MERGE to confirm:",
+    mergeConfirmPlaceholder: "MERGE",
+    mergeConfirmWord: "MERGE",
+    confirmMerge: "Confirm merge",
+    mergeSuccess: "Professionals merged successfully.",
+    mergeError: "An error occurred during the merge.",
+    cannotMergeSelf: "Cannot merge with the same professional.",
+    cannotMergeInactive: "Cannot merge with an inactive professional.",
     specialtyOptions: {
       cardiology: "Cardiology",
       dermatology: "Dermatology",
