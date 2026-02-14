@@ -4,17 +4,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, XCircle, Users, Building2, Paperclip, Trash2 } from "lucide-react";
+import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, XCircle, Users, Building2, Paperclip, Trash2, Merge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
 
+// --- Types ---
+
+interface DuplicateDoctor {
+  id: string;
+  full_name: string;
+  is_active: boolean;
+  specialty?: string | null;
+  linkCount?: number;
+}
+
 interface AuditProfessionals {
   total: number;
   active: number;
   inactive: number;
-  duplicates: Array<Array<{ id: string; full_name: string; is_active: boolean; specialty?: string | null; linkCount?: number }>>;
+  duplicates: DuplicateDoctor[][];
   inactiveWithLinks: Array<{ id: string; full_name: string; linkCount: number }>;
   activeNoLinks: Array<{ id: string; full_name: string }>;
 }
@@ -59,6 +69,10 @@ export function DataAuditSection() {
   const [cleanupConfirmChecked, setCleanupConfirmChecked] = useState(false);
   const [cleanupConfirmText, setCleanupConfirmText] = useState("");
 
+  // Duplicate resolution state
+  const [resolveLoading, setResolveLoading] = useState(false);
+  const [resolveConfirmChecked, setResolveConfirmChecked] = useState(false);
+
   async function runAudit() {
     setLoading(true);
     try {
@@ -68,9 +82,9 @@ export function DataAuditSection() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
       setAudit(data.audit);
-      // Reset cleanup state
       setCleanupConfirmChecked(false);
       setCleanupConfirmText("");
+      setResolveConfirmChecked(false);
       toast.success(lang === "es" ? "Auditoría completada" : "Audit completed");
     } catch (err) {
       console.error("Audit failed:", err);
@@ -100,7 +114,6 @@ export function DataAuditSection() {
         toast.success(msg);
       }
 
-      // Reset and re-run audit
       setCleanupConfirmChecked(false);
       setCleanupConfirmText("");
       await runAudit();
@@ -109,6 +122,79 @@ export function DataAuditSection() {
       toast.error(lang === "es" ? "Error en la limpieza" : "Cleanup failed");
     } finally {
       setCleanupLoading(false);
+    }
+  }
+
+  function buildResolutionPlan(duplicates: DuplicateDoctor[][]): { groups: Array<{ keep_id: string; remove_ids: string[] }>; summary: string } {
+    const groups: Array<{ keep_id: string; remove_ids: string[] }> = [];
+
+    for (const group of duplicates) {
+      const withLinks = group.filter(d => (d.linkCount ?? 0) > 0);
+      const withoutLinks = group.filter(d => (d.linkCount ?? 0) === 0);
+
+      if (withLinks.length === 1 && withoutLinks.length > 0) {
+        // Case A: one has links, others don't → keep the one with links
+        groups.push({ keep_id: withLinks[0].id, remove_ids: withoutLinks.map(d => d.id) });
+      } else if (withLinks.length > 1) {
+        // Case B: multiple have links → keep the one with most links
+        const sorted = [...withLinks].sort((a, b) => (b.linkCount ?? 0) - (a.linkCount ?? 0));
+        const keep = sorted[0];
+        const removeFromLinks = sorted.slice(1).map(d => d.id);
+        groups.push({ keep_id: keep.id, remove_ids: [...removeFromLinks, ...withoutLinks.map(d => d.id)] });
+      } else if (withoutLinks.length > 1) {
+        // Case C: all have 0 links → keep first active (or first), remove rest
+        const active = withoutLinks.filter(d => d.is_active);
+        const keep = active.length > 0 ? active[0] : withoutLinks[0];
+        groups.push({ keep_id: keep.id, remove_ids: withoutLinks.filter(d => d.id !== keep.id).map(d => d.id) });
+      }
+    }
+
+    const totalRemove = groups.reduce((sum, g) => sum + g.remove_ids.length, 0);
+    const totalReassign = duplicates.flat().filter(d => {
+      const isRemoved = groups.some(g => g.remove_ids.includes(d.id));
+      return isRemoved && (d.linkCount ?? 0) > 0;
+    }).reduce((sum, d) => sum + (d.linkCount ?? 0), 0);
+
+    const summary = lang === "es"
+      ? `Se eliminarán ${totalRemove} profesional(es) duplicado(s)${totalReassign > 0 ? ` y se reasignarán ${totalReassign} vínculo(s)` : ""}.`
+      : `${totalRemove} duplicate professional(s) will be deleted${totalReassign > 0 ? ` and ${totalReassign} link(s) will be reassigned` : ""}.`;
+
+    return { groups, summary };
+  }
+
+  async function handleResolveDuplicates() {
+    if (!activeProfileId || !audit || audit.professionals.duplicates.length === 0) return;
+    setResolveLoading(true);
+    try {
+      const { groups } = buildResolutionPlan(audit.professionals.duplicates);
+      if (groups.length === 0) {
+        toast.info(lang === "es" ? "No hay duplicados para resolver" : "No duplicates to resolve");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("admin-actions", {
+        body: { action: "resolve_professional_duplicates", profile_id: activeProfileId, groups },
+      });
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      const msg = lang === "es"
+        ? `Resolución completada: ${data.deleted_count} eliminado(s), ${data.reassigned_count} reasignado(s)${data.error_count > 0 ? `, ${data.error_count} error(es)` : ""}`
+        : `Resolution complete: ${data.deleted_count} deleted, ${data.reassigned_count} reassigned${data.error_count > 0 ? `, ${data.error_count} error(s)` : ""}`;
+
+      if (data.error_count > 0) {
+        toast.warning(msg);
+      } else {
+        toast.success(msg);
+      }
+
+      setResolveConfirmChecked(false);
+      await runAudit();
+    } catch (err) {
+      console.error("Resolve duplicates failed:", err);
+      toast.error(lang === "es" ? "Error al resolver duplicados" : "Failed to resolve duplicates");
+    } finally {
+      setResolveLoading(false);
     }
   }
 
@@ -127,6 +213,10 @@ export function DataAuditSection() {
     );
 
   const canCleanup = cleanupConfirmChecked && cleanupConfirmText === "ELIMINAR";
+
+  const resolutionPlan = audit && audit.professionals.duplicates.length > 0
+    ? buildResolutionPlan(audit.professionals.duplicates)
+    : null;
 
   return (
     <div className="space-y-4">
@@ -173,7 +263,16 @@ export function DataAuditSection() {
           </div>
 
           {/* Professionals */}
-          <ProfessionalsCard audit={audit} lang={lang} StatusIcon={StatusIcon} />
+          <ProfessionalsCard
+            audit={audit}
+            lang={lang}
+            StatusIcon={StatusIcon}
+            resolutionPlan={resolutionPlan}
+            resolveConfirmChecked={resolveConfirmChecked}
+            setResolveConfirmChecked={setResolveConfirmChecked}
+            resolveLoading={resolveLoading}
+            onResolveDuplicates={handleResolveDuplicates}
+          />
 
           {/* Consistency Issues */}
           <ConsistencyCard audit={audit} lang={lang} />
@@ -182,94 +281,17 @@ export function DataAuditSection() {
           <InstitutionsCard audit={audit} lang={lang} StatusIcon={StatusIcon} />
 
           {/* Orphan Attachments */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Paperclip className="h-4 w-4" />
-                <CardTitle className="text-base">
-                  {lang === "es" ? "Adjuntos huérfanos" : "Orphan Attachments"}
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {audit.orphanAttachments.length === 0 ? (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <CheckCircle2 className="h-4 w-4" />
-                  {lang === "es" ? "Sin adjuntos huérfanos" : "No orphan attachments"}
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm">
-                      <XCircle className="h-4 w-4 text-destructive" />
-                      <span>
-                        <strong>{audit.orphanAttachments.length}</strong>{" "}
-                        {lang === "es" ? "adjunto(s) sin registro padre" : "attachment(s) without parent record"}
-                      </span>
-                    </div>
-                    <div className="ml-6 mt-1 space-y-0.5">
-                      {audit.orphanAttachments.slice(0, 10).map((att) => (
-                        <div key={att.id} className="text-xs text-muted-foreground">
-                          {att.file_name} ({att.entity_type} → {att.entity_id.slice(0, 8)}…)
-                        </div>
-                      ))}
-                      {audit.orphanAttachments.length > 10 && (
-                        <div className="text-xs text-muted-foreground">
-                          +{audit.orphanAttachments.length - 10} {lang === "es" ? "más" : "more"}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Cleanup section */}
-                  <div className="border-t pt-4 space-y-3">
-                    <p className="text-sm font-medium text-destructive">
-                      {lang === "es"
-                        ? "⚠️ Se eliminarán archivos físicos del almacenamiento. Esta acción es irreversible."
-                        : "⚠️ Physical files will be deleted from storage. This action is irreversible."}
-                    </p>
-
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="cleanup-confirm"
-                        checked={cleanupConfirmChecked}
-                        onCheckedChange={(checked) => setCleanupConfirmChecked(checked === true)}
-                      />
-                      <label htmlFor="cleanup-confirm" className="text-sm">
-                        {lang === "es"
-                          ? "Entiendo que es irreversible"
-                          : "I understand this is irreversible"}
-                      </label>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Input
-                        placeholder={lang === "es" ? 'Escribí "ELIMINAR" para confirmar' : 'Type "ELIMINAR" to confirm'}
-                        value={cleanupConfirmText}
-                        onChange={(e) => setCleanupConfirmText(e.target.value)}
-                        className="max-w-xs"
-                      />
-                    </div>
-
-                    <Button
-                      variant="destructive"
-                      onClick={handleCleanupOrphans}
-                      disabled={!canCleanup || cleanupLoading}
-                    >
-                      {cleanupLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 mr-2" />
-                      )}
-                      {lang === "es"
-                        ? `Eliminar ${audit.orphanAttachments.length} adjunto(s) huérfano(s)`
-                        : `Delete ${audit.orphanAttachments.length} orphan attachment(s)`}
-                    </Button>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <OrphanAttachmentsCard
+            audit={audit}
+            lang={lang}
+            cleanupConfirmChecked={cleanupConfirmChecked}
+            setCleanupConfirmChecked={setCleanupConfirmChecked}
+            cleanupConfirmText={cleanupConfirmText}
+            setCleanupConfirmText={setCleanupConfirmText}
+            canCleanup={canCleanup}
+            cleanupLoading={cleanupLoading}
+            onCleanup={handleCleanupOrphans}
+          />
         </div>
       )}
     </div>
@@ -278,7 +300,18 @@ export function DataAuditSection() {
 
 // --- Sub-components ---
 
-function ProfessionalsCard({ audit, lang, StatusIcon }: { audit: AuditResult; lang: string; StatusIcon: React.FC<{ ok: boolean }> }) {
+function ProfessionalsCard({
+  audit, lang, StatusIcon, resolutionPlan, resolveConfirmChecked, setResolveConfirmChecked, resolveLoading, onResolveDuplicates,
+}: {
+  audit: AuditResult;
+  lang: string;
+  StatusIcon: React.FC<{ ok: boolean }>;
+  resolutionPlan: { groups: Array<{ keep_id: string; remove_ids: string[] }>; summary: string } | null;
+  resolveConfirmChecked: boolean;
+  setResolveConfirmChecked: (v: boolean) => void;
+  resolveLoading: boolean;
+  onResolveDuplicates: () => void;
+}) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -329,6 +362,43 @@ function ProfessionalsCard({ audit, lang, StatusIcon }: { audit: AuditResult; la
                 ))}
               </div>
             ))}
+
+            {/* Resolution controls */}
+            {resolutionPlan && resolutionPlan.groups.length > 0 && (
+              <div className="border-t pt-3 mt-3 space-y-2">
+                <p className="text-sm text-muted-foreground">{resolutionPlan.summary}</p>
+                <p className="text-sm font-medium text-destructive">
+                  {lang === "es"
+                    ? "⚠️ Esta acción es irreversible."
+                    : "⚠️ This action is irreversible."}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="resolve-confirm"
+                    checked={resolveConfirmChecked}
+                    onCheckedChange={(checked) => setResolveConfirmChecked(checked === true)}
+                  />
+                  <label htmlFor="resolve-confirm" className="text-sm">
+                    {lang === "es"
+                      ? "Entiendo que esta acción es irreversible"
+                      : "I understand this action is irreversible"}
+                  </label>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={onResolveDuplicates}
+                  disabled={!resolveConfirmChecked || resolveLoading}
+                >
+                  {resolveLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Merge className="h-4 w-4 mr-2" />
+                  )}
+                  {lang === "es" ? "Resolver duplicados" : "Resolve duplicates"}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -459,6 +529,107 @@ function InstitutionsCard({ audit, lang, StatusIcon }: { audit: AuditResult; lan
               {audit.institutions.noUse.length} ({lang === "es" ? "informativo" : "info"})
             </span>
           </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function OrphanAttachmentsCard({
+  audit, lang, cleanupConfirmChecked, setCleanupConfirmChecked, cleanupConfirmText, setCleanupConfirmText, canCleanup, cleanupLoading, onCleanup,
+}: {
+  audit: AuditResult;
+  lang: string;
+  cleanupConfirmChecked: boolean;
+  setCleanupConfirmChecked: (v: boolean) => void;
+  cleanupConfirmText: string;
+  setCleanupConfirmText: (v: string) => void;
+  canCleanup: boolean;
+  cleanupLoading: boolean;
+  onCleanup: () => void;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Paperclip className="h-4 w-4" />
+          <CardTitle className="text-base">
+            {lang === "es" ? "Adjuntos huérfanos" : "Orphan Attachments"}
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {audit.orphanAttachments.length === 0 ? (
+          <div className="flex items-center gap-2 text-sm text-green-600">
+            <CheckCircle2 className="h-4 w-4" />
+            {lang === "es" ? "Sin adjuntos huérfanos" : "No orphan attachments"}
+          </div>
+        ) : (
+          <>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm">
+                <XCircle className="h-4 w-4 text-destructive" />
+                <span>
+                  <strong>{audit.orphanAttachments.length}</strong>{" "}
+                  {lang === "es" ? "adjunto(s) sin registro padre" : "attachment(s) without parent record"}
+                </span>
+              </div>
+              <div className="ml-6 mt-1 space-y-0.5">
+                {audit.orphanAttachments.slice(0, 10).map((att) => (
+                  <div key={att.id} className="text-xs text-muted-foreground">
+                    {att.file_name} ({att.entity_type} → {att.entity_id.slice(0, 8)}…)
+                  </div>
+                ))}
+                {audit.orphanAttachments.length > 10 && (
+                  <div className="text-xs text-muted-foreground">
+                    +{audit.orphanAttachments.length - 10} {lang === "es" ? "más" : "more"}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <p className="text-sm font-medium text-destructive">
+                {lang === "es"
+                  ? "⚠️ Se eliminarán archivos físicos del almacenamiento. Esta acción es irreversible."
+                  : "⚠️ Physical files will be deleted from storage. This action is irreversible."}
+              </p>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="cleanup-confirm"
+                  checked={cleanupConfirmChecked}
+                  onCheckedChange={(checked) => setCleanupConfirmChecked(checked === true)}
+                />
+                <label htmlFor="cleanup-confirm" className="text-sm">
+                  {lang === "es"
+                    ? "Entiendo que es irreversible"
+                    : "I understand this is irreversible"}
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder={lang === "es" ? 'Escribí "ELIMINAR" para confirmar' : 'Type "ELIMINAR" to confirm'}
+                  value={cleanupConfirmText}
+                  onChange={(e) => setCleanupConfirmText(e.target.value)}
+                  className="max-w-xs"
+                />
+              </div>
+              <Button
+                variant="destructive"
+                onClick={onCleanup}
+                disabled={!canCleanup || cleanupLoading}
+              >
+                {cleanupLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                {lang === "es"
+                  ? `Eliminar ${audit.orphanAttachments.length} adjunto(s) huérfano(s)`
+                  : `Delete ${audit.orphanAttachments.length} orphan attachment(s)`}
+              </Button>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

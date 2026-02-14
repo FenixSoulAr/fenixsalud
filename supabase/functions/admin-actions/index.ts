@@ -674,6 +674,114 @@ serve(async (req) => {
         );
       }
 
+      case "resolve_professional_duplicates": {
+        const { profile_id: resolveProfileId, groups } = params;
+        // groups: Array<{ keep_id: string; remove_ids: string[] }>
+        if (!resolveProfileId || !groups || !Array.isArray(groups) || groups.length === 0) {
+          return new Response(JSON.stringify({ error: "profile_id and groups are required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify ownership
+        const { data: resolveOwnerProfile } = await serviceClient
+          .from("profiles")
+          .select("owner_user_id")
+          .eq("id", resolveProfileId)
+          .single();
+
+        if (!resolveOwnerProfile || resolveOwnerProfile.owner_user_id !== userData.user.id) {
+          return new Response(JSON.stringify({ error: "You can only resolve duplicates in your own profile" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        logStep("Resolving professional duplicates", { profile_id: resolveProfileId, groupCount: groups.length });
+
+        let totalDeleted = 0;
+        let totalReassigned = 0;
+        let totalErrors = 0;
+        const errors: string[] = [];
+
+        for (const group of groups) {
+          const { keep_id, remove_ids } = group;
+          if (!keep_id || !remove_ids || remove_ids.length === 0) continue;
+
+          // Validate all IDs belong to this profile
+          const { data: groupDoctors } = await serviceClient
+            .from("doctors")
+            .select("id")
+            .eq("profile_id", resolveProfileId)
+            .in("id", [keep_id, ...remove_ids]);
+
+          const validIds = new Set((groupDoctors || []).map((d: any) => d.id));
+          if (!validIds.has(keep_id)) {
+            totalErrors++;
+            errors.push(`keep_id ${keep_id} not found in profile`);
+            continue;
+          }
+
+          for (const removeId of remove_ids) {
+            if (!validIds.has(removeId)) {
+              totalErrors++;
+              errors.push(`remove_id ${removeId} not found in profile`);
+              continue;
+            }
+
+            try {
+              // Reassign links from removeId to keepId
+              const tables = ["appointments", "tests", "procedures"] as const;
+              for (const table of tables) {
+                const { data: linked } = await serviceClient
+                  .from(table)
+                  .select("id")
+                  .eq("doctor_id", removeId)
+                  .eq("profile_id", resolveProfileId);
+
+                if (linked && linked.length > 0) {
+                  const { error: updateErr } = await serviceClient
+                    .from(table)
+                    .update({ doctor_id: keep_id })
+                    .eq("doctor_id", removeId)
+                    .eq("profile_id", resolveProfileId);
+
+                  if (updateErr) {
+                    totalErrors++;
+                    errors.push(`Failed to reassign ${table} from ${removeId}: ${updateErr.message}`);
+                    continue;
+                  }
+                  totalReassigned += linked.length;
+                }
+              }
+
+              // Delete the duplicate doctor
+              const { error: deleteErr } = await serviceClient
+                .from("doctors")
+                .delete()
+                .eq("id", removeId)
+                .eq("profile_id", resolveProfileId);
+
+              if (deleteErr) {
+                totalErrors++;
+                errors.push(`Failed to delete doctor ${removeId}: ${deleteErr.message}`);
+              } else {
+                totalDeleted++;
+              }
+            } catch (err) {
+              totalErrors++;
+              errors.push(`Error processing ${removeId}: ${err instanceof Error ? err.message : String(err)}`);
+            }
+          }
+        }
+
+        logStep("Duplicate resolution complete", { totalDeleted, totalReassigned, totalErrors });
+
+        return new Response(
+          JSON.stringify({ ok: true, deleted_count: totalDeleted, reassigned_count: totalReassigned, error_count: totalErrors, errors }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       case "cleanup_orphan_attachments": {
         const { profile_id: cleanupProfileId } = params;
         if (!cleanupProfileId) {
