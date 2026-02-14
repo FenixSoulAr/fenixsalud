@@ -204,6 +204,7 @@ export type Database = {
           institution_id: string | null
           is_active: boolean
           license_number: string | null
+          normalized_name: string | null
           notes: string | null
           phone: string | null
           profile_id: string | null
@@ -221,6 +222,7 @@ export type Database = {
           institution_id?: string | null
           is_active?: boolean
           license_number?: string | null
+          normalized_name?: string | null
           notes?: string | null
           phone?: string | null
           profile_id?: string | null
@@ -238,6 +240,7 @@ export type Database = {
           institution_id?: string | null
           is_active?: boolean
           license_number?: string | null
+          normalized_name?: string | null
           notes?: string | null
           phone?: string | null
           profile_id?: string | null
@@ -1208,6 +1211,7 @@ export type Database = {
         Args: { _profile_id: string; _user_id: string }
         Returns: boolean
       }
+      unaccent: { Args: { "": string }; Returns: string }
       validate_promo_code: {
         Args: { _code: string; _user_id: string }
         Returns: {
