@@ -507,7 +507,7 @@ serve(async (req) => {
           : (q: any) => q;
 
         // --- Professionals ---
-        let doctorQuery = serviceClient.from("doctors").select("id, full_name, is_active, profile_id");
+        let doctorQuery = serviceClient.from("doctors").select("id, full_name, is_active, profile_id, specialty");
         if (auditProfileId) doctorQuery = doctorQuery.eq("profile_id", auditProfileId);
         const { data: allDoctors } = await doctorQuery;
         const doctors = allDoctors || [];
@@ -515,14 +515,17 @@ serve(async (req) => {
         const inactiveDoctors = doctors.filter((d: any) => !d.is_active);
         const inactiveDoctorIds = new Set(inactiveDoctors.map((d: any) => d.id));
 
-        // Duplicate detection (normalized name)
+        // Duplicate detection (normalized name - accent & case insensitive)
+        const normalizeName = (name: string) =>
+          name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/\s+/g, " ");
+
         const nameMap: Record<string, any[]> = {};
         for (const d of doctors) {
-          const key = d.full_name.trim().toLowerCase().replace(/\s+/g, " ");
+          const key = normalizeName(d.full_name);
           if (!nameMap[key]) nameMap[key] = [];
-          nameMap[key].push({ id: d.id, full_name: d.full_name, is_active: d.is_active });
+          nameMap[key].push({ id: d.id, full_name: d.full_name, is_active: d.is_active, specialty: d.specialty || null });
         }
-        const duplicateProfessionals = Object.values(nameMap).filter(arr => arr.length > 1);
+        // duplicates will be enriched with linkCount after links are computed
 
         // Links per doctor
         let apptLinksQ = serviceClient.from("appointments").select("id, doctor_id").not("doctor_id", "is", null);
@@ -543,6 +546,12 @@ serve(async (req) => {
         for (const link of allLinks) {
           linkCountByDoctor[link.doctor_id] = (linkCountByDoctor[link.doctor_id] || 0) + 1;
         }
+
+        // Enrich and compute duplicates with link counts + specialty
+        const rawDuplicates = Object.values(nameMap).filter(arr => arr.length > 1);
+        const duplicateProfessionals = rawDuplicates.map(group =>
+          group.map((d: any) => ({ ...d, linkCount: linkCountByDoctor[d.id] || 0 }))
+        );
 
         const inactiveWithLinks = inactiveDoctors
           .filter((d: any) => (linkCountByDoctor[d.id] || 0) > 0)
