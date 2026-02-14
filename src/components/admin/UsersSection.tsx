@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
 import { format } from "date-fns";
-import { isAdminEmail } from "@/lib/adminAllowlist";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +35,7 @@ interface AdminUser {
   override_granted_by: string | null;
   override_created_at: string | null;
   effective_plan: string;
+  is_admin_role?: boolean;
 }
 
 interface UsersSectionProps {
@@ -121,8 +122,8 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
   };
 
   const getEffectivePlanBadge = (user: AdminUser) => {
-    // Check if user is admin - admins don't have a commercial plan
-    if (isAdminEmail(user.email)) {
+    // Check if user has admin role (from server-enriched data)
+    if (user.is_admin_role) {
       return (
         <Badge variant="outline" className="border-primary text-primary">
           <Shield className="h-3 w-3 mr-1" /> Admin
@@ -249,7 +250,7 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
                         </TableCell>
                         <TableCell className="text-right">
                           {/* Don't show actions for admin users - they have full access by role */}
-                          {isAdminEmail(user.email) ? (
+                          {user.is_admin_role ? (
                             <span className="text-xs text-muted-foreground">
                               {lang === "es" ? "Acceso Admin" : "Admin Access"}
                             </span>

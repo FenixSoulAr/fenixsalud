@@ -6,18 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Admin allowlist - case-insensitive email matching
-const ADMIN_EMAILS = [
-  "jorge.perez.ar@gmail.com",
-  "leandro.perez.ar@gmail.com",
-  "agustina.laterza@gmail.com",
-];
-
-function isAdminEmail(email: string | undefined): boolean {
-  if (!email) return false;
-  return ADMIN_EMAILS.some(
-    (adminEmail) => adminEmail.toLowerCase() === email.toLowerCase()
-  );
+// Check admin role via admin_roles table (service_role bypasses RLS)
+async function checkAdminRole(sc: any, userId: string): Promise<boolean> {
+  const { data } = await sc
+    .from("admin_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  return !!data;
 }
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
@@ -69,8 +66,8 @@ serve(async (req) => {
     const userEmail = userData.user.email;
     logStep("User authenticated", { email: userEmail });
 
-    // Verify admin access
-    if (!isAdminEmail(userEmail)) {
+    // Verify admin access via admin_roles table
+    if (!(await checkAdminRole(serviceClient, userData.user.id))) {
       logStep("Access denied - not an admin", { email: userEmail });
       return new Response(
         JSON.stringify({ error: "Forbidden - Admin access required" }),
@@ -105,9 +102,17 @@ serve(async (req) => {
           );
         }
 
-        logStep("Users fetched", { count: data?.length });
+        // Enrich with admin role info
+        const { data: adminRoles } = await serviceClient.from("admin_roles").select("user_id");
+        const adminUserIds = new Set((adminRoles || []).map((r: any) => r.user_id));
+        const enrichedUsers = (data || []).map((u: any) => ({
+          ...u,
+          is_admin_role: adminUserIds.has(u.user_id),
+        }));
+
+        logStep("Users fetched", { count: enrichedUsers.length });
         return new Response(
-          JSON.stringify({ users: data }),
+          JSON.stringify({ users: enrichedUsers }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -123,8 +128,8 @@ serve(async (req) => {
         }
 
         // Check if target user is an admin - admins don't need overrides
-        const { data: targetUser } = await serviceClient.auth.admin.getUserById(userId);
-        if (targetUser?.user && isAdminEmail(targetUser.user.email)) {
+        const isTargetAdmin = await checkAdminRole(serviceClient, userId);
+        if (isTargetAdmin) {
           return new Response(
             JSON.stringify({ error: "Cannot grant override to admin users - they have full access by role" }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

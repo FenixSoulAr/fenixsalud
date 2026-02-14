@@ -6,15 +6,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ADMIN_EMAILS = [
-  "jorge.perez.ar@gmail.com",
-  "leandro.perez.ar@gmail.com",
-  "agustina.laterza@gmail.com",
-];
-
-function isAdminEmail(email: string | undefined): boolean {
-  if (!email) return false;
-  return ADMIN_EMAILS.some(a => a.toLowerCase() === email.toLowerCase());
+async function isAdmin(sc: any, userId: string): Promise<boolean> {
+  const { data } = await sc
+    .from("admin_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  return !!data;
 }
 
 const log = (step: string, details?: Record<string, unknown>) => {
@@ -50,7 +49,7 @@ serve(async (req) => {
       });
     }
 
-    if (!isAdminEmail(userData.user.email)) {
+    if (!(await isAdmin(sc, userData.user.id))) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

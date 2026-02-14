@@ -1,18 +1,41 @@
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { isAdminEmail } from "@/lib/adminAllowlist";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Hook to check if the current user is an admin.
- * Uses the email-based allowlist for client-side UI gating.
- * All admin actions are still validated server-side.
+ * Hook to check if the current user has the 'admin' role.
+ * Calls the get-my-role edge function (server-side validated).
  */
 export function useAdmin() {
   const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const isAdmin = useMemo(() => {
-    return isAdminEmail(user?.email);
-  }, [user?.email]);
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
 
-  return { isAdmin };
+    let cancelled = false;
+
+    async function checkRole() {
+      try {
+        const { data, error } = await supabase.functions.invoke("get-my-role");
+        if (!cancelled) {
+          setIsAdmin(!error && data?.role === "admin");
+        }
+      } catch {
+        if (!cancelled) setIsAdmin(false);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    checkRole();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  return { isAdmin, loading };
 }

@@ -13,7 +13,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { isAdminEmail } from "@/lib/adminAllowlist";
+import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslations, getLanguage } from "@/i18n";
 import { format } from "date-fns";
@@ -34,10 +34,11 @@ export default function RedeemPromo() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isPlus, hasPromoOverride, isAdmin, refetch } = useEntitlementsContext();
+  const { isPlus, hasPromoOverride, isAdmin: entIsAdmin, refetch } = useEntitlementsContext();
+  const { isAdmin: roleIsAdmin } = useAdmin();
   
   // Admins don't need promos - they have full access
-  const userIsAdmin = isAdmin || isAdminEmail(user?.email);
+  const userIsAdmin = entIsAdmin || roleIsAdmin;
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState<{

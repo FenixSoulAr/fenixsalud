@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
-import { isAdminEmail } from "@/lib/adminAllowlist";
+import { useAdmin } from "@/hooks/useAdmin";
 
 export function useStripeCheckout() {
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const lang = getLanguage();
@@ -28,7 +29,7 @@ const messages = {
     }
 
     // Admins don't need Stripe - they have full access
-    if (isAdminEmail(user.email)) {
+    if (isAdmin) {
       toast.info(messages.adminNoCheckout);
       return;
     }

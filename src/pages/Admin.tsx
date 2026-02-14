@@ -23,6 +23,7 @@ interface AdminUser {
   override_granted_by: string | null;
   override_created_at: string | null;
   effective_plan: string;
+  is_admin_role?: boolean;
 }
 
 interface PromoCode {
@@ -43,7 +44,7 @@ interface PromoCode {
 }
 
 export default function Admin() {
-  const { isAdmin } = useAdmin();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const navigate = useNavigate();
   const lang = getLanguage();
 
@@ -54,10 +55,10 @@ export default function Admin() {
 
   // Check admin access and redirect if not
   useEffect(() => {
-    if (!isAdmin) {
+    if (!adminLoading && !isAdmin) {
       navigate("/", { replace: true });
     }
-  }, [isAdmin, navigate]);
+  }, [isAdmin, adminLoading, navigate]);
 
   // Fetch users
   const fetchUsers = async () => {
@@ -100,11 +101,19 @@ export default function Admin() {
   };
 
   useEffect(() => {
-    if (isAdmin) {
+    if (!adminLoading && isAdmin) {
       fetchUsers();
       fetchPromoCodes();
     }
-  }, [isAdmin]);
+  }, [isAdmin, adminLoading]);
+
+  if (adminLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return null;
