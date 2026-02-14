@@ -496,6 +496,166 @@ serve(async (req) => {
         );
       }
 
+      case "data_audit": {
+        logStep("Running data audit");
+
+        // --- Professionals ---
+        const { data: allDoctors } = await serviceClient
+          .from("doctors")
+          .select("id, full_name, is_active, profile_id");
+        const doctors = allDoctors || [];
+        const activeDoctors = doctors.filter((d: any) => d.is_active);
+        const inactiveDoctors = doctors.filter((d: any) => !d.is_active);
+        const inactiveDoctorIds = new Set(inactiveDoctors.map((d: any) => d.id));
+        const activeDoctorIds = new Set(activeDoctors.map((d: any) => d.id));
+
+        // Duplicate detection (normalized name)
+        const nameMap: Record<string, any[]> = {};
+        for (const d of doctors) {
+          const key = d.full_name.trim().toLowerCase().replace(/\s+/g, " ");
+          if (!nameMap[key]) nameMap[key] = [];
+          nameMap[key].push({ id: d.id, full_name: d.full_name, is_active: d.is_active });
+        }
+        const duplicateProfessionals = Object.values(nameMap).filter(arr => arr.length > 1);
+
+        // Links per doctor
+        const [apptLinks, testLinks, procLinks] = await Promise.all([
+          serviceClient.from("appointments").select("id, doctor_id").not("doctor_id", "is", null),
+          serviceClient.from("tests").select("id, doctor_id").not("doctor_id", "is", null),
+          serviceClient.from("procedures").select("id, doctor_id").not("doctor_id", "is", null),
+        ]);
+        const allLinks = [
+          ...(apptLinks.data || []),
+          ...(testLinks.data || []),
+          ...(procLinks.data || []),
+        ];
+        const linkCountByDoctor: Record<string, number> = {};
+        for (const link of allLinks) {
+          linkCountByDoctor[link.doctor_id] = (linkCountByDoctor[link.doctor_id] || 0) + 1;
+        }
+
+        const inactiveWithLinks = inactiveDoctors
+          .filter((d: any) => (linkCountByDoctor[d.id] || 0) > 0)
+          .map((d: any) => ({ id: d.id, full_name: d.full_name, linkCount: linkCountByDoctor[d.id] }));
+
+        const activeNoLinks = activeDoctors
+          .filter((d: any) => (linkCountByDoctor[d.id] || 0) === 0)
+          .map((d: any) => ({ id: d.id, full_name: d.full_name }));
+
+        // --- Consistency checks across appointments/tests/procedures ---
+        const [apptAll, testAll, procAll] = await Promise.all([
+          serviceClient.from("appointments").select("id, doctor_id, professional_status, institution_id"),
+          serviceClient.from("tests").select("id, doctor_id, professional_status, institution_id"),
+          serviceClient.from("procedures").select("id, doctor_id, professional_status, institution_id"),
+        ]);
+
+        interface InconsistencyRecord {
+          id: string;
+          table: string;
+          issue: string;
+          doctor_id?: string | null;
+          professional_status?: string;
+        }
+
+        const inconsistencies: InconsistencyRecord[] = [];
+
+        const checkRecords = (records: any[], tableName: string) => {
+          for (const r of records) {
+            // doctor_id set but pointing to inactive doctor
+            if (r.doctor_id && inactiveDoctorIds.has(r.doctor_id)) {
+              inconsistencies.push({ id: r.id, table: tableName, issue: "points_to_inactive_professional", doctor_id: r.doctor_id });
+            }
+            // doctor_id NULL but status = assigned
+            if (!r.doctor_id && r.professional_status === "assigned") {
+              inconsistencies.push({ id: r.id, table: tableName, issue: "null_id_but_assigned", professional_status: r.professional_status });
+            }
+            // doctor_id set but status != assigned
+            if (r.doctor_id && r.professional_status !== "assigned") {
+              inconsistencies.push({ id: r.id, table: tableName, issue: "has_id_but_not_assigned", doctor_id: r.doctor_id, professional_status: r.professional_status });
+            }
+          }
+        };
+
+        checkRecords(apptAll.data || [], "appointments");
+        checkRecords(testAll.data || [], "tests");
+        checkRecords(procAll.data || [], "procedures");
+
+        // --- Institutions ---
+        const { data: allInstitutions } = await serviceClient
+          .from("institutions")
+          .select("id, name, is_active");
+        const institutions = allInstitutions || [];
+        const activeInstitutionIds = new Set(institutions.filter((i: any) => i.is_active).map((i: any) => i.id));
+        const inactiveInstitutionIds = new Set(institutions.filter((i: any) => !i.is_active).map((i: any) => i.id));
+
+        // Institution usage
+        const allRecordsWithInst = [
+          ...(apptAll.data || []),
+          ...(testAll.data || []),
+          ...(procAll.data || []),
+        ];
+        const instUsage: Record<string, number> = {};
+        for (const r of allRecordsWithInst) {
+          if (r.institution_id) {
+            instUsage[r.institution_id] = (instUsage[r.institution_id] || 0) + 1;
+          }
+        }
+
+        const institutionsNoUse = institutions
+          .filter((i: any) => i.is_active && !instUsage[i.id])
+          .map((i: any) => ({ id: i.id, name: i.name }));
+
+        const recsPointingInactiveInst = allRecordsWithInst
+          .filter(r => r.institution_id && inactiveInstitutionIds.has(r.institution_id))
+          .map(r => ({ id: r.id, institution_id: r.institution_id }));
+
+        // --- Orphan attachments ---
+        const { data: allAttachments } = await serviceClient
+          .from("file_attachments")
+          .select("id, entity_id, entity_type, file_name");
+
+        const attachments = allAttachments || [];
+        const testIds = new Set((testAll.data || []).map((t: any) => t.id));
+        const procIds = new Set((procAll.data || []).map((p: any) => p.id));
+        const apptIds = new Set((apptAll.data || []).map((a: any) => a.id));
+
+        const orphanAttachments = attachments.filter((att: any) => {
+          if (att.entity_type === "TestStudy") return !testIds.has(att.entity_id);
+          if (att.entity_type === "Procedure") return !procIds.has(att.entity_id);
+          if (att.entity_type === "Appointment") return !apptIds.has(att.entity_id);
+          return true; // unknown type = orphan
+        }).map((att: any) => ({ id: att.id, entity_id: att.entity_id, entity_type: att.entity_type, file_name: att.file_name }));
+
+        const auditResult = {
+          professionals: {
+            total: doctors.length,
+            active: activeDoctors.length,
+            inactive: inactiveDoctors.length,
+            duplicates: duplicateProfessionals,
+            inactiveWithLinks,
+            activeNoLinks,
+          },
+          inconsistencies,
+          institutions: {
+            total: institutions.length,
+            noUse: institutionsNoUse,
+            recsPointingInactive: recsPointingInactiveInst,
+          },
+          orphanAttachments,
+        };
+
+        logStep("Audit complete", { 
+          inconsistencies: inconsistencies.length,
+          orphans: orphanAttachments.length,
+          inactiveWithLinks: inactiveWithLinks.length 
+        });
+
+        return new Response(
+          JSON.stringify({ audit: auditResult }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: `Unknown action: ${action}` }),
