@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Stethoscope, Pencil, Trash2, Eye, Phone, Mail, Search, Filter, ArrowLeft, Building2, ToggleLeft, ToggleRight, Calendar, FlaskConical, Syringe, ExternalLink } from "lucide-react";
+import { Plus, Stethoscope, Pencil, Trash2, Eye, Phone, Mail, Search, Filter, ArrowLeft, Building2, ToggleLeft, ToggleRight, Calendar, FlaskConical, Syringe, ExternalLink, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +47,13 @@ export default function Doctors() {
   const [linkedProcedures, setLinkedProcedures] = useState<any[]>([]);
   const [linkedTests, setLinkedTests] = useState<any[]>([]);
   const [linkedLoading, setLinkedLoading] = useState(false);
+  
+  // Migration state
+  const [migrateDialogOpen, setMigrateDialogOpen] = useState(false);
+  const [migrateTargetId, setMigrateTargetId] = useState("");
+  const [migrateConfirmText, setMigrateConfirmText] = useState("");
+  const [migrateMarkInactive, setMigrateMarkInactive] = useState(true);
+  const [isMigrating, setIsMigrating] = useState(false);
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -188,6 +196,52 @@ export default function Doctors() {
     return data?.id || null;
   }
 
+  // Migration handler
+  async function handleMigrate() {
+    if (!viewDialog || !migrateTargetId || migrateTargetId === viewDialog.id) return;
+    const confirmWord = lang === "es" ? "REEMPLAZAR" : "REPLACE";
+    if (migrateConfirmText !== confirmWord) return;
+    
+    setIsMigrating(true);
+    try {
+      // Update all three tables in parallel
+      const sourceId = viewDialog.id;
+      const [apptRes, procRes, testRes] = await Promise.all([
+        supabase.from("appointments").update({ doctor_id: migrateTargetId }).eq("doctor_id", sourceId).eq("profile_id", activeProfileId!),
+        supabase.from("procedures").update({ doctor_id: migrateTargetId }).eq("doctor_id", sourceId).eq("profile_id", activeProfileId!),
+        supabase.from("tests").update({ doctor_id: migrateTargetId }).eq("doctor_id", sourceId).eq("profile_id", activeProfileId!),
+      ]);
+      
+      if (apptRes.error || procRes.error || testRes.error) {
+        console.error("Migration errors:", apptRes.error, procRes.error, testRes.error);
+        toast.error(t.doctors.migrationError);
+        return;
+      }
+      
+      // Optionally mark source as inactive
+      if (migrateMarkInactive) {
+        await supabase.from("doctors").update({ is_active: false, deactivated_at: new Date().toISOString() }).eq("id", sourceId);
+      }
+      
+      toast.success(t.doctors.migrationSuccess);
+      setMigrateDialogOpen(false);
+      setMigrateTargetId("");
+      setMigrateConfirmText("");
+      setMigrateMarkInactive(true);
+      
+      // Refresh data and linked records
+      await fetchData();
+      // Re-fetch the updated doctor to refresh the detail view
+      const { data: updatedDoctor } = await supabase.from("doctors").select("*, institutions(name)").eq("id", sourceId).single();
+      if (updatedDoctor) {
+        setViewDialog(updatedDoctor);
+        fetchLinkedRecords(sourceId);
+      }
+    } finally {
+      setIsMigrating(false);
+    }
+  }
+
   // Get unique specialties for filter
   const uniqueSpecialties = useMemo(() => {
     const specs = new Set(doctors.map(d => d.specialty).filter(Boolean));
@@ -271,6 +325,11 @@ export default function Doctors() {
                   <Button variant="outline" onClick={() => setDeactivateId(viewDialog.id)}>
                     {viewDialog.is_active ? <ToggleLeft className="h-4 w-4 mr-2" /> : <ToggleRight className="h-4 w-4 mr-2" />}
                     {viewDialog.is_active ? t.doctors.deactivate : t.doctors.reactivate}
+                  </Button>
+                )}
+                {canEdit && (linkedAppointments.length + linkedProcedures.length + linkedTests.length) > 0 && (
+                  <Button variant="outline" onClick={() => setMigrateDialogOpen(true)}>
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />{t.doctors.migrateLinks}
                   </Button>
                 )}
               </div>
@@ -385,6 +444,86 @@ export default function Doctors() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        
+        {/* Migration Modal */}
+        <ResponsiveFormModal
+          open={migrateDialogOpen}
+          onOpenChange={(open) => {
+            setMigrateDialogOpen(open);
+            if (!open) { setMigrateTargetId(""); setMigrateConfirmText(""); setMigrateMarkInactive(true); }
+          }}
+          title={t.doctors.migrateLinks}
+          maxWidth="md"
+          footer={
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+              <Button variant="outline" onClick={() => setMigrateDialogOpen(false)} disabled={isMigrating}>{t.actions.cancel}</Button>
+              <Button
+                variant="destructive"
+                disabled={isMigrating || !migrateTargetId || migrateConfirmText !== (lang === "es" ? "REEMPLAZAR" : "REPLACE")}
+                onClick={handleMigrate}
+              >
+                {isMigrating ? t.actions.saving : t.doctors.confirmMigration}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-6">
+            <p className="text-sm text-muted-foreground">{t.doctors.migrateLinksDescription}</p>
+            
+            {/* Target selector */}
+            <div className="space-y-2">
+              <Label>{t.doctors.selectTargetProfessional}</Label>
+              <Select value={migrateTargetId} onValueChange={(v) => {
+                if (v === viewDialog?.id) { toast.error(t.doctors.cannotMigrateSelf); return; }
+                setMigrateTargetId(v);
+              }}>
+                <SelectTrigger><SelectValue placeholder={t.doctors.selectTargetProfessional} /></SelectTrigger>
+                <SelectContent>
+                  {sortByName(doctors.filter(d => d.is_active && d.id !== viewDialog?.id), "full_name").map(d => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.full_name}{d.specialty ? ` — ${d.specialty}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Preview counts */}
+            <div className="rounded-lg border p-4 space-y-2 bg-muted/30">
+              <p className="text-sm font-medium">{t.doctors.migrationPreview}</p>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li className="flex items-center gap-2"><Calendar className="h-4 w-4" />{t.doctors.linkedAppointments}: <span className="font-semibold text-foreground">{linkedAppointments.length}</span></li>
+                <li className="flex items-center gap-2"><Syringe className="h-4 w-4" />{t.doctors.linkedProcedures}: <span className="font-semibold text-foreground">{linkedProcedures.length}</span></li>
+                <li className="flex items-center gap-2"><FlaskConical className="h-4 w-4" />{t.doctors.linkedTests}: <span className="font-semibold text-foreground">{linkedTests.length}</span></li>
+              </ul>
+            </div>
+            
+            {/* Warning */}
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+              <p className="text-sm text-destructive">{t.doctors.migrationWarning}</p>
+            </div>
+            
+            {/* Mark inactive checkbox */}
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="mark-inactive"
+                checked={migrateMarkInactive}
+                onCheckedChange={(checked) => setMigrateMarkInactive(checked === true)}
+              />
+              <Label htmlFor="mark-inactive" className="text-sm cursor-pointer">{t.doctors.markSourceInactive}</Label>
+            </div>
+            
+            {/* Confirmation text */}
+            <div className="space-y-2">
+              <Label>{t.doctors.migrationConfirmLabel}</Label>
+              <Input
+                value={migrateConfirmText}
+                onChange={(e) => setMigrateConfirmText(e.target.value)}
+                placeholder={t.doctors.migrationConfirmPlaceholder}
+              />
+            </div>
+          </div>
+        </ResponsiveFormModal>
       </div>
     );
   }
