@@ -344,10 +344,35 @@
   border-collapse: collapse;
 }
 
-/* Print styles - hide all app chrome, show only document content */
+/* ===== PRINT STYLES ===== */
 @media print {
+  /* Nuclear hide: everything invisible first */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show only the clinical print area and all its descendants */
+  .clinical-print-area,
+  .clinical-print-area * {
+    visibility: visible;
+  }
+
+  /* Position the print area at the top of the page */
+  .clinical-print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Repeating table header for pages 2+ */
   .clinical-repeating-header {
     display: table-header-group;
+    visibility: visible;
   }
 
   .clinical-print-table,
@@ -357,58 +382,63 @@
   .clinical-print-table th {
     display: revert;
     border: none;
+    visibility: visible;
   }
-  /* Hide all app UI */
+
+  /* Ensure nothing from UI leaks through */
   .app-shell > aside,
-  .app-shell > div > header,
-  .print\\:hidden {
+  header,
+  .print\:hidden {
     display: none !important;
+    visibility: hidden !important;
   }
 
-  /* Remove sidebar offset */
-  .app-shell > div.lg\\:pl-72 {
-    padding-left: 0 !important;
-  }
-
-  /* Remove safe-area padding and app shell constraints */
-  .app-shell {
+  /* Strip layout offsets */
+  .app-shell,
+  .app-shell > div {
     padding: 0 !important;
+    margin: 0 !important;
     min-height: auto !important;
   }
 
-  /* Remove container padding for clean margins */
-  .app-shell main .container {
-    padding: 0 !important;
-    max-width: 100% !important;
+  .app-shell > div.lg\:pl-72 {
+    padding-left: 0 !important;
   }
 
-  /* Ensure clean page background */
+  .app-shell main,
+  .app-shell main .container {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+  }
+
+  /* Clean page background */
   body, html, #root {
     background: white !important;
     min-height: auto !important;
   }
 
-  /* Clinical document pagination - avoid breaking individual items */
+  /* Pagination: avoid breaking items */
   .clinical-item {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  /* Keep section headings with following content */
   .clinical-section h2,
   .clinical-section h3 {
     break-after: avoid;
     page-break-after: avoid;
   }
 
-  /* Repeating print header styling */
+  /* Repeating header border */
   .clinical-print-header-row {
     border-bottom: 1px solid #999 !important;
   }
 
-  /* Page margins - professional clinical document */
+  /* Professional A4 margins */
   @page {
-    margin: 2cm;
+    margin: 20mm 18mm;
   }
 }
 
