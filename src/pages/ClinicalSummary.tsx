@@ -203,9 +203,15 @@ export default function ClinicalSummary() {
       const result = await response.json();
       
       if (result.success && result.downloadUrl) {
-        setDownloadUrl(result.downloadUrl);
-        setDownloadFileName(result.fileName);
-        toast.success(lang === "es" ? "PDF generado correctamente" : "PDF generated successfully");
+        if (isNativeMobile) {
+          // Force direct download via location assign (same as ZIP)
+          window.location.assign(result.downloadUrl);
+          toast.success(lang === "es" ? "PDF descargado" : "PDF downloaded");
+        } else {
+          setDownloadUrl(result.downloadUrl);
+          setDownloadFileName(result.fileName);
+          toast.success(lang === "es" ? "PDF generado correctamente" : "PDF generated successfully");
+        }
       } else {
         toast.error(lang === "es" ? "Error al generar el PDF" : "Failed to generate PDF");
       }
@@ -369,31 +375,19 @@ export default function ClinicalSummary() {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {downloadUrl ? (
-                <Button 
-                  className="w-full"
-                  onClick={() => {
-                    if (downloadUrl?.startsWith("https://")) window.location.assign(downloadUrl);
-                  }}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {lang === "es" ? "Descargar PDF" : "Download PDF"}
-                </Button>
-              ) : (
-                <Button onClick={handleGenerateFullPdf} disabled={generatingPdf}>
-                  {generatingPdf ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {lang === "es" ? "Preparando PDF…" : "Preparing PDF…"}
-                    </>
-                  ) : (
-                    <>
-                      <FileDown className="h-4 w-4 mr-2" />
-                      {t.clinicalSummary.exportPdf}
-                    </>
-                  )}
-                </Button>
-              )}
+              <Button onClick={handleGenerateFullPdf} disabled={generatingPdf}>
+                {generatingPdf ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {lang === "es" ? "Preparando PDF…" : "Preparing PDF…"}
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    {t.clinicalSummary.exportPdf}
+                  </>
+                )}
+              </Button>
             </div>
           )}
 
