@@ -14,7 +14,7 @@ interface AuditProfessionals {
   total: number;
   active: number;
   inactive: number;
-  duplicates: Array<Array<{ id: string; full_name: string; is_active: boolean }>>;
+  duplicates: Array<Array<{ id: string; full_name: string; is_active: boolean; specialty?: string | null; linkCount?: number }>>;
   inactiveWithLinks: Array<{ id: string; full_name: string; linkCount: number }>;
   activeNoLinks: Array<{ id: string; full_name: string }>;
 }
@@ -315,12 +315,17 @@ function ProfessionalsCard({ audit, lang, StatusIcon }: { audit: AuditResult; la
         {audit.professionals.duplicates.length > 0 && (
           <div className="ml-6 space-y-1">
             {audit.professionals.duplicates.map((group, i) => (
-              <div key={i} className="text-xs text-muted-foreground">
-                "{group[0].full_name}" × {group.length}{" "}
+              <div key={i} className="text-xs text-muted-foreground space-y-0.5">
+                <div className="font-medium">"{group[0].full_name}" × {group.length}</div>
                 {group.map((d) => (
-                  <Badge key={d.id} variant={d.is_active ? "default" : "secondary"} className="ml-1 text-[10px]">
-                    {d.is_active ? (lang === "es" ? "activo" : "active") : (lang === "es" ? "inactivo" : "inactive")}
-                  </Badge>
+                  <div key={d.id} className="ml-2 flex items-center gap-1 flex-wrap">
+                    <span className="font-mono text-[10px]">{d.id.slice(0, 8)}…</span>
+                    {d.specialty && <span className="text-[10px]">({d.specialty})</span>}
+                    <span className="text-[10px]">{d.linkCount ?? 0} {lang === "es" ? "vínculos" : "links"}</span>
+                    <Badge variant={d.is_active ? "default" : "secondary"} className="ml-1 text-[10px]">
+                      {d.is_active ? (lang === "es" ? "activo" : "active") : (lang === "es" ? "inactivo" : "inactive")}
+                    </Badge>
+                  </div>
                 ))}
               </div>
             ))}
