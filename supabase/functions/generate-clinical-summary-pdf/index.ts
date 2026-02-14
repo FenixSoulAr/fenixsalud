@@ -427,7 +427,7 @@ Deno.serve(async (req) => {
 
     const { data: signedData, error: signedError } = await serviceClient.storage
       .from("exports")
-      .createSignedUrl(filePath, 86400);
+      .createSignedUrl(filePath, 86400, { download: fileName });
 
     if (signedError || !signedData?.signedUrl) {
       console.error("Signed URL error:", signedError);
