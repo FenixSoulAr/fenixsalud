@@ -367,17 +367,13 @@
     min-height: auto !important;
   }
 
-  /* Clinical document pagination */
-  .clinical-section {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
+  /* Clinical document pagination - avoid breaking individual items */
   .clinical-item {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
+  /* Keep section headings with following content */
   .clinical-section h2,
   .clinical-section h3 {
     break-after: avoid;
