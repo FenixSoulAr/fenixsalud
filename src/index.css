@@ -335,8 +335,29 @@
   }
 }
 
+/* Hide repeating print header on screen */
+.clinical-repeating-header {
+  display: none;
+}
+
+.clinical-print-table {
+  border-collapse: collapse;
+}
+
 /* Print styles - hide all app chrome, show only document content */
 @media print {
+  .clinical-repeating-header {
+    display: table-header-group;
+  }
+
+  .clinical-print-table,
+  .clinical-print-table tbody,
+  .clinical-print-table tr,
+  .clinical-print-table td,
+  .clinical-print-table th {
+    display: revert;
+    border: none;
+  }
   /* Hide all app UI */
   .app-shell > aside,
   .app-shell > div > header,
