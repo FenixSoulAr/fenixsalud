@@ -200,8 +200,10 @@ export function AppShell({ children }: AppShellProps) {
         {/* Page content */}
         <main className="min-h-[calc(100dvh-4rem)] lg:min-h-[100dvh]">
           <div className="container py-6 lg:py-8 max-w-7xl px-4 lg:px-8">
-            <ActiveProfileBanner />
-            <SharingBanner />
+            <div className="print:hidden">
+              <ActiveProfileBanner />
+              <SharingBanner />
+            </div>
             {children}
           </div>
         </main>
