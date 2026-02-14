@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, FlaskConical, Pencil, Trash2, Eye, ArrowLeft, Building2 } from "lucide-react";
+import { Plus, FlaskConical, Pencil, Trash2, Eye, ArrowLeft, Building2, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -27,12 +27,13 @@ export default function Tests() {
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState<any[]>([]);
   const [institutions, setInstitutions] = useState<any[]>([]);
+  const [doctors, setDoctors] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewingTest, setViewingTest] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [form, setForm] = useState({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled" });
+  const [form, setForm] = useState({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled", doctor_id: "", professional_status: "assigned" });
   
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
 
@@ -51,13 +52,15 @@ export default function Tests() {
   async function fetchData() {
     if (!activeProfileId) return;
     setLoading(true);
-    const [testRes, instRes] = await Promise.all([
-      supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
+    const [testRes, instRes, docRes] = await Promise.all([
+      supabase.from("tests").select("*, institutions(name), doctors(full_name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
       supabase.from("institutions").select("id, name").eq("profile_id", activeProfileId).eq("is_active", true),
+      supabase.from("doctors").select("id, full_name").eq("profile_id", activeProfileId).eq("is_active", true),
     ]);
     const testsData = testRes.data || [];
     setTests(testsData);
     setInstitutions(instRes.data || []);
+    setDoctors(docRes.data || []);
     
     // Fetch attachment counts for all tests
     if (testsData.length > 0) {
@@ -85,6 +88,8 @@ export default function Tests() {
       notes: test.notes || "",
       institution_id: test.institution_id || "",
       status: test.status || "Scheduled",
+      doctor_id: test.doctor_id || "",
+      professional_status: test.professional_status || "assigned",
     });
     setViewingTest(null);
     setDialogOpen(true);
@@ -92,7 +97,7 @@ export default function Tests() {
 
   function resetForm() {
     setEditingId(null);
-    setForm({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled" });
+    setForm({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled", doctor_id: "", professional_status: "assigned" });
   }
 
 
@@ -103,12 +108,15 @@ export default function Tests() {
     
     setIsSaving(true);
     
+    const professionalStatus = form.doctor_id ? "assigned" : form.professional_status;
     const payload = {
       type: form.type,
       date: form.date,
       notes: form.notes || null,
       institution_id: form.institution_id || null,
       status: form.status as any,
+      doctor_id: form.doctor_id || null,
+      professional_status: professionalStatus as any,
     };
 
     try {
@@ -168,7 +176,6 @@ export default function Tests() {
       toast.error(t.toast.error);
       return null;
     }
-    // Refresh institutions list (only active)
     const { data: updated } = await supabase
       .from("institutions")
       .select("id, name")
@@ -177,6 +184,34 @@ export default function Tests() {
     setInstitutions(updated || []);
     toast.success(t.toast.institutionAdded);
     return data?.id || null;
+  }
+
+  async function handleCreateDoctor(values: Record<string, string>): Promise<string | null> {
+    if (!dataProfileId || !currentUserId) return null;
+    const { data, error } = await supabase
+      .from("doctors")
+      .insert({ full_name: values.full_name.trim(), specialty: values.specialty?.trim() || null, profile_id: dataProfileId, user_id: currentUserId })
+      .select("id")
+      .single();
+    if (error) { toast.error(t.toast.error); return null; }
+    const { data: updated } = await supabase
+      .from("doctors")
+      .select("id, full_name")
+      .eq("profile_id", dataProfileId)
+      .eq("is_active", true);
+    setDoctors(updated || []);
+    toast.success(t.toast.doctorAdded);
+    return data?.id || null;
+  }
+
+  function getProfessionalStatusLabel(status: string) {
+    switch (status) {
+      case "assigned": return t.doctors.assigned;
+      case "unassigned": return t.doctors.unassigned;
+      case "unknown": return t.doctors.unknown;
+      case "not_recorded": return t.doctors.notRecorded;
+      default: return "—";
+    }
   }
 
   if (loading) return <LoadingPage />;
@@ -201,6 +236,7 @@ export default function Tests() {
             
             <div className="space-y-3 text-sm">
               <div><span className="font-medium">{t.tests.institution}:</span> {viewingTest.institutions?.name || "—"}</div>
+              <div><span className="font-medium">{t.doctors.professionalStatus}:</span> {viewingTest.doctors?.full_name || getProfessionalStatusLabel(viewingTest.professional_status)}</div>
               {viewingTest.notes && <div><span className="font-medium">{t.tests.notes}:</span> {viewingTest.notes}</div>}
             </div>
             
@@ -286,6 +322,59 @@ export default function Tests() {
               ]}
               onCreate={handleCreateInstitution}
             />
+          </div>
+          {/* Professional picker or status */}
+          <div className="form-field">
+            <Label>{t.doctors.professionalStatus}</Label>
+            {form.doctor_id ? (
+              <RelatedEntityPicker
+                value={form.doctor_id}
+                onValueChange={(v) => setForm({ ...form, doctor_id: v, professional_status: v ? "assigned" : form.professional_status })}
+                options={doctors.map((d) => ({ id: d.id, label: d.full_name }))}
+                placeholder={lang === "es" ? "Seleccionar profesional..." : "Select professional..."}
+                searchPlaceholder={lang === "es" ? "Buscar..." : "Search..."}
+                emptyText={lang === "es" ? "Sin resultados." : "No results."}
+                addNewLabel={t.doctors.addDoctor}
+                modalTitle={t.doctors.newDoctor}
+                modalIcon={<Stethoscope className="h-5 w-5" />}
+                fields={[{ key: "full_name", label: t.doctors.fullName, required: true }, { key: "specialty", label: t.doctors.specialty, placeholder: t.doctors.specialtyPlaceholder }]}
+                onCreate={handleCreateDoctor}
+              />
+            ) : (
+              <div className="space-y-2">
+                <Select value={form.professional_status} onValueChange={(v) => {
+                  if (v === "select_professional") {
+                    // Switch to professional picker mode - keep it empty to trigger picker
+                    setForm({ ...form, professional_status: "assigned", doctor_id: "" });
+                  } else {
+                    setForm({ ...form, professional_status: v, doctor_id: "" });
+                  }
+                }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="select_professional">{lang === "es" ? "Seleccionar profesional..." : "Select professional..."}</SelectItem>
+                    <SelectItem value="unassigned">{t.doctors.unassigned}</SelectItem>
+                    <SelectItem value="unknown">{t.doctors.unknown}</SelectItem>
+                    <SelectItem value="not_recorded">{t.doctors.notRecorded}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {form.professional_status === "assigned" && !form.doctor_id && (
+              <RelatedEntityPicker
+                value={form.doctor_id}
+                onValueChange={(v) => setForm({ ...form, doctor_id: v, professional_status: v ? "assigned" : "unassigned" })}
+                options={doctors.map((d) => ({ id: d.id, label: d.full_name }))}
+                placeholder={lang === "es" ? "Seleccionar profesional..." : "Select professional..."}
+                searchPlaceholder={lang === "es" ? "Buscar..." : "Search..."}
+                emptyText={lang === "es" ? "Sin resultados." : "No results."}
+                addNewLabel={t.doctors.addDoctor}
+                modalTitle={t.doctors.newDoctor}
+                modalIcon={<Stethoscope className="h-5 w-5" />}
+                fields={[{ key: "full_name", label: t.doctors.fullName, required: true }, { key: "specialty", label: t.doctors.specialty, placeholder: t.doctors.specialtyPlaceholder }]}
+                onCreate={handleCreateDoctor}
+              />
+            )}
           </div>
           <div className="form-field">
             <Label>{t.tests.status}</Label>

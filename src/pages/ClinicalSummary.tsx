@@ -68,7 +68,7 @@ export default function ClinicalSummary() {
       supabase.from("profiles").select("*").eq("id", activeProfileId).maybeSingle(),
       supabase.from("medications").select("*").eq("profile_id", activeProfileId).eq("status", "Active").order("name"),
       supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId),
-      supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
+      supabase.from("tests").select("*, institutions(name), doctors(full_name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
       supabase.from("procedures").select("*, institutions(name), doctors(full_name)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
       supabase.from("appointments").select("*, doctors(full_name), institutions(name)").eq("profile_id", activeProfileId).order("datetime_start", { ascending: false }),
     ]);
@@ -522,20 +522,22 @@ export default function ClinicalSummary() {
           ) : (
             <div className="health-card print:shadow-none print:border">
               <table className="w-full text-sm">
-                <thead>
+                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
-                    <th className="text-left py-2 font-medium">{t.clinicalSummary.type}</th>
-                    <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
-                    <th className="text-left py-2 font-medium">{t.clinicalSummary.files}</th>
-                  </tr>
+                     <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
+                     <th className="text-left py-2 font-medium">{t.clinicalSummary.type}</th>
+                     <th className="text-left py-2 font-medium">{t.clinicalSummary.doctor}</th>
+                     <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
+                     <th className="text-left py-2 font-medium">{t.clinicalSummary.files}</th>
+                   </tr>
                 </thead>
                 <tbody>
                   {tests.map(test => (
                     <tr key={test.id} className="border-b last:border-0">
                       <td className="py-2">{format(new Date(test.date), "MMM d, yyyy")}</td>
-                      <td className="py-2">{test.type}</td>
-                      <td className="py-2">{test.institutions?.name || "—"}</td>
+                       <td className="py-2">{test.type}</td>
+                       <td className="py-2">{test.doctors?.full_name || "—"}</td>
+                       <td className="py-2">{test.institutions?.name || "—"}</td>
                       <td className="py-2">
                         {testAttachments[test.id]?.length ? (
                           <span className="text-xs text-muted-foreground">
@@ -563,21 +565,23 @@ export default function ClinicalSummary() {
               <h3 className="text-sm font-medium mb-2 text-muted-foreground">{t.clinicalSummary.surgeriesFullHistory}</h3>
               <div className="health-card print:shadow-none print:border">
                 <table className="w-full text-sm">
-                  <thead>
+                 <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.procedure}</th>
-                      <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {surgeries.map(p => (
-                      <tr key={p.id} className="border-b last:border-0">
-                        <td className="py-2">{format(new Date(p.date), "MMM d, yyyy")}</td>
-                        <td className="py-2">{p.title}</td>
-                        <td className="py-2">{p.institutions?.name || "—"}</td>
-                      </tr>
-                    ))}
+                       <th className="text-left py-2 font-medium">{t.clinicalSummary.date}</th>
+                       <th className="text-left py-2 font-medium">{t.clinicalSummary.procedure}</th>
+                       <th className="text-left py-2 font-medium">{t.clinicalSummary.doctor}</th>
+                       <th className="text-left py-2 font-medium">{t.clinicalSummary.institution}</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {surgeries.map(p => (
+                       <tr key={p.id} className="border-b last:border-0">
+                         <td className="py-2">{format(new Date(p.date), "MMM d, yyyy")}</td>
+                         <td className="py-2">{p.title}</td>
+                         <td className="py-2">{p.doctors?.full_name || "—"}</td>
+                         <td className="py-2">{p.institutions?.name || "—"}</td>
+                       </tr>
+                     ))}
                   </tbody>
                 </table>
               </div>

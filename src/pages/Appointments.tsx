@@ -142,6 +142,7 @@ export default function Appointments() {
     
     setIsSaving(true);
     
+    const professionalStatus = form.doctor_id ? "assigned" : "unassigned";
     const payload = {
       datetime_start: buildDateTime(),
       reason: form.reason || null,
@@ -149,6 +150,7 @@ export default function Appointments() {
       doctor_id: form.doctor_id || null,
       institution_id: form.institution_id || null,
       status: form.status as any,
+      professional_status: professionalStatus as any,
     };
 
     try {

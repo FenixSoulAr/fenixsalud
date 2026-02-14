@@ -243,6 +243,43 @@ export interface Translations {
     notes: string;
     revealContact: string;
     nameRequired: string;
+    licenseNumber: string;
+    licenseNumberPlaceholder: string;
+    address: string;
+    addressPlaceholder: string;
+    institution: string;
+    selectInstitution: string;
+    active: string;
+    inactive: string;
+    allStatuses: string;
+    allSpecialties: string;
+    deactivate: string;
+    reactivate: string;
+    deactivateConfirm: string;
+    deactivateDescription: string;
+    searchPlaceholder: string;
+    hasLinkedRecords: string;
+    professionalStatus: string;
+    assigned: string;
+    unassigned: string;
+    unknown: string;
+    notRecorded: string;
+    specialtyOptions: {
+      cardiology: string;
+      dermatology: string;
+      endocrinology: string;
+      gastroenterology: string;
+      generalPractice: string;
+      gynecology: string;
+      neurology: string;
+      ophthalmology: string;
+      orthopedics: string;
+      pediatrics: string;
+      psychiatry: string;
+      pulmonology: string;
+      urology: string;
+      other: string;
+    };
   };
   institutions: {
     title: string;
@@ -559,7 +596,7 @@ export const en: Translations = {
     procedures: "Procedures",
     medications: "Medications",
     diagnoses: "Diagnoses",
-    doctors: "Doctors",
+    doctors: "Professionals",
     institutions: "Institutions",
     reminders: "Reminders",
     clinicalSummary: "Clinical Summary",
@@ -797,13 +834,13 @@ export const en: Translations = {
   
   // Doctors
   doctors: {
-    title: "Doctors",
-    description: "Manage your healthcare providers",
-    addDoctor: "Add doctor",
-    newDoctor: "New Doctor",
-    editDoctor: "Edit Doctor",
-    noDoctors: "No doctors yet",
-    noDoctorsDescription: "Add your first doctor to keep track of your healthcare providers.",
+    title: "Professionals",
+    description: "Manage your healthcare professionals",
+    addDoctor: "Add professional",
+    newDoctor: "New Professional",
+    editDoctor: "Edit Professional",
+    noDoctors: "No professionals yet",
+    noDoctorsDescription: "Add your first healthcare professional to link them to appointments, tests, and procedures.",
     fullName: "Full name",
     specialty: "Specialty",
     specialtyPlaceholder: "e.g., Cardiology",
@@ -812,6 +849,43 @@ export const en: Translations = {
     notes: "Notes",
     revealContact: "Reveal contact information",
     nameRequired: "Name is required.",
+    licenseNumber: "License number",
+    licenseNumberPlaceholder: "e.g., MN 12345",
+    address: "Address",
+    addressPlaceholder: "e.g., Av. Corrientes 1234",
+    institution: "Institution",
+    selectInstitution: "Select institution",
+    active: "Active",
+    inactive: "Inactive",
+    allStatuses: "All statuses",
+    allSpecialties: "All specialties",
+    deactivate: "Deactivate",
+    reactivate: "Reactivate",
+    deactivateConfirm: "Deactivate professional?",
+    deactivateDescription: "This professional will no longer appear in selection lists but their historical records will be preserved.",
+    searchPlaceholder: "Search professionals...",
+    hasLinkedRecords: "This professional has linked records and cannot be deleted.",
+    professionalStatus: "Professional",
+    assigned: "Assigned",
+    unassigned: "Not assigned",
+    unknown: "Unknown",
+    notRecorded: "Not recorded",
+    specialtyOptions: {
+      cardiology: "Cardiology",
+      dermatology: "Dermatology",
+      endocrinology: "Endocrinology",
+      gastroenterology: "Gastroenterology",
+      generalPractice: "General Practice",
+      gynecology: "Gynecology",
+      neurology: "Neurology",
+      ophthalmology: "Ophthalmology",
+      orthopedics: "Orthopedics",
+      pediatrics: "Pediatrics",
+      psychiatry: "Psychiatry",
+      pulmonology: "Pulmonology",
+      urology: "Urology",
+      other: "Other",
+    },
   },
   
   // Institutions

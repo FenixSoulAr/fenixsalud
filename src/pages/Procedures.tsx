@@ -119,7 +119,8 @@ export default function Procedures() {
     if (!form.date) { toast.error(t.procedures.dateRequired); return; }
     
     setIsSaving(true);
-    const payload = { type: form.type, title: form.title, date: form.date, notes: form.notes || null, institution_id: form.institution_id || null, doctor_id: form.doctor_id || null };
+    const professionalStatus = form.doctor_id ? "assigned" : "unassigned";
+    const payload = { type: form.type, title: form.title, date: form.date, notes: form.notes || null, institution_id: form.institution_id || null, doctor_id: form.doctor_id || null, professional_status: professionalStatus as any };
 
     try {
       if (editingId) {
