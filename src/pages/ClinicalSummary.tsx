@@ -356,29 +356,27 @@ export default function ClinicalSummary() {
         <div>
           <h1 className="text-2xl font-bold">{t.clinicalSummary.title}</h1>
           <p className="text-muted-foreground">{t.clinicalSummary.generatedOn} {todayLong}</p>
+          {isNativeMobile && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {lang === "es"
+                ? "En la app Android: usá el botón PDF (arriba a la derecha) para guardar el resumen."
+                : "On the Android app: use the PDF button (top right) to save the summary."}
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-stretch sm:items-end gap-3">
-          {/* PDF export action */}
-          <div className="flex flex-col gap-1">
-            <Button onClick={isNativeMobile ? handleGenerateFullPdf : handleSaveAsPDF} disabled={generatingPdf}>
-              {generatingPdf ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {lang === "es" ? "Preparando PDF…" : "Preparing PDF…"}
-                </>
-              ) : (
-                <>
-                  <FileDown className="h-4 w-4 mr-2" />
-                  {t.clinicalSummary.exportPdf}
-                </>
-              )}
-            </Button>
-            {!isNativeMobile && (
+          {/* PDF export action – hidden on Android APK */}
+          {!isNativeMobile && (
+            <div className="flex flex-col gap-1">
+              <Button onClick={handleSaveAsPDF}>
+                <FileDown className="h-4 w-4 mr-2" />
+                {t.clinicalSummary.exportPdf}
+              </Button>
               <p className="text-xs text-muted-foreground text-right">
                 {t.clinicalSummary.saveAsPDFHelper}
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* ZIP attachments action */}
           {totalAttachmentCount > 0 && (
