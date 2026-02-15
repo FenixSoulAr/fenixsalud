@@ -359,37 +359,26 @@ export default function ClinicalSummary() {
         </div>
         <div className="flex flex-col items-stretch sm:items-end gap-3">
           {/* PDF export action */}
-          {!isNativeMobile ? (
-            <div className="flex flex-col gap-1">
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handlePrint}>
-                  <Printer className="h-4 w-4 mr-2" />{t.actions.print}
-                </Button>
-                <Button onClick={handleSaveAsPDF}>
-                  <FileDown className="h-4 w-4 mr-2" />{t.clinicalSummary.exportPdf}
-                </Button>
-              </div>
+          <div className="flex flex-col gap-1">
+            <Button onClick={isNativeMobile ? handleGenerateFullPdf : handleSaveAsPDF} disabled={generatingPdf}>
+              {generatingPdf ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {lang === "es" ? "Preparando PDF…" : "Preparing PDF…"}
+                </>
+              ) : (
+                <>
+                  <FileDown className="h-4 w-4 mr-2" />
+                  {t.clinicalSummary.exportPdf}
+                </>
+              )}
+            </Button>
+            {!isNativeMobile && (
               <p className="text-xs text-muted-foreground text-right">
                 {t.clinicalSummary.saveAsPDFHelper}
               </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <Button onClick={handleGenerateFullPdf} disabled={generatingPdf}>
-                {generatingPdf ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {lang === "es" ? "Preparando PDF…" : "Preparing PDF…"}
-                  </>
-                ) : (
-                  <>
-                    <FileDown className="h-4 w-4 mr-2" />
-                    {t.clinicalSummary.exportPdf}
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* ZIP attachments action */}
           {totalAttachmentCount > 0 && (
