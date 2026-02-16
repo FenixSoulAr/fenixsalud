@@ -262,7 +262,9 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, [user]);
 
-  // Link pending invites and initialize
+  // Link pending invites and initialize - only run once per user
+  const initRef = useRef(false);
+  
   useEffect(() => {
     if (!user) {
       setMyShares([]);
@@ -271,8 +273,13 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       setInitialized(false);
       setActiveProfileIdState(null);
+      initRef.current = false;
       return;
     }
+
+    // Prevent double initialization (race condition on mobile)
+    if (initRef.current) return;
+    initRef.current = true;
 
     let mounted = true;
 
@@ -327,15 +334,13 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         const primaryProfileId = primaryProfile?.id || null;
 
         if (storedProfileId) {
-          // Validate stored profile is still accessible
           setActiveProfileIdState(storedProfileId);
         } else if (primaryProfileId) {
-          // Default to primary profile
           setActiveProfileIdState(primaryProfileId);
           storeActiveProfile(user.id, primaryProfileId);
         }
         
-        setInitialized(true);
+        if (mounted) setInitialized(true);
       } catch (err) {
         console.error("[SharingContext] Error in linkAndInitialize:", err);
         if (mounted) {
@@ -359,27 +364,52 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       mounted = false;
       clearTimeout(watchdog);
     };
-  }, [user, fetchProfiles, fetchShares, initialized]);
+  }, [user]);
 
   async function inviteUser(profileId: string, email: string, role: "viewer" | "contributor"): Promise<{ error?: string }> {
     if (!user) return { error: "Not authenticated" };
     
     const normalizedEmail = email.toLowerCase().trim();
+    console.log("[SharingContext] inviteUser called:", { profileId, email: normalizedEmail, role });
     
     // Verify the profile belongs to the user
     const profile = myProfiles.find(p => p.id === profileId);
     if (!profile) {
-      return { error: "Profile not found" };
+      console.warn("[SharingContext] Profile not found in myProfiles. Available:", myProfiles.map(p => p.id));
+      // Fallback: verify directly from DB to avoid stale-state issues on mobile
+      const { data: dbProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", profileId)
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+      
+      if (!dbProfile) {
+        return { error: "Profile not found" };
+      }
     }
     
-    // Check max 2 shares limit per profile
-    const profileShares = myShares.filter(s => s.profile_id === profileId);
-    if (profileShares.length >= 2) {
+    // Check max 2 shares limit from DB (avoid stale state on mobile)
+    const { data: existingShares, error: countError } = await supabase
+      .from("profile_shares")
+      .select("id, shared_with_email")
+      .eq("profile_id", profileId)
+      .eq("owner_id", user.id)
+      .neq("status", "revoked");
+    
+    if (countError) {
+      console.error("[SharingContext] Error checking existing shares:", countError);
+      return { error: countError.message || "Failed to check existing shares" };
+    }
+    
+    const activeShares = existingShares || [];
+    
+    if (activeShares.length >= 2) {
       return { error: "Maximum 2 shared people per profile" };
     }
 
     // Check if already shared with this email
-    if (profileShares.some(s => s.shared_with_email.toLowerCase() === normalizedEmail)) {
+    if (activeShares.some(s => s.shared_with_email.toLowerCase() === normalizedEmail)) {
       return { error: "Already shared with this email" };
     }
 
@@ -388,7 +418,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       return { error: "Cannot share with yourself" };
     }
 
-    const { error } = await supabase
+    const { data: insertedData, error } = await supabase
       .from("profile_shares")
       .insert({
         profile_id: profileId,
@@ -396,7 +426,8 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         shared_with_email: normalizedEmail,
         role,
         status: "pending",
-      });
+      })
+      .select("id");
 
     if (error) {
       console.error("[SharingContext] Error inviting user:", error);
@@ -406,6 +437,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       return { error: error.message || "Failed to invite user" };
     }
 
+    console.log("[SharingContext] Invite successful, inserted:", insertedData);
     await fetchShares();
     return {};
   }
