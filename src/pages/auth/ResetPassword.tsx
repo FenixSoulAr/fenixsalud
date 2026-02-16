@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, Lock, ArrowRight, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { Heart, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,6 @@ export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -71,12 +70,13 @@ export default function ResetPassword() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      setSuccess(true);
       toast.success(
         lang === "es"
           ? "Contraseña actualizada correctamente."
           : "Password updated successfully."
       );
+      await supabase.auth.signOut();
+      navigate("/auth/sign-in", { replace: true });
     } catch (error: any) {
       console.error("[ResetPassword] Error:", error);
       const isSamePassword = error?.message?.toLowerCase().includes("same password") ||
@@ -99,28 +99,7 @@ export default function ResetPassword() {
     }
   };
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground mb-6">
-            <CheckCircle className="h-7 w-7" />
-          </div>
-          <h1 className="text-2xl font-semibold mb-2">
-            {lang === "es" ? "¡Contraseña actualizada!" : "Password updated!"}
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            {lang === "es"
-              ? "Ya podés iniciar sesión con tu nueva contraseña."
-              : "You can now sign in with your new password."}
-          </p>
-          <Button onClick={() => navigate("/auth/sign-in")}>
-            {lang === "es" ? "Ir a iniciar sesión" : "Go to sign in"}
-          </Button>
-        </div>
-      </div>
-    );
-  }
+
 
   if (!isRecovery) {
     return (
