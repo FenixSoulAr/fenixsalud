@@ -16,6 +16,8 @@ import { AlertTriangle } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import SignIn from "./pages/auth/SignIn";
 import SignUp from "./pages/auth/SignUp";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import Appointments from "./pages/Appointments";
 import Tests from "./pages/Tests";
 import Procedures from "./pages/Procedures";
@@ -126,6 +128,8 @@ function AppRoutes() {
       {/* Auth routes */}
       <Route path="/auth/sign-in" element={<AuthRoute><SignIn /></AuthRoute>} />
       <Route path="/auth/sign-up" element={<AuthRoute><SignUp /></AuthRoute>} />
+      <Route path="/auth/forgot-password" element={<AuthRoute><ForgotPassword /></AuthRoute>} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
