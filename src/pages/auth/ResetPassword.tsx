@@ -79,11 +79,21 @@ export default function ResetPassword() {
       );
     } catch (error: any) {
       console.error("[ResetPassword] Error:", error);
-      toast.error(
-        lang === "es"
-          ? "No se pudo actualizar la contraseña. Intentá de nuevo."
-          : "Failed to update password. Please try again."
-      );
+      const isSamePassword = error?.message?.toLowerCase().includes("same password") ||
+        error?.message?.toLowerCase().includes("should be different");
+      if (isSamePassword) {
+        toast.error(
+          lang === "es"
+            ? "La nueva contraseña debe ser diferente a la anterior."
+            : "New password must be different from the old password."
+        );
+      } else {
+        toast.error(
+          lang === "es"
+            ? "No se pudo actualizar la contraseña. Intentá de nuevo."
+            : "Failed to update password. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }
