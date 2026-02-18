@@ -6,10 +6,12 @@ import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
 import { useAdmin } from "@/hooks/useAdmin";
 
-// Stripe Price IDs for each plan
+// Stripe Price IDs for each plan × billing interval
 export const STRIPE_PRICE_IDS: Record<string, string> = {
   plus_monthly: "price_1T2JaPKDVbPJQ8VfJ4G2b7tw",
-  pro_monthly: "price_1T2J4sKDVbPJQ8Vfmqoh2aG9",
+  plus_yearly:  "price_1T2Jt9KDVbPJQ8VfoRLPTzpm",
+  pro_monthly:  "price_1T2J4sKDVbPJQ8Vfmqoh2aG9",
+  pro_yearly:   "price_1T2JuBKDVbPJQ8VfeXc0fcrE",
 };
 
 export function useStripeCheckout() {
