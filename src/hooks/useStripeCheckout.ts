@@ -6,6 +6,12 @@ import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
 import { useAdmin } from "@/hooks/useAdmin";
 
+// Stripe Price IDs for each plan
+export const STRIPE_PRICE_IDS: Record<string, string> = {
+  plus_monthly: "price_1StL3jKDVbPJQ8VfsrVNZaRC",
+  pro_monthly: "price_1T2J4sKDVbPJQ8Vfmqoh2aG9",
+};
+
 export function useStripeCheckout() {
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
@@ -13,7 +19,7 @@ export function useStripeCheckout() {
   const [loading, setLoading] = useState(false);
   const lang = getLanguage();
 
-const messages = {
+  const messages = {
     notLoggedIn: lang === "es" ? "Debes iniciar sesión para continuar" : "You must be logged in to continue",
     checkoutError: lang === "es" ? "Ocurrió un error inesperado. Por favor, intentá nuevamente." : "An unexpected error occurred. Please try again.",
     redirecting: lang === "es" ? "Redirigiendo a Stripe..." : "Redirecting to Stripe...",
@@ -21,14 +27,12 @@ const messages = {
   };
 
   async function startCheckout(planCode: string = "plus_monthly") {
-    // Check if user is logged in
     if (!user) {
       toast.error(messages.notLoggedIn);
       navigate("/auth");
       return;
     }
 
-    // Admins don't need Stripe - they have full access
     if (isAdmin) {
       toast.info(messages.adminNoCheckout);
       return;
@@ -38,7 +42,6 @@ const messages = {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (!session) {
         toast.error(messages.notLoggedIn);
         navigate("/auth");
@@ -46,7 +49,7 @@ const messages = {
       }
 
       const origin = window.location.origin;
-      
+
       const response = await supabase.functions.invoke("create-checkout", {
         body: {
           planCode,
@@ -62,7 +65,6 @@ const messages = {
       }
 
       const { url } = response.data;
-      
       if (url) {
         toast.info(messages.redirecting);
         window.location.href = url;
@@ -77,8 +79,5 @@ const messages = {
     }
   }
 
-  return {
-    startCheckout,
-    loading,
-  };
+  return { startCheckout, loading };
 }

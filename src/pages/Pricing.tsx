@@ -1,188 +1,209 @@
-import { useState } from "react";
-import { Check, X, Crown, Heart, Loader2 } from "lucide-react";
+import { Check, X, Crown, Heart, Loader2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { getLanguage } from "@/i18n";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
-import { BillingIntervalToggle, type BillingInterval } from "@/components/billing/BillingIntervalToggle";
 
 export default function Pricing() {
-  const { planCode, isPlus } = useEntitlementsContext();
+  const { planCode, isPlus, isPro } = useEntitlementsContext();
   const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const lang = getLanguage();
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
 
   const t = {
-    title: lang === "es" ? "Planes y Precios" : "Plans & Pricing",
-    subtitle: lang === "es" 
-      ? "Organizá tu salud → Gratis. Compartí, exportá o cuidá a otros → Plus." 
-      : "Organize your own health → Free. Share, export, or care for others → Plus.",
     currentPlan: lang === "es" ? "Plan actual" : "Current plan",
-    free: {
-      name: lang === "es" ? "Gratis" : "Free",
-      price: "$0",
-      period: lang === "es" ? "/siempre" : "/forever",
-      description: lang === "es" 
-        ? "Todo lo que necesitás para organizar tu salud personal" 
-        : "Everything you need to organize your personal health",
-      features: [
-        { text: lang === "es" ? "1 perfil personal" : "1 personal profile", included: true },
-        { text: lang === "es" ? "9 archivos adjuntos incluidos" : "9 attachments included", included: true },
-        { text: lang === "es" ? "Citas, medicamentos, tests, diagnósticos" : "Appointments, medications, tests, diagnoses", included: true },
-        { text: lang === "es" ? "Doctores e instituciones" : "Doctors & institutions", included: true },
-        { text: lang === "es" ? "Recordatorios ilimitados" : "Unlimited reminders", included: true },
-        { text: lang === "es" ? "Compartir con familia/cuidadores" : "Share with family/caregivers", included: false },
-        { text: lang === "es" ? "Roles (solo lectura, colaborador)" : "Roles (viewer, contributor)", included: false },
-        { text: lang === "es" ? "Exportar resumen clínico PDF" : "Export clinical summary PDF", included: false },
-        { text: lang === "es" ? "Exportar backup completo" : "Export full backup", included: false },
-        { text: lang === "es" ? "Cirugías, hospitalizaciones, vacunas" : "Surgeries, hospitalizations, vaccines", included: false },
-      ],
-    },
-    plus: {
-      name: "Plus",
-      monthlyPrice: "$5",
-      monthlyPeriod: lang === "es" ? "/mes" : "/month",
-      yearlyPrice: "$50",
-      yearlyPeriod: lang === "es" ? "/año" : "/year",
-      yearlySavings: lang === "es" ? "2 meses gratis" : "2 months free",
-      description: lang === "es" 
-        ? "Compartí, exportá y cuidá la salud de tu familia" 
-        : "Share, export, and care for your family's health",
-      features: [
-        { text: lang === "es" ? "Hasta 10 perfiles" : "Up to 10 profiles", included: true },
-        { text: lang === "es" ? "Archivos adjuntos ilimitados" : "Unlimited attachments", included: true },
-        { text: lang === "es" ? "Todo lo de Free" : "Everything in Free", included: true },
-        { text: lang === "es" ? "Compartir con familia/cuidadores" : "Share with family/caregivers", included: true },
-        { text: lang === "es" ? "Roles (solo lectura, colaborador)" : "Roles (viewer, contributor)", included: true },
-        { text: lang === "es" ? "Exportar resumen clínico PDF" : "Export clinical summary PDF", included: true },
-        { text: lang === "es" ? "Exportar backup completo" : "Export full backup", included: true },
-        { text: lang === "es" ? "Cirugías, hospitalizaciones, vacunas" : "Surgeries, hospitalizations, vaccines", included: true },
-      ],
-    },
-    upgradeToPlusMonthly: lang === "es" ? "Upgrade a Plus Mensual" : "Upgrade to Plus Monthly",
-    upgradeToPlusYearly: lang === "es" ? "Upgrade a Plus Anual" : "Upgrade to Plus Yearly",
-    upgradeToPlus: lang === "es" ? "Upgrade a Plus" : "Upgrade to Plus",
     youreOnThisPlan: lang === "es" ? "Estás en este plan" : "You're on this plan",
+    upgradeToPlus: lang === "es" ? "Elegir Plus" : "Get Plus",
+    upgradeToPro: lang === "es" ? "Elegir Pro" : "Get Pro",
+    month: lang === "es" ? "/mes" : "/month",
+    forever: lang === "es" ? "/siempre" : "/forever",
+    popular: lang === "es" ? "Más popular" : "Most popular",
+    included: lang === "es" ? "Incluido" : "Included",
+    notIncluded: lang === "es" ? "No incluido" : "Not included",
+    plans: {
+      free: {
+        name: lang === "es" ? "Gratis" : "Free",
+        price: "$0",
+        description: lang === "es"
+          ? "Para organizar tu propia salud personal"
+          : "Organize your own personal health",
+        features: [
+          { text: lang === "es" ? "1 perfil personal" : "1 personal profile", ok: true },
+          { text: lang === "es" ? "Hasta 10 archivos adjuntos" : "Up to 10 attachments", ok: true },
+          { text: lang === "es" ? "Citas, medicamentos, estudios, diagnósticos" : "Appointments, medications, tests, diagnoses", ok: true },
+          { text: lang === "es" ? "Profesionales e instituciones" : "Professionals & institutions", ok: true },
+          { text: lang === "es" ? "Recordatorios ilimitados" : "Unlimited reminders", ok: true },
+          { text: lang === "es" ? "Cirugías, hospitalizaciones, vacunas" : "Surgeries, hospitalizations, vaccines", ok: false },
+          { text: lang === "es" ? "Exportar resumen clínico PDF" : "Export clinical summary PDF", ok: false },
+          { text: lang === "es" ? "Compartir con familia/cuidadores" : "Share with family/caregivers", ok: false },
+          { text: lang === "es" ? "Backup completo" : "Full data backup", ok: false },
+        ],
+      },
+      plus: {
+        name: "Plus",
+        price: "$7",
+        description: lang === "es"
+          ? "Para quienes necesitan compartir y exportar"
+          : "Share records and export summaries",
+        features: [
+          { text: lang === "es" ? "1 perfil personal" : "1 personal profile", ok: true },
+          { text: lang === "es" ? "Hasta 100 archivos adjuntos" : "Up to 100 attachments", ok: true },
+          { text: lang === "es" ? "Todo lo del plan Gratis" : "Everything in Free", ok: true },
+          { text: lang === "es" ? "Cirugías, hospitalizaciones, vacunas" : "Surgeries, hospitalizations, vaccines", ok: true },
+          { text: lang === "es" ? "Exportar resumen clínico PDF" : "Export clinical summary PDF", ok: true },
+          { text: lang === "es" ? "Compartir con 1 persona" : "Share with 1 person", ok: true },
+          { text: lang === "es" ? "Roles (solo lectura, colaborador)" : "Roles (viewer, contributor)", ok: true },
+          { text: lang === "es" ? "Múltiples perfiles" : "Multiple profiles", ok: false },
+          { text: lang === "es" ? "Backup completo" : "Full data backup", ok: false },
+        ],
+      },
+      pro: {
+        name: "Pro",
+        price: "$12",
+        description: lang === "es"
+          ? "Para cuidar la salud de toda tu familia"
+          : "Full family health management",
+        features: [
+          { text: lang === "es" ? "Hasta 5 perfiles" : "Up to 5 profiles", ok: true },
+          { text: lang === "es" ? "Hasta 200 archivos adjuntos" : "Up to 200 attachments", ok: true },
+          { text: lang === "es" ? "Todo lo del plan Plus" : "Everything in Plus", ok: true },
+          { text: lang === "es" ? "Compartir con múltiples personas" : "Share with multiple people", ok: true },
+          { text: lang === "es" ? "Backup completo de datos" : "Full data backup", ok: true },
+          { text: lang === "es" ? "Soporte prioritario" : "Priority support", ok: true },
+        ],
+      },
+    },
   };
 
-  // Calculate displayed price based on billing interval
-  const displayPrice = billingInterval === "monthly" ? t.plus.monthlyPrice : t.plus.yearlyPrice;
-  const displayPeriod = billingInterval === "monthly" ? t.plus.monthlyPeriod : t.plus.yearlyPeriod;
-  const planCodeToUse = billingInterval === "monthly" ? "plus_monthly" : "plus_yearly";
+  const isFree = !isPlus && !isPro;
 
   return (
     <div className="animate-fade-in">
-      <PageHeader 
+      <PageHeader
         variant="gradient"
-        title={t.title}
-        description={t.subtitle}
+        title={lang === "es" ? "Planes y Precios" : "Plans & Pricing"}
+        description={
+          lang === "es"
+            ? "Elegí el plan que mejor se adapte a tus necesidades"
+            : "Choose the plan that best fits your needs"
+        }
       />
 
-      {/* Billing Interval Toggle - shown only for non-Plus users */}
-      {!isPlus && (
-        <div className="flex justify-center mb-6">
-          <BillingIntervalToggle 
-            value={billingInterval} 
-            onChange={setBillingInterval} 
-          />
-        </div>
-      )}
-
-      <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
-        {/* Free Plan */}
-        <div className={`health-card relative ${planCode === "free" ? "ring-2 ring-primary" : ""}`}>
-          {planCode === "free" && (
-            <Badge className="absolute -top-3 left-4 bg-primary">
-              {t.currentPlan}
-            </Badge>
+      <div className="grid md:grid-cols-3 gap-5 max-w-5xl">
+        {/* FREE */}
+        <div className={`health-card relative flex flex-col ${isFree ? "ring-2 ring-primary" : ""}`}>
+          {isFree && (
+            <Badge className="absolute -top-3 left-4 bg-primary">{t.currentPlan}</Badge>
           )}
           <div className="flex items-center gap-2 mb-2">
-            <Heart className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold">{t.free.name}</h2>
-          </div>
-          <div className="flex items-baseline gap-1 mb-2">
-            <span className="text-3xl font-bold">{t.free.price}</span>
-            <span className="text-muted-foreground">{t.free.period}</span>
-          </div>
-          <p className="text-muted-foreground mb-6">{t.free.description}</p>
-          
-          <ul className="space-y-3 mb-6">
-            {t.free.features.map((feature, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                {feature.included ? (
-                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                ) : (
-                  <X className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                )}
-                <span className={feature.included ? "" : "text-muted-foreground"}>
-                  {feature.text}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          {planCode === "free" && (
-            <Button variant="outline" disabled className="w-full">
-              {t.youreOnThisPlan}
-            </Button>
-          )}
-        </div>
-
-        {/* Plus Plan */}
-        <div className={`health-card relative border-2 border-primary/50 ${isPlus ? "ring-2 ring-primary" : ""}`}>
-          {isPlus && (
-            <Badge className="absolute -top-3 left-4 bg-primary">
-              {t.currentPlan}
-            </Badge>
-          )}
-          <div className="flex items-center gap-2 mb-2">
-            <Crown className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold">{t.plus.name}</h2>
+            <Heart className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold">{t.plans.free.name}</h2>
           </div>
           <div className="flex items-baseline gap-1 mb-1">
-            <span className="text-3xl font-bold">{displayPrice}</span>
-            <span className="text-muted-foreground">{displayPeriod}</span>
+            <span className="text-3xl font-bold">{t.plans.free.price}</span>
+            <span className="text-muted-foreground text-sm">{t.forever}</span>
           </div>
-          {billingInterval === "yearly" && (
-            <p className="text-xs text-primary font-medium mb-2">
-              ✨ {t.plus.yearlySavings}
-            </p>
-          )}
-          <p className="text-muted-foreground mb-6">{t.plus.description}</p>
-          
-          <ul className="space-y-3 mb-6">
-            {t.plus.features.map((feature, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <span>{feature.text}</span>
+          <p className="text-muted-foreground text-sm mb-5">{t.plans.free.description}</p>
+          <ul className="space-y-2.5 mb-6 flex-1">
+            {t.plans.free.features.map((f, i) => (
+              <li key={i} className="flex items-start gap-2">
+                {f.ok
+                  ? <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  : <X className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-0.5" />}
+                <span className={`text-sm ${f.ok ? "" : "text-muted-foreground"}`}>{f.text}</span>
               </li>
             ))}
           </ul>
+          <Button variant="outline" disabled className="w-full mt-auto">
+            {isFree ? t.youreOnThisPlan : t.plans.free.name}
+          </Button>
+        </div>
 
-          {isPlus ? (
-            <Button variant="outline" disabled className="w-full">
-              {t.youreOnThisPlan}
-            </Button>
+        {/* PLUS */}
+        <div className={`health-card relative flex flex-col border-2 border-primary/40 ${isPlus && !isPro ? "ring-2 ring-primary" : ""}`}>
+          {isPlus && !isPro && (
+            <Badge className="absolute -top-3 left-4 bg-primary">{t.currentPlan}</Badge>
+          )}
+          <Badge className="absolute -top-3 right-4 bg-primary/10 text-primary border border-primary/30">
+            {t.popular}
+          </Badge>
+          <div className="flex items-center gap-2 mb-2">
+            <Crown className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold">{t.plans.plus.name}</h2>
+          </div>
+          <div className="flex items-baseline gap-1 mb-1">
+            <span className="text-3xl font-bold">{t.plans.plus.price}</span>
+            <span className="text-muted-foreground text-sm">{t.month}</span>
+          </div>
+          <p className="text-muted-foreground text-sm mb-5">{t.plans.plus.description}</p>
+          <ul className="space-y-2.5 mb-6 flex-1">
+            {t.plans.plus.features.map((f, i) => (
+              <li key={i} className="flex items-start gap-2">
+                {f.ok
+                  ? <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  : <X className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-0.5" />}
+                <span className={`text-sm ${f.ok ? "" : "text-muted-foreground"}`}>{f.text}</span>
+              </li>
+            ))}
+          </ul>
+          {isPlus && !isPro ? (
+            <Button variant="outline" disabled className="w-full mt-auto">{t.youreOnThisPlan}</Button>
           ) : (
-            <Button 
-              className="w-full" 
-              onClick={() => startCheckout(planCodeToUse)}
+            <Button
+              className="w-full mt-auto"
+              onClick={() => startCheckout("plus_monthly")}
+              disabled={checkoutLoading || isPro}
+            >
+              {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              {t.upgradeToPlus}
+            </Button>
+          )}
+        </div>
+
+        {/* PRO */}
+        <div className={`health-card relative flex flex-col ${isPro ? "ring-2 ring-primary" : ""}`}>
+          {isPro && (
+            <Badge className="absolute -top-3 left-4 bg-primary">{t.currentPlan}</Badge>
+          )}
+          <div className="flex items-center gap-2 mb-2">
+            <Zap className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold">{t.plans.pro.name}</h2>
+          </div>
+          <div className="flex items-baseline gap-1 mb-1">
+            <span className="text-3xl font-bold">{t.plans.pro.price}</span>
+            <span className="text-muted-foreground text-sm">{t.month}</span>
+          </div>
+          <p className="text-muted-foreground text-sm mb-5">{t.plans.pro.description}</p>
+          <ul className="space-y-2.5 mb-6 flex-1">
+            {t.plans.pro.features.map((f, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <span className="text-sm">{f.text}</span>
+              </li>
+            ))}
+          </ul>
+          {isPro ? (
+            <Button variant="outline" disabled className="w-full mt-auto">{t.youreOnThisPlan}</Button>
+          ) : (
+            <Button
+              className="w-full mt-auto"
+              variant="outline"
+              onClick={() => startCheckout("pro_monthly")}
               disabled={checkoutLoading}
             >
-              {checkoutLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {t.upgradeToPlus}
+              {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              {t.upgradeToPro}
             </Button>
           )}
         </div>
       </div>
 
-      <div className="mt-8 p-4 bg-muted/50 rounded-lg max-w-4xl">
+      <div className="mt-8 p-4 bg-muted/40 rounded-lg max-w-5xl">
         <p className="text-sm text-muted-foreground text-center">
-          {lang === "es" 
-            ? "💡 Regla de oro: \"Organizá tu salud → Gratis. Compartí, exportá o cuidá a otros → Plus.\""
-            : "💡 Golden rule: \"Organize your own health → Free. Share, export, or care for others → Plus.\""}
+          {lang === "es"
+            ? "💳 Pagos seguros con Stripe. Cancelá en cualquier momento."
+            : "💳 Secure payments via Stripe. Cancel anytime."}
         </p>
       </div>
     </div>

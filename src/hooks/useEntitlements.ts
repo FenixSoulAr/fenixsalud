@@ -12,6 +12,7 @@ interface EntitlementValues {
   canUseRoles: boolean;
   canUseProcedures: boolean;
   canExportBackup: boolean;
+  maxSharedGrantees: number; // 0 = disabled, 1 = Plus, 99 = Pro (unlimited)
 }
 
 interface UseEntitlementsReturn extends EntitlementValues {
@@ -20,6 +21,7 @@ interface UseEntitlementsReturn extends EntitlementValues {
   planCode: string | null;
   planName: string | null;
   isPlus: boolean;
+  isPro: boolean;
   isAdmin: boolean;
   hasPromoOverride: boolean;
   promoExpiresAt: string | null;
@@ -28,12 +30,13 @@ interface UseEntitlementsReturn extends EntitlementValues {
 
 const FREE_DEFAULTS: EntitlementValues = {
   maxProfiles: 1,
-  maxAttachments: 9,
+  maxAttachments: 10,
   canExportPdf: false,
   canShareProfiles: false,
   canUseRoles: false,
   canUseProcedures: false,
   canExportBackup: false,
+  maxSharedGrantees: 0,
 };
 
 // Admin entitlements - full access
@@ -45,9 +48,10 @@ const ADMIN_ENTITLEMENTS: EntitlementValues = {
   canUseRoles: true,
   canUseProcedures: true,
   canExportBackup: true,
+  maxSharedGrantees: 99,
 };
 
-// In-memory cache for entitlements per user
+// In-memory cache
 const entitlementCache = new Map<string, {
   entitlements: EntitlementValues;
   planCode: string;
@@ -62,7 +66,6 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export function useEntitlements(): UseEntitlementsReturn {
   const { user, loading: authLoading } = useAuth();
-  // Start with loading: false and safe defaults to prevent UI blocking
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [planCode, setPlanCode] = useState<string | null>("free");
@@ -75,10 +78,7 @@ export function useEntitlements(): UseEntitlementsReturn {
   const hasFetchedRef = useRef(false);
 
   const fetchEntitlements = useCallback(async (forceRefresh = false) => {
-    if (!user) {
-      // Keep defaults, don't block
-      return;
-    }
+    if (!user) return;
 
     // Check if user is admin via server-side admin_roles table
     let userIsAdmin = false;
@@ -89,16 +89,13 @@ export function useEntitlements(): UseEntitlementsReturn {
       // If check fails, proceed as non-admin
     }
     if (userIsAdmin) {
-      // Set admin state with full entitlements immediately
       setIsAdmin(true);
-      setPlanCode(null); // Admins don't have a commercial plan
+      setPlanCode(null);
       setPlanName(null);
       setHasPromoOverride(false);
       setPromoExpiresAt(null);
       setEntitlements(ADMIN_ENTITLEMENTS);
       setError(null);
-      
-      // Update cache for admins
       entitlementCache.set(user.id, {
         entitlements: ADMIN_ENTITLEMENTS,
         planCode: "admin",
@@ -126,11 +123,9 @@ export function useEntitlements(): UseEntitlementsReturn {
       }
     }
 
-    // Prevent concurrent fetches
     if (fetchingRef.current) return;
     fetchingRef.current = true;
 
-    // Only show loading on subsequent fetches, not initial
     if (hasFetchedRef.current) {
       setLoading(true);
     }
@@ -138,22 +133,19 @@ export function useEntitlements(): UseEntitlementsReturn {
     setIsAdmin(false);
 
     try {
-      // Ensure subscription row exists (fire and forget with timeout)
+      // Ensure subscription row exists
       const subscriptionPromise = ensureSubscriptionRow();
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Subscription check timeout")), 3000)
       );
-      
       try {
         await Promise.race([subscriptionPromise, timeoutPromise]);
       } catch (e) {
-        // Don't block on subscription row creation - continue with fetch
         console.warn("Subscription row check skipped:", e);
       }
-      
-      // Get user's subscription and plan
+
       console.log("[useEntitlements] Fetching subscription for user_id:", user.id);
-      
+
       const { data: subscription, error: subError } = await supabase
         .from("subscriptions")
         .select("plan_id, status, plans(id, code, name)")
@@ -161,20 +153,13 @@ export function useEntitlements(): UseEntitlementsReturn {
         .in("status", ["active", "trialing"])
         .maybeSingle();
 
-      console.log("[useEntitlements] Subscription query result:", { 
-        subscription, 
-        subError: subError?.message 
-      });
-
       if (subError) {
         console.error("Error fetching subscription:", subError);
         throw new Error("Failed to load subscription");
       }
 
-      // Check for active plan override and get expiration date
+      // Check for active plan override
       let overrideExpiresAt: string | null = null;
-      console.log("[useEntitlements] Checking plan_overrides for user_id:", user.id);
-      
       const { data: overrideData, error: overrideError } = await supabase
         .from("plan_overrides")
         .select("expires_at")
@@ -182,44 +167,28 @@ export function useEntitlements(): UseEntitlementsReturn {
         .is("revoked_at", null)
         .maybeSingle();
 
-      console.log("[useEntitlements] Override query result:", { 
-        overrideData, 
-        overrideError: overrideError?.message,
-        userId: user.id 
-      });
-
-      // Check if override is active (not expired)
       const hasActiveOverride = overrideData && (
         !overrideData.expires_at || new Date(overrideData.expires_at) > new Date()
       );
-      
-      console.log("[useEntitlements] Override active check:", { 
-        hasActiveOverride, 
-        expiresAt: overrideData?.expires_at 
-      });
-      
+
       if (hasActiveOverride && overrideData) {
         overrideExpiresAt = overrideData.expires_at;
       }
 
-      // Determine current plan
       let currentPlanId: string | null = null;
       let currentPlanCode = "free";
       let currentPlanName = "Free";
       let currentHasPromoOverride = false;
       let currentPromoExpiresAt: string | null = null;
 
-      // If user has an override, treat them as Plus
       if (hasActiveOverride) {
         currentHasPromoOverride = true;
         currentPromoExpiresAt = overrideExpiresAt;
-        // Get plus_monthly plan for entitlements (both plus plans have same entitlements)
         const { data: plusPlan } = await supabase
           .from("plans")
           .select("id, code, name")
           .eq("code", "plus_monthly")
           .single();
-        
         if (plusPlan) {
           currentPlanId = plusPlan.id;
           currentPlanCode = plusPlan.code;
@@ -231,31 +200,22 @@ export function useEntitlements(): UseEntitlementsReturn {
         currentPlanCode = plan.code;
         currentPlanName = plan.name;
       } else {
-        // Get free plan ID
         const { data: freePlan, error: freePlanError } = await supabase
           .from("plans")
           .select("id")
           .eq("code", "free")
           .single();
-        
-        if (freePlanError) {
-          console.error("Error fetching free plan:", freePlanError);
-          throw new Error("Failed to load plan configuration");
-        }
-        
-        if (freePlan) {
-          currentPlanId = freePlan.id;
-        }
+        if (freePlanError) throw new Error("Failed to load plan configuration");
+        if (freePlan) currentPlanId = freePlan.id;
       }
 
       console.log("[useEntitlements] Final plan resolution:", {
         planCode: currentPlanCode,
         planName: currentPlanName,
         hasPromoOverride: currentHasPromoOverride,
-        promoExpiresAt: currentPromoExpiresAt,
         userId: user.id,
       });
-      
+
       setPlanCode(currentPlanCode);
       setPlanName(currentPlanName);
       setHasPromoOverride(currentHasPromoOverride);
@@ -270,32 +230,27 @@ export function useEntitlements(): UseEntitlementsReturn {
           .select("key, value")
           .eq("plan_id", currentPlanId);
 
-        if (entError) {
-          console.error("Error fetching entitlements:", entError);
-          throw new Error("Failed to load entitlements");
-        }
+        if (entError) throw new Error("Failed to load entitlements");
 
         if (entitlementRows && entitlementRows.length > 0) {
           const entMap: Record<string, any> = {};
-          entitlementRows.forEach((e) => {
-            entMap[e.key] = e.value;
-          });
+          entitlementRows.forEach((e) => { entMap[e.key] = e.value; });
 
           resolvedEntitlements = {
-            maxProfiles: entMap["profiles.max"]?.limit ?? FREE_DEFAULTS.maxProfiles,
-            maxAttachments: entMap["attachments.max"]?.limit ?? FREE_DEFAULTS.maxAttachments,
-            canExportPdf: entMap["pdf_export.enabled"]?.enabled ?? FREE_DEFAULTS.canExportPdf,
-            canShareProfiles: entMap["sharing.enabled"]?.enabled ?? FREE_DEFAULTS.canShareProfiles,
-            canUseRoles: entMap["sharing.roles"]?.enabled ?? FREE_DEFAULTS.canUseRoles,
-            canUseProcedures: entMap["procedures.enabled"]?.enabled ?? FREE_DEFAULTS.canUseProcedures,
-            canExportBackup: entMap["export_backup.enabled"]?.enabled ?? FREE_DEFAULTS.canExportBackup,
+            maxProfiles:        entMap["profiles.max"]?.limit          ?? FREE_DEFAULTS.maxProfiles,
+            maxAttachments:     entMap["attachments.max"]?.limit       ?? FREE_DEFAULTS.maxAttachments,
+            canExportPdf:       entMap["pdf_export.enabled"]?.enabled  ?? FREE_DEFAULTS.canExportPdf,
+            canShareProfiles:   entMap["sharing.enabled"]?.enabled     ?? FREE_DEFAULTS.canShareProfiles,
+            canUseRoles:        entMap["sharing.roles"]?.enabled       ?? FREE_DEFAULTS.canUseRoles,
+            canUseProcedures:   entMap["procedures.enabled"]?.enabled  ?? FREE_DEFAULTS.canUseProcedures,
+            canExportBackup:    entMap["export_backup.enabled"]?.enabled ?? FREE_DEFAULTS.canExportBackup,
+            maxSharedGrantees:  entMap["sharing.max_grantees"]?.limit  ?? FREE_DEFAULTS.maxSharedGrantees,
           };
         }
       }
 
       setEntitlements(resolvedEntitlements);
 
-      // Update cache
       entitlementCache.set(user.id, {
         entitlements: resolvedEntitlements,
         planCode: currentPlanCode,
@@ -320,22 +275,16 @@ export function useEntitlements(): UseEntitlementsReturn {
   }, [user]);
 
   useEffect(() => {
-    // Don't fetch while auth is still loading
     if (authLoading) return;
-    
-    fetchEntitlements().finally(() => {
-      hasFetchedRef.current = true;
-    });
+    fetchEntitlements().finally(() => { hasFetchedRef.current = true; });
   }, [fetchEntitlements, authLoading]);
 
-  // Clear cache on sign out
   useEffect(() => {
-    if (!user) {
-      entitlementCache.clear();
-    }
+    if (!user) entitlementCache.clear();
   }, [user]);
 
-  const isPlus = planCode === "plus_monthly" || planCode === "plus_yearly" || isAdmin;
+  const isPlus = planCode === "plus_monthly" || isAdmin;
+  const isPro = planCode === "pro_monthly" || isAdmin;
 
   return {
     loading,
@@ -343,6 +292,7 @@ export function useEntitlements(): UseEntitlementsReturn {
     planCode,
     planName,
     isPlus,
+    isPro,
     isAdmin,
     hasPromoOverride,
     promoExpiresAt,
@@ -351,7 +301,6 @@ export function useEntitlements(): UseEntitlementsReturn {
   };
 }
 
-// Utility to invalidate cache (useful after subscription changes)
 export function invalidateEntitlementsCache(userId?: string) {
   if (userId) {
     entitlementCache.delete(userId);

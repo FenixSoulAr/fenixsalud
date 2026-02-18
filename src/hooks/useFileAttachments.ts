@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useEntitlementGate } from "@/hooks/useEntitlementGate";
+import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -16,19 +18,30 @@ interface FileAttachment {
 }
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
-const MAX_SIZE_MB = 20;
-const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per upload
 
 export function useFileAttachments(entityType: EntityType, entityId: string | null) {
   const { dataProfileId, activeProfileId, currentUserId } = useActiveProfile();
   const { checkAttachmentLimit } = useEntitlementGate();
+  const { maxAttachments } = useEntitlementsContext();
+  const { user } = useAuth();
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [userAttachmentCount, setUserAttachmentCount] = useState(0);
+
+  const fetchUserAttachmentCount = useCallback(async () => {
+    if (!user) return;
+    const { count } = await supabase
+      .from("file_attachments")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    setUserAttachmentCount(count || 0);
+  }, [user]);
 
   const fetchAttachments = useCallback(async () => {
     if (!entityId || !activeProfileId) return;
-    
+
     setLoading(true);
     const { data, error } = await supabase
       .from("file_attachments")
@@ -36,7 +49,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       .eq("entity_type", entityType)
       .eq("entity_id", entityId)
       .order("uploaded_at", { ascending: false });
-    
+
     if (error) {
       console.error("Error fetching attachments:", error);
     } else {
@@ -47,31 +60,28 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
 
   useEffect(() => {
     fetchAttachments();
-  }, [fetchAttachments]);
+    fetchUserAttachmentCount();
+  }, [fetchAttachments, fetchUserAttachmentCount]);
 
   const uploadFile = async (file: File): Promise<{ success: boolean; error?: string }> => {
     if (!dataProfileId || !entityId || !currentUserId) {
       return { success: false, error: "Not authenticated or missing entity ID." };
     }
 
-    // Check entitlement limit before uploading
+    // Check global attachment count against plan limit
     const canUpload = await checkAttachmentLimit();
     if (!canUpload) {
-      return { success: false, error: "Attachment limit reached. Upgrade to Plus for unlimited attachments." };
+      return { success: false, error: "attachment_limit_reached" };
     }
 
-    // Normalize MIME type for mobile compatibility (some devices report different types)
+    // Normalize MIME type
     let mimeType = file.type?.toLowerCase() || "";
-    
-    // Handle edge cases where mobile might report different MIME types or empty type
     if (!mimeType && file.name) {
       const ext = file.name.split(".").pop()?.toLowerCase();
       if (ext === "pdf") mimeType = "application/pdf";
       else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
       else if (ext === "png") mimeType = "image/png";
     }
-
-    // Additional fallback: check for common mobile MIME variations
     if (mimeType === "application/octet-stream" && file.name) {
       const ext = file.name.split(".").pop()?.toLowerCase();
       if (ext === "pdf") mimeType = "application/pdf";
@@ -79,25 +89,22 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       else if (ext === "png") mimeType = "image/png";
     }
 
-    // Validate file type - return error without toast (caller handles UI)
     if (!ALLOWED_TYPES.includes(mimeType)) {
       return { success: false, error: "Unsupported file type. Please upload a PDF, JPG, or PNG." };
     }
 
-    // Validate file size - return error without toast (caller handles UI)
+    // 10MB limit
     if (file.size > MAX_SIZE_BYTES) {
-      return { success: false, error: "File is too large. Maximum size is 20MB." };
+      return { success: false, error: "File is too large. Maximum size is 10MB." };
     }
 
     setUploading(true);
-    
+
     try {
-      // Create unique file path: profile_id/entity_type/entity_id/timestamp_filename
       const timestamp = Date.now();
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
       const filePath = `${dataProfileId}/${entityType}/${entityId}/${timestamp}_${safeName}`;
 
-      // Step A: Upload to storage
       const { error: uploadError } = await supabase.storage
         .from("health-files")
         .upload(filePath, file, {
@@ -115,7 +122,6 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
         return { success: false, error: `Upload failed: ${uploadError.message}` };
       }
 
-      // Step B: Create file_attachments record
       const { error: dbError } = await supabase
         .from("file_attachments")
         .insert({
@@ -130,7 +136,6 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
 
       if (dbError) {
         console.error("DB insert error:", dbError);
-        // Cleanup orphaned file silently
         try {
           await supabase.storage.from("health-files").remove([filePath]);
         } catch (cleanupErr) {
@@ -143,19 +148,13 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
         return { success: false, error: "Error saving file record. Please try again." };
       }
 
-      // Step C: Success - refresh attachments list and show single toast
       await fetchAttachments();
+      await fetchUserAttachmentCount();
       toast.success("Archivo subido correctamente.");
       return { success: true };
-      
+
     } catch (error: unknown) {
       console.error("Unexpected upload error:", error);
-      if (error instanceof Error) {
-        const msg = error.message.toLowerCase();
-        if (msg.includes("policy") || msg.includes("permission") || msg.includes("403") || msg.includes("unauthorized")) {
-          return { success: false, error: "You don't have permission to upload files." };
-        }
-      }
       return { success: false, error: "Unexpected error. Please try again." };
     } finally {
       setUploading(false);
@@ -186,6 +185,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       }
 
       await fetchAttachments();
+      await fetchUserAttachmentCount();
       toast.success("Archivo eliminado.");
       return true;
     } catch (error) {
@@ -198,11 +198,9 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
   const getSignedUrl = async (filePath: string): Promise<string | null> => {
     const { data, error } = await supabase.storage
       .from("health-files")
-      .createSignedUrl(filePath, 60 * 5); // 5 minute expiry
+      .createSignedUrl(filePath, 60 * 5);
 
     if (error) {
-      // Log error but do NOT show toast - let the UI component handle the error state
-      // This prevents false error toasts when signed URL generation fails transiently
       console.error("Signed URL error:", error);
       return null;
     }
@@ -218,5 +216,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
     deleteFile,
     getSignedUrl,
     refetch: fetchAttachments,
+    userAttachmentCount,
+    maxAttachments,
   };
 }

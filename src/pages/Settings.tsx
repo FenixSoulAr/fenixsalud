@@ -47,7 +47,7 @@ interface SettingsData {
 export default function Settings() {
   const { user, signOut } = useAuth();
   const { canManageSharing } = useSharing();
-  const { isPlus, isAdmin, hasPromoOverride, promoExpiresAt, maxProfiles, maxAttachments, canExportPdf, canExportBackup, planName, loading: entitlementsLoading } = useEntitlementsContext();
+  const { isPlus, isPro, isAdmin, hasPromoOverride, promoExpiresAt, maxProfiles, maxAttachments, canExportPdf, canExportBackup, planName, loading: entitlementsLoading } = useEntitlementsContext();
   const { checkProfileLimit, gatedMessages } = useEntitlementGate();
   const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const { exporting, exportResult, deleting, exportUserData, deleteAccount, hasRecentExport, getTotalRecords, getAttachmentCount } = useAccountActions();
@@ -502,6 +502,7 @@ export default function Settings() {
           <PlanSubscriptionSection 
             t={t}
             isPlus={isPlus}
+            isPro={isPro}
             hasPromoOverride={hasPromoOverride}
             promoExpiresAt={promoExpiresAt}
             maxProfiles={maxProfiles}
@@ -666,9 +667,9 @@ export default function Settings() {
                 )}
               </>
             ) : (
-              /* Free plan - show upgrade prompt */
+              /* Free/Plus plan - show upgrade prompt for multi-profiles (Pro only) */
               <div className="text-center py-4 space-y-3">
-                <Crown className="h-10 w-10 mx-auto text-amber-500" />
+                <Crown className="h-10 w-10 mx-auto text-primary" />
                 <div className="space-y-1">
                   <p className="font-medium">{t.settings.multipleProfPlusOnly}</p>
                   <p className="text-sm text-muted-foreground">{t.settings.noFamilyProfilesDescFree}</p>
@@ -976,6 +977,7 @@ export default function Settings() {
 interface PlanSubscriptionSectionProps {
   t: ReturnType<typeof useTranslations>;
   isPlus: boolean;
+  isPro: boolean;
   hasPromoOverride: boolean;
   promoExpiresAt: string | null;
   maxProfiles: number;
@@ -988,6 +990,7 @@ interface PlanSubscriptionSectionProps {
 function PlanSubscriptionSection({
   t,
   isPlus,
+  isPro,
   hasPromoOverride,
   promoExpiresAt,
   maxProfiles,
@@ -1035,18 +1038,20 @@ function PlanSubscriptionSection({
         {/* Current Plan */}
         <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
           <div className="flex items-center gap-3">
-            {isPlus ? (
+            {(isPlus || isPro) ? (
               <Crown className="h-5 w-5 text-primary" />
             ) : (
               <div className="h-5 w-5 rounded-full bg-muted-foreground/20" />
             )}
             <div>
               <p className="font-medium">
-                {isPlus 
-                  ? (hasPromoOverride 
-                      ? (t.settings.plusPromo || "Plus (Promo)")
-                      : planName || (t.settings.plusPlan || "Plus"))
-                  : (t.settings.freePlan || "Free")}
+                {isPro
+                  ? (planName || "Pro")
+                  : isPlus
+                    ? (hasPromoOverride
+                        ? (t.settings.plusPromo || "Plus (Promo)")
+                        : planName || (t.settings.plusPlan || "Plus"))
+                    : (t.settings.freePlan || "Free")}
               </p>
               <p className="text-xs text-muted-foreground">
                 {t.settings.currentPlan || "Current plan"}
@@ -1133,32 +1138,33 @@ function PlanSubscriptionSection({
         </div>
         
         {/* Upgrade CTA */}
-        {!isPlus && (
-          <div className="space-y-3">
-            <BillingIntervalToggle 
-              value={billingInterval} 
-              onChange={setBillingInterval} 
-              className="w-full justify-center"
-            />
-            <Button 
-              onClick={() => startCheckout(billingInterval === "monthly" ? "plus_monthly" : "plus_yearly")} 
-              className="w-full"
-              variant="default"
-              disabled={checkoutLoading}
-            >
-              {checkoutLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Crown className="h-4 w-4 mr-2" />
-              )}
-              {t.settings.upgradePlus || "Upgrade to Plus"}
-            </Button>
-          </div>
+        {!isPlus && !isPro && (
+          <Button 
+            onClick={() => startCheckout("plus_monthly")} 
+            className="w-full"
+            variant="default"
+            disabled={checkoutLoading}
+          >
+            {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Crown className="h-4 w-4 mr-2" />}
+            {t.settings.upgradePlus || "Upgrade to Plus"}
+          </Button>
+        )}
+
+        {isPlus && !isPro && !hasPromoOverride && (
+          <Button
+            onClick={() => startCheckout("pro_monthly")}
+            className="w-full"
+            variant="outline"
+            disabled={checkoutLoading}
+          >
+            {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            {t.settings.upgradePlus ? "Actualizar a Pro" : "Upgrade to Pro"}
+          </Button>
         )}
         
-        {isPlus && !hasPromoOverride && (
+        {(isPlus || isPro) && !hasPromoOverride && (
           <p className="text-sm text-muted-foreground text-center">
-            {t.settings.plusActive || "You're on the Plus plan. Thank you for your support!"}
+            {t.settings.plusActive || "Thank you for your support!"}
           </p>
         )}
       </div>
