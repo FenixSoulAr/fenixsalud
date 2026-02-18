@@ -12,13 +12,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { LoadingPage } from "@/components/ui/loading-spinner";
 import { SharingSection } from "@/components/sharing/SharingSection";
-import { BillingIntervalToggle, type BillingInterval } from "@/components/billing/BillingIntervalToggle";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSharing } from "@/contexts/SharingContext";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { useEntitlementGate } from "@/hooks/useEntitlementGate";
-import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+
 import { useAccountActions } from "@/hooks/useAccountActions";
 import { toast } from "sonner";
 import { useTranslations, getLanguage } from "@/i18n";
@@ -49,7 +49,7 @@ export default function Settings() {
   const { canManageSharing } = useSharing();
   const { isPlus, isPro, isAdmin, hasPromoOverride, promoExpiresAt, maxProfiles, maxAttachments, canExportPdf, canExportBackup, planName, loading: entitlementsLoading } = useEntitlementsContext();
   const { checkProfileLimit, gatedMessages } = useEntitlementGate();
-  const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
+  
   const { exporting, exportResult, deleting, exportUserData, deleteAccount, hasRecentExport, getTotalRecords, getAttachmentCount } = useAccountActions();
   const navigate = useNavigate();
   const lang = getLanguage();
@@ -515,8 +515,6 @@ export default function Settings() {
             promoExpiresAt={promoExpiresAt}
             maxProfiles={maxProfiles}
             maxAttachments={maxAttachments}
-            checkoutLoading={checkoutLoading}
-            startCheckout={startCheckout}
             planName={planName}
           />
         )}
@@ -979,8 +977,6 @@ interface PlanSubscriptionSectionProps {
   promoExpiresAt: string | null;
   maxProfiles: number;
   maxAttachments: number;
-  checkoutLoading: boolean;
-  startCheckout: (planCode: string) => void;
   planName: string;
 }
 
@@ -992,13 +988,10 @@ function PlanSubscriptionSection({
   promoExpiresAt,
   maxProfiles,
   maxAttachments,
-  checkoutLoading,
-  startCheckout,
   planName,
 }: PlanSubscriptionSectionProps) {
   const navigate = useNavigate();
   const lang = getLanguage();
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
   // Calculate days until expiration
   const expirationInfo = useMemo(() => {
     if (!hasPromoOverride || !promoExpiresAt) {
@@ -1087,22 +1080,13 @@ function PlanSubscriptionSection({
                     </p>
                   )}
                   {expirationInfo.isExpiringSoon && (
-                    <div className="mt-3 space-y-2">
-                      <BillingIntervalToggle 
-                        value={billingInterval} 
-                        onChange={setBillingInterval}
-                      />
+                    <div className="mt-3">
                       <Button 
-                        onClick={() => startCheckout(billingInterval === "monthly" ? "plus_monthly" : "plus_yearly")} 
+                        onClick={() => navigate("/pricing?highlight=plus")} 
                         size="sm"
-                        disabled={checkoutLoading}
                       >
-                        {checkoutLoading ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Crown className="h-4 w-4 mr-2" />
-                        )}
-                        {t.settings.subscribeNow || "Subscribe now"}
+                        <Crown className="h-4 w-4 mr-2" />
+                        {lang === "es" ? "Ver planes" : "See plans"}
                       </Button>
                     </div>
                   )}

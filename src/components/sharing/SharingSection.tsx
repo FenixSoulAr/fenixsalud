@@ -82,8 +82,8 @@ export function SharingSection() {
               ? "Free es para organizar tu propia salud. Plus te permite compartir, exportar y cuidar a otros."
               : "Free is for organizing your own health. Plus lets you share, export, and care for others."}
           </p>
-          <Button onClick={() => navigate("/pricing")} size="sm">
-            {lang === "es" ? "Ver planes" : "View Plans"}
+          <Button onClick={() => navigate("/pricing?highlight=pro")} size="sm">
+            {lang === "es" ? "Ver planes" : "See plans"}
           </Button>
         </div>
       </section>

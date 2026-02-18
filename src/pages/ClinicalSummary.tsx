@@ -312,8 +312,8 @@ export default function ClinicalSummary() {
               ? "Free es para organizar tu propia salud. Plus te permite compartir, exportar y cuidar a otros."
               : "Free is for organizing your own health. Plus lets you share, export, and care for others."}
           </p>
-          <Button onClick={() => navigate("/pricing")}>
-            {lang === "es" ? "Ver planes" : "View Plans"}
+          <Button onClick={() => navigate("/pricing?highlight=plus")}>
+            {lang === "es" ? "Ver planes" : "See plans"}
           </Button>
         </div>
       </div>

@@ -183,7 +183,7 @@ const UNASSIGNED_ID = "__unassigned__";
         <div className="max-w-lg mx-auto text-center py-12">
           <Crown className="h-16 w-16 mx-auto mb-4 text-amber-500" />
           <h2 className="text-xl font-semibold mb-2">{lang === "es" ? "Esta función está disponible en Plus" : "This feature is available in Plus"}</h2>
-          <Button onClick={() => navigate("/pricing")}>{lang === "es" ? "Ver planes" : "View Plans"}</Button>
+          <Button onClick={() => navigate("/pricing?highlight=plus")}>{lang === "es" ? "Ver planes" : "See plans"}</Button>
         </div>
       </div>
     );
