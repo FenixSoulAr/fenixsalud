@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { resolveUserEntitlements } from "../_shared/planEntitlements.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,16 @@ Deno.serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Server-side plan enforcement: require canExportPdf
+    const entitlements = await resolveUserEntitlements(user.id, supabaseUrl, supabaseServiceKey);
+    if (!entitlements.canExportPdf) {
+      console.log(`[generate-pdf] User ${user.id} on plan '${entitlements.planCode}' lacks pdf_export entitlement`);
+      return new Response(JSON.stringify({ error: "plan_limit", feature: "pdf_export" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

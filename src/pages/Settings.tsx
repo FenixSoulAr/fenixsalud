@@ -223,11 +223,22 @@ export default function Settings() {
       return;
     }
     
-    // Check profile limit before creating
-    const canCreate = await checkProfileLimit();
-    if (!canCreate) {
-      // checkProfileLimit already shows toast and redirects
-      return;
+    // Server-side profile limit validation (backend-enforced)
+    try {
+      const { data: serverCheck, error: checkError } = await supabase.functions.invoke("validate-profile-creation");
+      if (checkError) {
+        console.error("Server-side profile validation error:", checkError);
+        // Fallback to client-side check
+        const canCreate = await checkProfileLimit();
+        if (!canCreate) return;
+      } else if (serverCheck && !serverCheck.allowed) {
+        toast.error("Límite de perfiles alcanzado. Actualizá tu plan para crear más perfiles.");
+        return;
+      }
+    } catch (e) {
+      console.error("Error calling validate-profile-creation, falling back to client check:", e);
+      const canCreate = await checkProfileLimit();
+      if (!canCreate) return;
     }
     
     setCreatingFamilyProfile(true);
@@ -251,10 +262,6 @@ export default function Settings() {
     toast.success(t.toast.familyProfileCreated);
     setNewProfileName("");
     setShowAddProfileForm(false);
-    // Refresh sharing context to update profile switcher
-    if (window.location.pathname === "/settings") {
-      // Force refresh of data
-    }
     fetchData(); // Refresh profiles list
   }
 
