@@ -170,10 +170,10 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
                 ? "Límite alcanzado. "
                 : "Storage limit reached. "}
               <button
-                onClick={() => navigate("/pricing")}
+                onClick={() => navigate("/pricing?highlight=plus")}
                 className="underline font-medium"
               >
-                {lang === "es" ? "Actualizar plan" : "Upgrade plan"}
+                {lang === "es" ? "Ver planes" : "See plans"}
               </button>
             </p>
           )}
@@ -195,8 +195,8 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
               ? "Alcanzaste el límite de archivos de tu plan."
               : "You've reached your plan's file limit."}
           </p>
-          <Button size="sm" variant="outline" onClick={() => navigate("/pricing")}>
-            {lang === "es" ? "Actualizar" : "Upgrade"}
+          <Button size="sm" variant="outline" onClick={() => navigate("/pricing?highlight=plus")}>
+            {lang === "es" ? "Ver planes" : "See plans"}
           </Button>
         </div>
       )}
