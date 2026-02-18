@@ -7,6 +7,7 @@ interface EntitlementsContextValue {
   planCode: string | null;
   planName: string | null;
   isPlus: boolean;
+  isPro: boolean;
   isAdmin: boolean;
   hasPromoOverride: boolean;
   promoExpiresAt: string | null;
@@ -17,6 +18,7 @@ interface EntitlementsContextValue {
   canUseRoles: boolean;
   canUseProcedures: boolean;
   canExportBackup: boolean;
+  maxSharedGrantees: number;
   refetch: () => Promise<void>;
 }
 

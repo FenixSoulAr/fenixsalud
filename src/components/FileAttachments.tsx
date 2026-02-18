@@ -2,12 +2,14 @@ import { useState, useCallback } from "react";
 import { Paperclip, FileText, Image, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
 import { useFileAttachments } from "@/hooks/useFileAttachments";
-import { MobileFileUploader } from "@/components/MobileFileUploader";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { AttachmentDownloadButton } from "@/components/AttachmentDownloadButton";
+import { MobileFileUploader } from "@/components/MobileFileUploader";
 import { format } from "date-fns";
 import { getLanguage } from "@/i18n";
+import { useNavigate } from "react-router-dom";
 import type { Database } from "@/integrations/supabase/types";
 
 type EntityType = Database["public"]["Enums"]["entity_type"];
@@ -50,11 +52,10 @@ function isPdf(mimeType: string | null, fileName: string | null): boolean {
   return false;
 }
 
-// Separate component to avoid hook rules violation
 function AttachmentRow({ attachment, canDelete, onDelete, getSignedUrl }: AttachmentRowProps) {
   const FileIcon = getFileIcon(attachment.mime_type);
   const fileIsPdf = isPdf(attachment.mime_type, attachment.file_name);
-  
+
   const handleGetSignedUrl = useCallback(
     () => getSignedUrl(attachment.file_url),
     [getSignedUrl, attachment.file_url]
@@ -87,8 +88,6 @@ function AttachmentRow({ attachment, canDelete, onDelete, getSignedUrl }: Attach
           </Button>
         )}
       </div>
-      
-      {/* Single download button for all file types */}
       <div className="pl-8">
         <AttachmentDownloadButton
           attachmentId={fileIsPdf ? attachment.id : undefined}
@@ -102,15 +101,25 @@ function AttachmentRow({ attachment, canDelete, onDelete, getSignedUrl }: Attach
 }
 
 export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) {
-  const { attachments, loading, uploading, uploadFile, deleteFile, getSignedUrl } = useFileAttachments(entityType, entityId);
+  const { attachments, loading, uploading, uploadFile, deleteFile, getSignedUrl, userAttachmentCount, maxAttachments } = useFileAttachments(entityType, entityId);
   const { canEdit, canDelete } = useActiveProfile();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const lang = getLanguage();
 
+  const usagePercent = maxAttachments > 0 ? Math.min(100, (userAttachmentCount / maxAttachments) * 100) : 0;
+  const nearLimit = usagePercent >= 80;
+  const atLimit = userAttachmentCount >= maxAttachments;
+
   async function handleUpload(file: File): Promise<{ success: boolean; error?: string }> {
-    console.log("[FileAttachments] handleUpload called with:", file.name, file.size, file.type);
+    if (atLimit) {
+      navigate("/pricing");
+      return { success: false, error: "limit_reached" };
+    }
     const result = await uploadFile(file);
-    console.log("[FileAttachments] uploadFile result:", result);
+    if (result.error === "attachment_limit_reached") {
+      navigate("/pricing");
+    }
     return result;
   }
 
@@ -130,24 +139,72 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Paperclip className="h-4 w-4" />
-        <h3 className="text-sm font-medium">{lang === "es" ? "Adjuntos" : "Attachments"}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Paperclip className="h-4 w-4" />
+          <h3 className="text-sm font-medium">{lang === "es" ? "Adjuntos" : "Attachments"}</h3>
+        </div>
+        {/* File usage counter */}
+        <span className={`text-xs font-medium ${nearLimit ? "text-amber-600" : "text-muted-foreground"}`}>
+          {userAttachmentCount} / {maxAttachments}
+        </span>
       </div>
 
-      {/* Show upload controls only for users with edit permission */}
-      {canEdit && (
-        <MobileFileUploader 
+      {/* Progress bar with 80% warning */}
+      {maxAttachments < 9999 && (
+        <div className="space-y-1">
+          <Progress
+            value={usagePercent}
+            className={`h-1.5 ${nearLimit ? "[&>div]:bg-amber-500" : ""}`}
+          />
+          {nearLimit && !atLimit && (
+            <p className="text-xs text-warning" style={{ color: "hsl(38, 92%, 40%)" }}>
+              {lang === "es"
+                ? `⚠️ Casi en el límite — ${maxAttachments - userAttachmentCount} archivos restantes.`
+                : `⚠️ Approaching limit — ${maxAttachments - userAttachmentCount} files remaining.`}
+            </p>
+          )}
+          {atLimit && (
+            <p className="text-xs text-destructive">
+              {lang === "es"
+                ? "Límite alcanzado. "
+                : "Storage limit reached. "}
+              <button
+                onClick={() => navigate("/pricing")}
+                className="underline font-medium"
+              >
+                {lang === "es" ? "Actualizar plan" : "Upgrade plan"}
+              </button>
+            </p>
+          )}
+        </div>
+      )}
+
+      {canEdit && !atLimit && (
+        <MobileFileUploader
           onUpload={handleUpload}
           uploading={uploading}
           disabled={!entityId}
         />
       )}
 
+      {canEdit && atLimit && (
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/30">
+          <p className="text-sm text-muted-foreground flex-1">
+            {lang === "es"
+              ? "Alcanzaste el límite de archivos de tu plan."
+              : "You've reached your plan's file limit."}
+          </p>
+          <Button size="sm" variant="outline" onClick={() => navigate("/pricing")}>
+            {lang === "es" ? "Actualizar" : "Upgrade"}
+          </Button>
+        </div>
+      )}
+
       {loading ? (
-        <div className="text-sm text-muted-foreground">Loading attachments...</div>
+        <div className="text-sm text-muted-foreground">{lang === "es" ? "Cargando..." : "Loading attachments..."}</div>
       ) : attachments.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No attachments yet.</div>
+        <div className="text-sm text-muted-foreground">{lang === "es" ? "Sin adjuntos." : "No attachments yet."}</div>
       ) : (
         <div className="space-y-3">
           {attachments.map((attachment) => (
@@ -165,16 +222,18 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete file?</AlertDialogTitle>
-            <AlertDialogDescription>This file will be permanently removed.</AlertDialogDescription>
+            <AlertDialogTitle>{lang === "es" ? "¿Eliminar archivo?" : "Delete file?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {lang === "es" ? "El archivo se eliminará permanentemente." : "This file will be permanently removed."}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{lang === "es" ? "Cancelar" : "Cancel"}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {lang === "es" ? "Eliminar" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
