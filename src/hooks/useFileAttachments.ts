@@ -68,10 +68,25 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
       return { success: false, error: "Not authenticated or missing entity ID." };
     }
 
-    // Check global attachment count against plan limit
-    const canUpload = await checkAttachmentLimit();
-    if (!canUpload) {
-      return { success: false, error: "attachment_limit_reached" };
+    // Server-side validation of file limit (backend-enforced)
+    try {
+      const { data: serverCheck, error: checkError } = await supabase.functions.invoke("validate-file-upload");
+      if (checkError) {
+        console.error("Server-side file validation error:", checkError);
+        // Fall back to client-side check if server call fails
+        const canUpload = await checkAttachmentLimit();
+        if (!canUpload) {
+          return { success: false, error: "attachment_limit_reached" };
+        }
+      } else if (serverCheck && !serverCheck.allowed) {
+        return { success: false, error: "attachment_limit_reached" };
+      }
+    } catch (e) {
+      console.error("Error calling validate-file-upload, falling back to client check:", e);
+      const canUpload = await checkAttachmentLimit();
+      if (!canUpload) {
+        return { success: false, error: "attachment_limit_reached" };
+      }
     }
 
     // Normalize MIME type

@@ -281,6 +281,12 @@ async function handleSubscriptionUpdated(supabase: any, subscription: Stripe.Sub
 async function handleSubscriptionDeleted(supabase: any, subscription: Stripe.Subscription) {
   logStep("Processing customer.subscription.deleted", { subscriptionId: subscription.id });
 
+  // Do NOT delete user data. Downgrade to free at period end.
+  // The current_period_end from Stripe tells us when access should actually expire.
+  const periodEnd = subscription.current_period_end
+    ? new Date(subscription.current_period_end * 1000).toISOString()
+    : null;
+
   // Find the free plan to downgrade to
   const { data: freePlan } = await supabase
     .from("plans")
@@ -300,6 +306,7 @@ async function handleSubscriptionDeleted(supabase: any, subscription: Stripe.Sub
       plan_id: freePlan.id,
       stripe_subscription_id: null,
       cancel_at_period_end: false,
+      current_period_end: periodEnd,
       updated_at: new Date().toISOString(),
     })
     .eq("stripe_subscription_id", subscription.id);
@@ -307,7 +314,7 @@ async function handleSubscriptionDeleted(supabase: any, subscription: Stripe.Sub
   if (updateError) {
     logStep("ERROR: Failed to cancel subscription", { error: updateError.message });
   } else {
-    logStep("Subscription canceled and downgraded to free");
+    logStep("Subscription canceled and downgraded to free (data preserved)");
   }
 }
 
@@ -359,18 +366,23 @@ async function handleInvoicePaymentFailed(supabase: any, invoice: Stripe.Invoice
 
   if (!invoice.subscription) return;
 
-  // Update subscription status to past_due
+  // Set to past_due — the planEntitlements resolver handles the 3-day grace window
+  // by comparing updated_at timestamp. Do NOT immediately downgrade to free.
   const { error } = await supabase
     .from("subscriptions")
-    .update({ status: "past_due", updated_at: new Date().toISOString() })
+    .update({ 
+      status: "past_due", 
+      updated_at: new Date().toISOString()   // grace period starts from this timestamp
+    })
     .eq("stripe_subscription_id", invoice.subscription as string);
 
   if (error) {
     logStep("ERROR: Failed to update subscription to past_due", { error: error.message });
   } else {
-    logStep("Subscription marked as past_due");
+    logStep("Subscription marked as past_due — 3-day grace period begins from updated_at");
   }
 }
+
 
 function mapStripeStatus(stripeStatus: string): string {
   const statusMap: Record<string, string> = {

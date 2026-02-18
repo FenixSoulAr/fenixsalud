@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Hono } from "https://deno.land/x/hono@v4.3.9/mod.ts";
 // @ts-ignore - JSZip works in Deno
 import JSZip from "https://esm.sh/jszip@3.10.1";
+import { resolveUserEntitlements } from "../_shared/planEntitlements.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,6 +85,16 @@ app.post("/*", async (c) => {
 
     // Use service role for data access
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Server-side plan enforcement: require canExportBackup
+    const entitlements = await resolveUserEntitlements(userId, supabaseUrl, supabaseServiceKey);
+    if (!entitlements.canExportBackup) {
+      console.log(`[export-user-data] User ${userId} on plan '${entitlements.planCode}' lacks export_backup entitlement`);
+      return new Response(JSON.stringify({ error: "plan_limit", feature: "export_backup" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const countsByTable: Record<string, number> = {};
     const zip = new JSZip();
