@@ -21,7 +21,7 @@ import { useEntitlementGate } from "@/hooks/useEntitlementGate";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { useAccountActions } from "@/hooks/useAccountActions";
 import { toast } from "sonner";
-import { useTranslations } from "@/i18n";
+import { useTranslations, getLanguage } from "@/i18n";
 import { useNavigate } from "react-router-dom";
 
 const timezones = ["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "Europe/Paris", "Asia/Tokyo", "Asia/Singapore", "Australia/Sydney"];
@@ -52,6 +52,7 @@ export default function Settings() {
   const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const { exporting, exportResult, deleting, exportUserData, deleteAccount, hasRecentExport, getTotalRecords, getAttachmentCount } = useAccountActions();
   const navigate = useNavigate();
+  const lang = getLanguage();
   const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -625,7 +626,7 @@ export default function Settings() {
               </div>
             )}
             
-            {/* Add profile form (Plus only) */}
+        {/* Add profile form (Pro only for multi-profiles) */}
             {isPlus ? (
               <>
                 {showAddProfileForm ? (
@@ -674,7 +675,7 @@ export default function Settings() {
                 )}
               </>
             ) : (
-              /* Free/Plus plan - show upgrade prompt for multi-profiles (Pro only) */
+              /* Free plan - show upgrade prompt for multi-profiles */
               <div className="text-center py-4 space-y-3">
                 <Crown className="h-10 w-10 mx-auto text-primary" />
                 <div className="space-y-1">
@@ -684,9 +685,9 @@ export default function Settings() {
                 <Button 
                   variant="default" 
                   size="sm"
-                  onClick={() => navigate("/pricing")}
+                  onClick={() => navigate("/pricing?highlight=pro")}
                 >
-                  {t.settings.upgradePlus}
+                  {lang === "es" ? "Ver planes" : "See plans"}
                 </Button>
               </div>
             )}
@@ -713,12 +714,7 @@ export default function Settings() {
                 if (isPlus) {
                   toast.info(t.settings.exportComingSoon);
                 } else {
-                  toast(gatedMessages.plusFeature, {
-                    action: {
-                      label: t.settings.upgradePlus,
-                      onClick: () => navigate("/pricing"),
-                    },
-                  });
+                  navigate("/pricing?highlight=plus");
                 }
               }}
             >
@@ -736,12 +732,7 @@ export default function Settings() {
                 if (isPlus) {
                   toast.info(t.settings.exportComingSoon);
                 } else {
-                  toast(gatedMessages.plusFeature, {
-                    action: {
-                      label: t.settings.upgradePlus,
-                      onClick: () => navigate("/pricing"),
-                    },
-                  });
+                  navigate("/pricing?highlight=pro");
                 }
               }}
             >
@@ -752,14 +743,13 @@ export default function Settings() {
             
             {!isPlus && (
               <div className="text-center py-3 space-y-2">
-                <p className="text-sm text-muted-foreground">{gatedMessages.plusFeature}</p>
                 <Button 
                   variant="default" 
                   size="sm"
-                  onClick={() => navigate("/pricing")}
+                  onClick={() => navigate("/pricing?highlight=plus")}
                 >
                   <Crown className="h-4 w-4 mr-2" />
-                  {t.settings.upgradePlus}
+                  {lang === "es" ? "Ver planes" : "See plans"}
                 </Button>
               </div>
             )}
@@ -1006,6 +996,8 @@ function PlanSubscriptionSection({
   startCheckout,
   planName,
 }: PlanSubscriptionSectionProps) {
+  const navigate = useNavigate();
+  const lang = getLanguage();
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
   // Calculate days until expiration
   const expirationInfo = useMemo(() => {
@@ -1144,28 +1136,25 @@ function PlanSubscriptionSection({
           </div>
         </div>
         
-        {/* Upgrade CTA */}
+        {/* Upgrade CTAs — always route to /pricing for consistent toggle flow */}
         {!isPlus && !isPro && (
           <Button 
-            onClick={() => startCheckout("plus_monthly")} 
+            onClick={() => navigate("/pricing")} 
             className="w-full"
             variant="default"
-            disabled={checkoutLoading}
           >
-            {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Crown className="h-4 w-4 mr-2" />}
-            {t.settings.upgradePlus || "Upgrade to Plus"}
+            <Crown className="h-4 w-4 mr-2" />
+            {lang === "es" ? "Ver planes" : "See plans"}
           </Button>
         )}
 
         {isPlus && !isPro && !hasPromoOverride && (
           <Button
-            onClick={() => startCheckout("pro_monthly")}
+            onClick={() => navigate("/pricing")}
             className="w-full"
             variant="outline"
-            disabled={checkoutLoading}
           >
-            {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-            {t.settings.upgradePlus ? "Actualizar a Pro" : "Upgrade to Pro"}
+            {lang === "es" ? "Ver planes" : "See plans"}
           </Button>
         )}
         

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, X, Crown, Heart, Loader2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,37 @@ import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { getLanguage } from "@/i18n";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { BillingIntervalToggle, type BillingInterval } from "@/components/billing/BillingIntervalToggle";
+import { useSearchParams } from "react-router-dom";
 
 export default function Pricing() {
   const { isPlus, isPro } = useEntitlementsContext();
   const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const lang = getLanguage();
-  const [interval, setInterval] = useState<BillingInterval>("monthly");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Persist toggle via URL param ?billing=monthly|yearly
+  const billingParam = searchParams.get("billing");
+  const [interval, setInterval] = useState<BillingInterval>(
+    billingParam === "yearly" ? "yearly" : "monthly"
+  );
+
+  // Context-aware plan highlight: ?highlight=plus|pro
+  const highlight = searchParams.get("highlight") as "plus" | "pro" | null;
+
+  // Sync interval changes into URL so it survives Stripe redirect
+  function handleIntervalChange(val: BillingInterval) {
+    setInterval(val);
+    const next = new URLSearchParams(searchParams);
+    next.set("billing", val);
+    setSearchParams(next, { replace: true });
+  }
+
+  // On mount, if returning from Stripe (upgrade=success), keep billing param
+  useEffect(() => {
+    if (billingParam === "yearly" || billingParam === "monthly") {
+      setInterval(billingParam);
+    }
+  }, [billingParam]);
 
   const isYearly = interval === "yearly";
 
@@ -26,6 +51,7 @@ export default function Pricing() {
     forever:        lang === "es" ? "/siempre"             : "/forever",
     popular:        lang === "es" ? "Más popular"          : "Most popular",
     saveLabel:      lang === "es" ? "Ahorrá 2 meses"       : "Save 2 months",
+    recommended:    lang === "es" ? "Recomendado"          : "Recommended",
     plans: {
       free: {
         name:        lang === "es" ? "Gratis" : "Free",
@@ -85,12 +111,17 @@ export default function Pricing() {
 
   const isFree = !isPlus && !isPro;
 
+  // Price IDs — always the source of truth for checkout
   const plusPlanCode = isYearly ? "plus_yearly" : "plus_monthly";
   const proPlanCode  = isYearly ? "pro_yearly"  : "pro_monthly";
 
   const plusPrice = isYearly ? t.plans.plus.yearlyPrice : t.plans.plus.monthlyPrice;
   const proPrice  = isYearly ? t.plans.pro.yearlyPrice  : t.plans.pro.monthlyPrice;
   const periodSuffix = isYearly ? t.perYear : t.perMonth;
+
+  // Context-aware highlight ring
+  const plusHighlighted = highlight === "plus";
+  const proHighlighted  = highlight === "pro";
 
   return (
     <div className="animate-fade-in">
@@ -104,9 +135,9 @@ export default function Pricing() {
         }
       />
 
-      {/* Billing interval toggle */}
+      {/* Billing interval toggle — always visible */}
       <div className="flex justify-center mb-6">
-        <BillingIntervalToggle value={interval} onChange={setInterval} />
+        <BillingIntervalToggle value={interval} onChange={handleIntervalChange} />
       </div>
 
       <div className="grid md:grid-cols-3 gap-5 max-w-5xl">
@@ -140,9 +171,18 @@ export default function Pricing() {
         </div>
 
         {/* PLUS */}
-        <div className={`health-card relative flex flex-col border-2 border-primary/40 ${isPlus && !isPro ? "ring-2 ring-primary" : ""}`}>
+        <div className={`health-card relative flex flex-col border-2 ${
+          isPlus && !isPro
+            ? "ring-2 ring-primary border-primary/40"
+            : plusHighlighted
+              ? "ring-2 ring-primary/60 border-primary/40"
+              : "border-primary/40"
+        }`}>
           {isPlus && !isPro && (
             <Badge className="absolute -top-3 left-4 bg-primary">{t.currentPlan}</Badge>
+          )}
+          {plusHighlighted && !isPlus && (
+            <Badge className="absolute -top-3 left-4 bg-primary/80">{t.recommended}</Badge>
           )}
           <Badge className="absolute -top-3 right-4 bg-primary/10 text-primary border border-primary/30">
             {t.popular}
@@ -184,9 +224,18 @@ export default function Pricing() {
         </div>
 
         {/* PRO */}
-        <div className={`health-card relative flex flex-col ${isPro ? "ring-2 ring-primary" : ""}`}>
+        <div className={`health-card relative flex flex-col ${
+          isPro
+            ? "ring-2 ring-primary"
+            : proHighlighted
+              ? "ring-2 ring-primary/60"
+              : ""
+        }`}>
           {isPro && (
             <Badge className="absolute -top-3 left-4 bg-primary">{t.currentPlan}</Badge>
+          )}
+          {proHighlighted && !isPro && (
+            <Badge className="absolute -top-3 left-4 bg-primary/80">{t.recommended}</Badge>
           )}
           <div className="flex items-center gap-2 mb-2">
             <Zap className="h-5 w-5 text-primary" />
