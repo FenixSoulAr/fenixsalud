@@ -8,7 +8,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 
 // Stripe Price IDs for each plan
 export const STRIPE_PRICE_IDS: Record<string, string> = {
-  plus_monthly: "price_1StL3jKDVbPJQ8VfsrVNZaRC",
+  plus_monthly: "price_1T2JaPKDVbPJQ8VfJ4G2b7tw",
   pro_monthly: "price_1T2J4sKDVbPJQ8Vfmqoh2aG9",
 };
 
