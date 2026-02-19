@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,9 +91,7 @@ export default function SignIn() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Heart className="h-6 w-6" />
-            </div>
+            <img src="/favicon-96x96.png" alt="My Health Hub" className="h-12 w-12 rounded-xl object-contain" />
           </Link>
           <h1 className="text-2xl font-semibold">{t.auth.welcomeBack}</h1>
           <p className="text-muted-foreground mt-1">{t.auth.signInSubtitle}</p>

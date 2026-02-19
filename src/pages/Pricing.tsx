@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, X, Crown, Heart, Loader2, Zap } from "lucide-react";
+import { Check, X, Crown, Loader2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -147,7 +147,7 @@ export default function Pricing() {
             <Badge className="absolute -top-3 left-4 bg-primary">{t.currentPlan}</Badge>
           )}
           <div className="flex items-center gap-2 mb-2">
-            <Heart className="h-5 w-5 text-primary" />
+            <img src="/favicon-48x48.png" alt="My Health Hub" className="h-5 w-5 object-contain" />
             <h2 className="text-xl font-bold">{t.plans.free.name}</h2>
           </div>
           <div className="flex items-baseline gap-1 mb-1">

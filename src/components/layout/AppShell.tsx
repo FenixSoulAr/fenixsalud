@@ -14,7 +14,7 @@ import {
   Menu,
   X,
   LogOut,
-  Heart,
+  
   FileText,
   Info,
   Mail,
