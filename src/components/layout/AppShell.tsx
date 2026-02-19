@@ -62,7 +62,7 @@ export function AppShell({ children }: AppShellProps) {
   ];
 
   return (
-    <div className="app-shell min-h-[100dvh] bg-background lg:pt-0 lg:pb-0 box-border">
+    <div className="app-shell min-h-[100dvh] h-[100dvh] overflow-y-auto bg-background lg:pt-0 lg:pb-0 box-border" style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'none' }}>
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
