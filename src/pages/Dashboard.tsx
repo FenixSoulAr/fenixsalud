@@ -63,6 +63,9 @@ export default function Dashboard() {
   useEffect(() => {
     if (activeProfileId) {
       fetchData(true);
+    } else {
+      // No active profile yet — don't leave spinner hanging
+      setLoading(false);
     }
   }, [activeProfileId, fetchData, location.key]);
 
