@@ -1248,6 +1248,7 @@ export type Database = {
         }[]
       }
       get_current_user_email: { Args: never; Returns: string }
+      get_profile_for_role: { Args: { _profile_id: string }; Returns: Json }
       get_sharing_role: {
         Args: { _profile_owner_id: string; _user_id: string }
         Returns: string

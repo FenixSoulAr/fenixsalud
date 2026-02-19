@@ -28,12 +28,10 @@ export function useTimezone() {
       }
 
       const { data } = await supabase
-        .from("profiles")
-        .select("timezone")
-        .eq("id", activeProfileId)
-        .maybeSingle();
+        .rpc("get_profile_for_role", { _profile_id: activeProfileId });
 
-      setProfileTimezone(data?.timezone || null);
+      const profile = data as Record<string, unknown> | null;
+      setProfileTimezone((profile?.timezone as string) || null);
       setLoading(false);
     }
 

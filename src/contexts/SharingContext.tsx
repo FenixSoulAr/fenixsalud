@@ -219,7 +219,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
     // Fetch shares where I have been given access (active only)
     const { data: receivedShares, error: receivedError } = await supabase
       .from("profile_shares")
-      .select("*, profiles!profile_shares_profile_id_fkey(id, full_name, owner_user_id)")
+      .select("*")
       .eq("shared_with_user_id", user.id)
       .eq("status", "active");
 
@@ -227,31 +227,33 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       console.error("[SharingContext] Error fetching received shares:", receivedError);
     }
 
-    // For received shares, fetch owner profile names
+    // For received shares, use secure RPC to get profile info (filtered by role)
     const sharedProfiles: SharedProfile[] = [];
     for (const share of receivedShares || []) {
-      const profile = share.profiles as { id: string; full_name: string | null; owner_user_id: string } | null;
+      const profileId = share.profile_id || "";
       
-      // Get owner's primary profile name
-      let ownerName: string | null = null;
-      if (profile?.owner_user_id) {
-        const { data: ownerProfile } = await supabase
-          .from("profiles")
-          .select("full_name, first_name, last_name")
-          .eq("user_id", profile.owner_user_id)
-          .maybeSingle();
+      // Use RPC to get profile data (returns only safe fields for shared users)
+      let profileName: string | null = null;
+      let profileOwnerId: string | null = null;
+      if (profileId) {
+        const { data: profileData } = await supabase
+          .rpc("get_profile_for_role", { _profile_id: profileId });
         
-        ownerName = ownerProfile?.full_name || 
-          (ownerProfile?.first_name && ownerProfile?.last_name 
-            ? `${ownerProfile.first_name} ${ownerProfile.last_name}` 
-            : ownerProfile?.first_name || null);
+        if (profileData) {
+          const p = profileData as Record<string, unknown>;
+          profileName = (p.full_name as string) || 
+            ((p.first_name as string) && (p.last_name as string) 
+              ? `${p.first_name} ${p.last_name}` 
+              : (p.first_name as string) || null);
+          profileOwnerId = (p.owner_user_id as string) || null;
+        }
       }
       
       sharedProfiles.push({
-        profile_id: profile?.id || share.profile_id || "",
-        profile_name: profile?.full_name || null,
+        profile_id: profileId,
+        profile_name: profileName,
         owner_id: share.owner_id,
-        owner_name: ownerName,
+        owner_name: null,
         owner_email: null,
         role: share.role,
       });
