@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Heart, Users, Sparkles } from "lucide-react";
+import { Users, Sparkles } from "lucide-react";
 import { getLanguage } from "@/i18n";
 
 interface OnboardingFlowProps {
@@ -10,7 +10,7 @@ interface OnboardingFlowProps {
 const screens = {
   es: [
     {
-      icon: Heart,
+      icon: null,
       title: "Tu información de salud, organizada.",
       text: "Registrá citas, estudios y medicación en un solo lugar, de forma clara y accesible cuando lo necesites.",
       button: "Continuar",
@@ -30,7 +30,7 @@ const screens = {
   ],
   en: [
     {
-      icon: Heart,
+      icon: null,
       title: "Your health information, organized.",
       text: "Track appointments, tests, and medications in one place, clearly accessible when you need it.",
       button: "Continue",
@@ -114,9 +114,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         <div className="text-center space-y-6 animate-fade-in" key={currentScreen}>
           {/* Icon */}
           <div className="flex justify-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Icon className="h-10 w-10" />
-            </div>
+            {Icon ? (
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Icon className="h-10 w-10" />
+              </div>
+            ) : (
+              <img src="/favicon-96x96.png" alt="My Health Hub" className="h-20 w-20 rounded-2xl object-contain" />
+            )}
           </div>
 
           {/* Title */}
