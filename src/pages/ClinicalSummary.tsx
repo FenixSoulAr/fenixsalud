@@ -71,14 +71,15 @@ export default function ClinicalSummary() {
     if (!activeProfileId) return;
     setLoading(true);
     
-    const [profileRes, medsRes, diagRes, testsRes, proceduresRes, appointmentsRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", activeProfileId).maybeSingle(),
+    const [profileRpcRes, medsRes, diagRes, testsRes, proceduresRes, appointmentsRes] = await Promise.all([
+      supabase.rpc("get_profile_for_role", { _profile_id: activeProfileId }),
       supabase.from("medications").select("*").eq("profile_id", activeProfileId).eq("status", "Active").order("name"),
       supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId),
       supabase.from("tests").select("*, institutions(name), doctors(full_name, specialty)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
       supabase.from("procedures").select("*, institutions(name), doctors(full_name, specialty)").eq("profile_id", activeProfileId).order("date", { ascending: false }),
       supabase.from("appointments").select("*, doctors(full_name, specialty), institutions(name)").eq("profile_id", activeProfileId).order("datetime_start", { ascending: false }),
     ]);
+    const profileRes = { data: profileRpcRes.data, error: profileRpcRes.error };
 
     setProfile(profileRes.data);
     setMedications(medsRes.data || []);
