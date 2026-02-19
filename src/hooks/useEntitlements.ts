@@ -283,8 +283,8 @@ export function useEntitlements(): UseEntitlementsReturn {
     if (!user) entitlementCache.clear();
   }, [user]);
 
-  const isPlus = planCode === "plus_monthly" || isAdmin;
-  const isPro = planCode === "pro_monthly" || isAdmin;
+  const isPlus = planCode === "plus_monthly" || planCode === "plus_yearly" || isAdmin;
+  const isPro = planCode === "pro_monthly" || planCode === "pro_yearly" || isAdmin;
 
   return {
     loading,
