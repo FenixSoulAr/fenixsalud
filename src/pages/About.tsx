@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useTranslations } from "@/i18n";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, Shield, Sparkles } from "lucide-react";
+import { Shield, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function About() {
@@ -18,9 +18,7 @@ export default function About() {
         <CardContent className="pt-6 space-y-6">
           {/* App Identity */}
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <Heart className="h-7 w-7" />
-            </div>
+            <img src="/favicon-96x96.png" alt="My Health Hub" className="h-14 w-14 rounded-2xl object-contain" />
             <div>
               <h2 className="text-xl font-semibold">{t.appName}</h2>
               <span className="text-sm text-muted-foreground">{t.about.version}</span>
