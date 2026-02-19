@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent pull-to-refresh from reloading the page on mobile */
+html, body {
+  overscroll-behavior-y: none;
+}
+
 /* Friendly Wellness Design System - Teal/Blue Gradient Theme */
 
 @layer base {

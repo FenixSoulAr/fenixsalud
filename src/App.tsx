@@ -49,15 +49,17 @@ function SyncingBanner() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [showSyncBanner, setShowSyncBanner] = useState(false);
   const [forceRender, setForceRender] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
   
   // Watchdog: after 5 seconds of loading, force render with warning banner
   useEffect(() => {
     if (!loading) {
       setShowSyncBanner(false);
       setForceRender(false);
+      setShowRecovery(false);
       return;
     }
     
@@ -66,9 +68,49 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       setShowSyncBanner(true);
       setForceRender(true);
     }, 5000);
+
+    // After 10s of loading, show recovery screen
+    const recoveryTimer = setTimeout(() => {
+      console.warn("[ProtectedRoute] Recovery screen triggered");
+      setShowRecovery(true);
+    }, 10000);
     
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(recoveryTimer);
+    };
   }, [loading]);
+
+  // Recovery screen: user is stuck, offer escape routes
+  if (showRecovery && loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <AlertTriangle className="h-10 w-10 text-warning mx-auto" />
+          <h2 className="text-lg font-semibold">No se pudo cargar la sesión</h2>
+          <p className="text-sm text-muted-foreground">
+            Hubo un problema al conectar. Podés reintentar o volver a iniciar sesión.
+          </p>
+          <div className="flex flex-col gap-2">
+            <button 
+              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+              onClick={() => window.location.reload()}
+            >
+              Reintentar
+            </button>
+            <button 
+              className="w-full rounded-md border border-border px-4 py-2 text-sm font-medium"
+              onClick={() => {
+                signOut();
+              }}
+            >
+              Ir a login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   // Still loading but within timeout - show brief spinner
   if (loading && !forceRender) {
@@ -81,6 +123,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   
   // Not authenticated - redirect to sign in
   if (!user && !loading) {
+    return <Navigate to="/auth/sign-in" replace />;
+  }
+
+  // Force render after timeout but no user - go to login
+  if (!user && forceRender) {
     return <Navigate to="/auth/sign-in" replace />;
   }
   
