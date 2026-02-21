@@ -5,10 +5,17 @@ import { supabase } from "@/integrations/supabase/client";
  * If missing, creates one with the free plan.
  * Idempotent: will not create duplicates.
  */
-export async function ensureSubscriptionRow(): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
+export async function ensureSubscriptionRow(userId?: string): Promise<void> {
+  // NEVER call getUser() here — it does server-side validation that can
+  // clear the local session token during bootstrap / refresh.
+  // Accept userId as parameter or fall back to getSession() (local-only).
+  let uid = userId;
+  if (!uid) {
+    const { data: { session } } = await supabase.auth.getSession();
+    uid = session?.user?.id;
+  }
+
+  if (!uid) {
     return; // Not logged in, nothing to do
   }
 
@@ -16,7 +23,7 @@ export async function ensureSubscriptionRow(): Promise<void> {
   const { data: existing, error: checkError } = await supabase
     .from("subscriptions")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", uid)
     .maybeSingle();
 
   if (checkError) {
@@ -44,7 +51,7 @@ export async function ensureSubscriptionRow(): Promise<void> {
   const { error: insertError } = await supabase
     .from("subscriptions")
     .insert({
-      user_id: user.id,
+      user_id: uid,
       plan_id: freePlan.id,
       status: "active",
       provider: "stripe",
