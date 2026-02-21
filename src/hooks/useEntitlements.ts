@@ -133,15 +133,17 @@ export function useEntitlements(): UseEntitlementsReturn {
     setIsAdmin(false);
 
     try {
-      // Ensure subscription row exists
-      const subscriptionPromise = ensureSubscriptionRow();
+      // Ensure subscription row exists — pass userId directly to avoid getUser()
+      const subscriptionPromise = ensureSubscriptionRow(user.id);
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Subscription check timeout")), 3000)
       );
       try {
         await Promise.race([subscriptionPromise, timeoutPromise]);
       } catch (e) {
-        console.warn("Subscription row check skipped:", e);
+        // NEVER sign out or clear session on subscription check failure.
+        // Just degrade gracefully to free plan defaults.
+        console.warn("Subscription row check skipped (non-fatal):", e);
       }
 
       console.log("[useEntitlements] Fetching subscription for user_id:", user.id);

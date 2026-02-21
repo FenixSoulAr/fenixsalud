@@ -29,9 +29,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(newSession?.user ?? null);
         setLoading(false);
         
-        // Fire-and-forget: ensure subscription row exists (don't block)
+        // Fire-and-forget: ensure subscription row exists
+        // IMPORTANT: Pass userId directly — never call getUser()/getSession()
+        // inside onAuthStateChange as it can cause session clearing loops.
         if (newSession?.user) {
-          ensureSubscriptionRow().catch(err => 
+          ensureSubscriptionRow(newSession.user.id).catch(err => 
             console.warn("Background subscription check failed:", err)
           );
         }
@@ -47,9 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(existingSession?.user ?? null);
         setLoading(false);
         
-        // Fire-and-forget: ensure subscription row exists (don't block)
+        // Fire-and-forget: ensure subscription row exists
+        // Pass userId directly to avoid calling getUser() during bootstrap.
         if (existingSession?.user) {
-          ensureSubscriptionRow().catch(err => 
+          ensureSubscriptionRow(existingSession.user.id).catch(err => 
             console.warn("Background subscription check failed:", err)
           );
         }
