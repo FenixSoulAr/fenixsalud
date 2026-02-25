@@ -12,7 +12,6 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const t = useTranslations();
@@ -36,54 +35,6 @@ export default function SignIn() {
       setLoading(false);
     }
   };
-
-  const handleMagicLink = async () => {
-    if (!email) {
-      toast.error("Please enter your email address");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
-      });
-
-      if (error) throw error;
-      setMagicLinkSent(true);
-      toast.success("Check your email for the magic link!");
-    } catch (error: any) {
-      console.error("[SignIn] Magic link error:", error);
-      toast.error(t.toast?.error || "Ocurrió un error inesperado. Por favor, intentá nuevamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (magicLinkSent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground mb-6">
-            <Mail className="h-7 w-7" />
-          </div>
-          <h1 className="text-2xl font-semibold mb-2">{t.auth.checkEmail}</h1>
-          <p className="text-muted-foreground mb-6">
-            {t.auth.magicLinkSent} <span className="font-medium text-foreground">{email}</span>
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => setMagicLinkSent(false)}
-          >
-            {t.auth.backToSignIn}
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -153,25 +104,6 @@ export default function SignIn() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or</span>
-            </div>
-          </div>
-
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleMagicLink}
-            disabled={loading}
-          >
-            <Mail className="mr-2 h-4 w-4" />
-            {t.auth.magicLink}
-          </Button>
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
