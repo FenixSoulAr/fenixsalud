@@ -46,7 +46,7 @@ interface SettingsData {
 
 export default function Settings() {
   const { user, signOut } = useAuth();
-  const { canManageSharing } = useSharing();
+  const { canManageSharing, refreshProfiles } = useSharing();
   const { isPlus, isPro, isAdmin, hasPromoOverride, promoExpiresAt, maxProfiles, maxAttachments, canExportPdf, canExportBackup, planName, loading: entitlementsLoading } = useEntitlementsContext();
   const { checkProfileLimit, gatedMessages } = useEntitlementGate();
   
@@ -155,6 +155,8 @@ export default function Settings() {
     setSavingProfile(false);
     if (error) { toast.error(t.toast.couldNotSaveProfile); return; }
     toast.success(t.toast.profileSaved);
+    // Sync updated name back to SharingContext so sidebar/banner stay current
+    refreshProfiles();
   }
 
   async function handleDeleteProfileData() {
@@ -263,7 +265,8 @@ export default function Settings() {
     toast.success(t.toast.familyProfileCreated);
     setNewProfileName("");
     setShowAddProfileForm(false);
-    fetchData(); // Refresh profiles list
+    fetchData();
+    refreshProfiles(); // Sync to SharingContext
   }
 
   async function handleEditFamilyProfile(e: React.FormEvent) {
@@ -292,6 +295,7 @@ export default function Settings() {
     setEditingProfileId(null);
     setEditProfileName("");
     fetchData();
+    refreshProfiles(); // Sync to SharingContext
   }
 
   async function handleDeleteFamilyProfile(profileId: string) {
@@ -314,6 +318,7 @@ export default function Settings() {
     
     toast.success(t.toast.profileDeleted);
     fetchData();
+    refreshProfiles(); // Sync to SharingContext
   }
 
   async function handleChangePassword(e: React.FormEvent) {

@@ -266,7 +266,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   // Link pending invites and initialize - only run once per user
-  const initRef = useRef(false);
+  const initRef = useRef<string | null>(null);
   
   useEffect(() => {
     if (!user) {
@@ -274,20 +274,27 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       setSharedWithMe([]);
       setMyProfiles([]);
       setLoading(false);
-      setInitialized(true); // No user = nothing to initialize
+      setInitialized(false); // No user = not initialized (will be set true only after full boot)
       setActiveProfileIdState(null);
-      initRef.current = false;
+      initRef.current = null;
       return;
     }
 
-    // Prevent double initialization (race condition on mobile)
-    if (initRef.current) return;
-    initRef.current = true;
+    // Prevent double initialization for the SAME user (race condition on mobile)
+    if (initRef.current === user.id) return;
+    initRef.current = user.id;
+
+    // CRITICAL: Reset initialized to false so ProtectedRoute shows loader
+    // until profiles + activeProfileId are fully resolved
+    setInitialized(false);
+    setLoading(true);
 
     let mounted = true;
 
     async function linkAndInitialize() {
       try {
+        console.log("[SharingContext] Boot sequence starting for user:", user.id);
+        
         // STEP 1: Link any pending invitations for this user's email
         if (user.email) {
           const normalizedEmail = user.email.toLowerCase();
@@ -345,22 +352,33 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         const sharedProfileIds = (sharedAccess || []).map(s => s.profile_id);
         const allValidIds = [...profileIds, ...sharedProfileIds];
 
+        let resolvedProfileId: string | null = null;
+
         if (storedProfileId && allValidIds.includes(storedProfileId)) {
-          // Stored profile is valid, use it
-          setActiveProfileIdState(storedProfileId);
+          resolvedProfileId = storedProfileId;
         } else if (primaryProfileId) {
-          // Fallback to primary profile
           console.log("[SharingContext] Stored profile invalid or missing, falling back to primary:", primaryProfileId);
-          setActiveProfileIdState(primaryProfileId);
+          resolvedProfileId = primaryProfileId;
           storeActiveProfile(user.id, primaryProfileId);
         }
-        
-        if (mounted) setInitialized(true);
+
+        console.log("[SharingContext] Boot resolved:", {
+          userId: user.id,
+          profileCount: profileIds.length,
+          storedProfileId,
+          resolvedProfileId,
+        });
+
+        if (mounted) {
+          setActiveProfileIdState(resolvedProfileId);
+          setInitialized(true);
+          setLoading(false);
+        }
       } catch (err) {
         console.error("[SharingContext] Error in linkAndInitialize:", err);
         if (mounted) {
           setLoading(false);
-          setInitialized(true);
+          setInitialized(true); // Allow app to render even on error
         }
       }
     }
@@ -373,7 +391,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         setInitialized(true);
       }
-    }, 5000);
+    }, 8000);
 
     return () => {
       mounted = false;
