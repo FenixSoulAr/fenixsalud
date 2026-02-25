@@ -51,13 +51,14 @@ function SyncingBanner() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { initialized: sharingReady } = useSharing();
+  const { initialized: sharingReady, activeProfileId } = useSharing();
   const [showSyncBanner, setShowSyncBanner] = useState(false);
   const [forceRender, setForceRender] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
 
-  // The app is "booting" until auth resolves AND sharing/profiles initialize
-  const isBooting = authLoading || (!!user && !sharingReady);
+  // The app is "booting" until auth resolves AND sharing/profiles are fully initialized
+  // including having a valid activeProfileId
+  const isBooting = authLoading || (!!user && (!sharingReady || (sharingReady && !activeProfileId)));
   
   // Watchdog: after 5 seconds of booting, force render with warning banner
   useEffect(() => {
