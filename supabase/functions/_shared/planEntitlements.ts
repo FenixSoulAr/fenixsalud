@@ -99,7 +99,8 @@ export async function resolveUserEntitlements(
     .maybeSingle();
 
   if (subscription) {
-    const plan = subscription.plans as { id: string; code: string; name: string } | null;
+    const planRaw = subscription.plans as unknown;
+    const plan = (Array.isArray(planRaw) ? planRaw[0] : planRaw) as { id: string; code: string; name: string } | null;
 
     // Handle grace period for past_due
     if (subscription.status === "past_due") {
