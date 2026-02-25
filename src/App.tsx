@@ -11,7 +11,7 @@ import { EntitlementsProvider } from "@/contexts/EntitlementsContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
@@ -38,109 +38,67 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Syncing banner shown when loading exceeds timeout
-function SyncingBanner() {
-  return (
-    <div className="bg-warning/10 border-b border-warning/30 px-4 py-2 flex items-center gap-2 text-sm text-warning-foreground">
-      <AlertTriangle className="h-4 w-4 text-warning" />
-      <span>Still syncing data…</span>
-      <LoadingSpinner size="sm" className="ml-auto" />
-    </div>
-  );
-}
+/**
+ * 2-Phase Boot:
+ * Phase 1 (Auth): useAuth resolves session. If no user → /login. If user → authReady.
+ * Phase 2 (Data): SharingContext loads profiles. If fails → show data error (NOT session error).
+ */
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading, signOut } = useAuth();
-  const { initialized: sharingReady, activeProfileId } = useSharing();
-  const [showSyncBanner, setShowSyncBanner] = useState(false);
-  const [forceRender, setForceRender] = useState(false);
-  const [showRecovery, setShowRecovery] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const { initialized: dataReady, dataError, retryDataLoad, activeProfileId } = useSharing();
 
-  // The app is "booting" until auth resolves AND sharing/profiles are fully initialized
-  // including having a valid activeProfileId
-  const isBooting = authLoading || (!!user && (!sharingReady || (sharingReady && !activeProfileId)));
-  
-  // Watchdog: after 5 seconds of booting, force render with warning banner
-  useEffect(() => {
-    if (!isBooting) {
-      setShowSyncBanner(false);
-      setForceRender(false);
-      setShowRecovery(false);
-      return;
-    }
-    
-    const timer = setTimeout(() => {
-      console.warn("[ProtectedRoute] Watchdog triggered - forcing render");
-      setShowSyncBanner(true);
-      setForceRender(true);
-    }, 5000);
-
-    // After 10s of booting, show recovery screen
-    const recoveryTimer = setTimeout(() => {
-      console.warn("[ProtectedRoute] Recovery screen triggered");
-      setShowRecovery(true);
-    }, 10000);
-    
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(recoveryTimer);
-    };
-  }, [isBooting]);
-
-  // Recovery screen: user is stuck, offer escape routes
-  if (showRecovery && isBooting) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="text-center space-y-4 max-w-sm">
-          <AlertTriangle className="h-10 w-10 text-warning mx-auto" />
-          <h2 className="text-lg font-semibold">No se pudo cargar la sesión</h2>
-          <p className="text-sm text-muted-foreground">
-            Hubo un problema al conectar. Podés reintentar o volver a iniciar sesión.
-          </p>
-          <div className="flex flex-col gap-2">
-            <button 
-              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              onClick={() => window.location.reload()}
-            >
-              Reintentar
-            </button>
-            <button 
-              className="w-full rounded-md border border-border px-4 py-2 text-sm font-medium"
-              onClick={() => {
-                signOut();
-              }}
-            >
-              Ir a login
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  // Still booting but within timeout - show loader
-  if (isBooting && !forceRender) {
+  // ── Phase 1: Auth ──
+  // Still resolving auth? Show splash.
+  if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     );
   }
-  
-  // Not authenticated - redirect to sign in
-  if (!user && !authLoading) {
+
+  // Auth resolved, no user → login
+  if (!user) {
     return <Navigate to="/auth/sign-in" replace />;
   }
 
-  // Force render after timeout but no user - go to login
-  if (!user && forceRender) {
-    return <Navigate to="/auth/sign-in" replace />;
+  // ── Phase 2: Data ──
+  // Auth is ready, but data failed → show data error (NOT session error)
+  if (dataError && !dataReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <AlertTriangle className="h-10 w-10 text-warning mx-auto" />
+          <h2 className="text-lg font-semibold">No se pudieron cargar tus datos</h2>
+          <p className="text-sm text-muted-foreground">
+            Tu sesión está activa, pero hubo un problema al cargar tus perfiles. Podés reintentar.
+          </p>
+          <button 
+            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground inline-flex items-center justify-center gap-2"
+            onClick={retryDataLoad}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
   }
-  
-  // Render the app shell (even if still loading after timeout)
+
+  // Data still loading (no error yet) → show profile loader
+  if (!dataReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center flex-col gap-3">
+        <LoadingSpinner size="lg" />
+        <p className="text-sm text-muted-foreground">Cargando tus perfiles…</p>
+      </div>
+    );
+  }
+
+  // ── Both phases complete ──
   return (
     <AppShell>
-      {showSyncBanner && <SyncingBanner />}
       <ErrorBoundary>{children}</ErrorBoundary>
     </AppShell>
   );
@@ -150,15 +108,12 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [forceRender, setForceRender] = useState(false);
   
-  // Watchdog: after 5 seconds, stop blocking
   useEffect(() => {
     if (!loading) return;
-    
     const timer = setTimeout(() => {
       console.warn("[AuthRoute] Watchdog triggered - forcing render");
       setForceRender(true);
     }, 5000);
-    
     return () => clearTimeout(timer);
   }, [loading]);
   
@@ -213,6 +168,16 @@ function AppRoutes() {
 }
 
 function App() {
+  // Global safety net for unhandled promise rejections
+  useEffect(() => {
+    const handler = (event: PromiseRejectionEvent) => {
+      console.error("[App] Unhandled rejection:", event.reason);
+      event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", handler);
+    return () => window.removeEventListener("unhandledrejection", handler);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
