@@ -45,6 +45,7 @@ interface SharingContextType {
   sharedWithMe: SharedProfile[];
   myProfiles: OwnedProfile[];
   loading: boolean;
+  initialized: boolean;
   needsProfileSelection: boolean;
   inviteUser: (profileId: string, email: string, role: "viewer" | "contributor") => Promise<{ error?: string }>;
   revokeAccess: (shareId: string) => Promise<{ error?: string }>;
@@ -94,7 +95,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
   const [myShares, setMyShares] = useState<ProfileShare[]>([]);
   const [sharedWithMe, setSharedWithMe] = useState<SharedProfile[]>([]);
   const [myProfiles, setMyProfiles] = useState<OwnedProfile[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeProfileId, setActiveProfileIdState] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [needsProfileSelection, setNeedsProfileSelection] = useState(false);
@@ -273,7 +274,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
       setSharedWithMe([]);
       setMyProfiles([]);
       setLoading(false);
-      setInitialized(false);
+      setInitialized(true); // No user = nothing to initialize
       setActiveProfileIdState(null);
       initRef.current = false;
       return;
@@ -325,19 +326,31 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         // STEP 3: Determine active profile
         const storedProfileId = getStoredActiveProfile(user.id);
         
-        // Get primary profile (user_id = owner_user_id)
-        const { data: primaryProfile } = await supabase
+        // Get all profiles to validate stored ID
+        const { data: allUserProfiles } = await supabase
           .from("profiles")
-          .select("id")
+          .select("id, user_id")
           .eq("owner_user_id", user.id)
-          .eq("user_id", user.id)
-          .maybeSingle();
+          .order("created_at", { ascending: true });
 
-        const primaryProfileId = primaryProfile?.id || null;
+        const profileIds = (allUserProfiles || []).map(p => p.id);
+        const primaryProfileId = allUserProfiles?.find(p => p.user_id === user.id)?.id || profileIds[0] || null;
 
-        if (storedProfileId) {
+        // Also check shared profiles
+        const { data: sharedAccess } = await supabase
+          .from("profile_shares")
+          .select("profile_id")
+          .eq("shared_with_user_id", user.id)
+          .eq("status", "active");
+        const sharedProfileIds = (sharedAccess || []).map(s => s.profile_id);
+        const allValidIds = [...profileIds, ...sharedProfileIds];
+
+        if (storedProfileId && allValidIds.includes(storedProfileId)) {
+          // Stored profile is valid, use it
           setActiveProfileIdState(storedProfileId);
         } else if (primaryProfileId) {
+          // Fallback to primary profile
+          console.log("[SharingContext] Stored profile invalid or missing, falling back to primary:", primaryProfileId);
           setActiveProfileIdState(primaryProfileId);
           storeActiveProfile(user.id, primaryProfileId);
         }
@@ -540,6 +553,7 @@ export function SharingProvider({ children }: { children: ReactNode }) {
         sharedWithMe,
         myProfiles,
         loading,
+        initialized,
         needsProfileSelection,
         inviteUser,
         revokeAccess,
@@ -568,6 +582,7 @@ const defaultSharingContext: SharingContextType = {
   sharedWithMe: [],
   myProfiles: [],
   loading: true,
+  initialized: false,
   needsProfileSelection: false,
   inviteUser: async () => ({ error: "Context not available" }),
   revokeAccess: async () => ({ error: "Context not available" }),

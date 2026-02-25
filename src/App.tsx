@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SharingProvider } from "@/contexts/SharingContext";
+import { useSharing } from "@/contexts/SharingContext";
 import { EntitlementsProvider } from "@/contexts/EntitlementsContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -49,14 +50,18 @@ function SyncingBanner() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { initialized: sharingReady } = useSharing();
   const [showSyncBanner, setShowSyncBanner] = useState(false);
   const [forceRender, setForceRender] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
+
+  // The app is "booting" until auth resolves AND sharing/profiles initialize
+  const isBooting = authLoading || (!!user && !sharingReady);
   
-  // Watchdog: after 5 seconds of loading, force render with warning banner
+  // Watchdog: after 5 seconds of booting, force render with warning banner
   useEffect(() => {
-    if (!loading) {
+    if (!isBooting) {
       setShowSyncBanner(false);
       setForceRender(false);
       setShowRecovery(false);
@@ -69,7 +74,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       setForceRender(true);
     }, 5000);
 
-    // After 10s of loading, show recovery screen
+    // After 10s of booting, show recovery screen
     const recoveryTimer = setTimeout(() => {
       console.warn("[ProtectedRoute] Recovery screen triggered");
       setShowRecovery(true);
@@ -79,10 +84,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       clearTimeout(timer);
       clearTimeout(recoveryTimer);
     };
-  }, [loading]);
+  }, [isBooting]);
 
   // Recovery screen: user is stuck, offer escape routes
-  if (showRecovery && loading) {
+  if (showRecovery && isBooting) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="text-center space-y-4 max-w-sm">
@@ -112,8 +117,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // Still loading but within timeout - show brief spinner
-  if (loading && !forceRender) {
+  // Still booting but within timeout - show loader
+  if (isBooting && !forceRender) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -122,7 +127,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
   
   // Not authenticated - redirect to sign in
-  if (!user && !loading) {
+  if (!user && !authLoading) {
     return <Navigate to="/auth/sign-in" replace />;
   }
 
