@@ -14,11 +14,26 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
+const APP_FOLDER = "MiSalud";
+
 export async function savePdfToDevice(opts: { blob: Blob; filename: string }) {
   const base64 = await blobToBase64(opts.blob);
 
+  // Ensure MiSalud folder exists
+  try {
+    await Filesystem.mkdir({
+      path: APP_FOLDER,
+      directory: Directory.Documents,
+      recursive: true,
+    });
+  } catch {
+    // Folder may already exist, ignore
+  }
+
+  const filePath = `${APP_FOLDER}/${opts.filename}`;
+
   const writeRes = await Filesystem.writeFile({
-    path: opts.filename,
+    path: filePath,
     data: base64,
     directory: Directory.Documents,
     recursive: true,

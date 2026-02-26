@@ -19,6 +19,36 @@ import { generateClinicalSummaryPdfBlob } from "@/utils/pdf/clinicalSummaryPdf";
 import { savePdfToDevice, sharePdfFromDevice } from "@/utils/pdf/nativePdfActions";
 import { ClinicalSummaryPrintable } from "@/components/clinical/ClinicalSummaryPrintable";
 
+function slugName(input: string) {
+  return (input ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "")
+    .trim();
+}
+
+function isoDateYYYYMMDD(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function buildPdfFileName(fullName: string, dateISO: string) {
+  const n = slugName(fullName) || "Perfil";
+  return `ResumenClinico_${n}_${dateISO}.pdf`;
+}
+
+function buildZipFileName(fullName: string, dateISO: string) {
+  const n = slugName(fullName) || "Perfil";
+  return `Adjuntos_${n}_${dateISO}.zip`;
+}
+
+function formatDateEsAR(d: Date) {
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(d);
+}
+
 export default function ClinicalSummary() {
   const { activeProfileId, isViewingOwnProfile } = useActiveProfile();
   const { canExportPdf, loading: entitlementsLoading } = useEntitlementGate();
@@ -162,9 +192,16 @@ export default function ClinicalSummary() {
     }
   }
 
+  function getProfileFullName(): string {
+    return profile?.full_name || [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Perfil";
+  }
+
   function getPdfFilename(): string {
-    const dateStr = format(new Date(), "yyyy-MM-dd");
-    return `resumen-clinico-${activeProfileId}-${dateStr}.pdf`;
+    return buildPdfFileName(getProfileFullName(), isoDateYYYYMMDD(new Date()));
+  }
+
+  function getZipFilename(): string {
+    return buildZipFileName(getProfileFullName(), isoDateYYYYMMDD(new Date()));
   }
 
   async function handleClientPdfDownload() {
@@ -186,7 +223,7 @@ export default function ClinicalSummary() {
       } else {
         // Native: save to Documents
         await savePdfToDevice({ blob, filename });
-        toast.success(lang === "es" ? "PDF guardado en Documentos" : "PDF saved to Documents");
+        toast.success(lang === "es" ? "PDF guardado en Documentos/MiSalud" : "PDF saved to Documents/MiSalud");
       }
     } catch (error) {
       console.error("Error generating client PDF:", error);
@@ -257,9 +294,18 @@ export default function ClinicalSummary() {
       
       if (result.success && result.downloadUrl) {
         if (isNativeMobile) {
-          // Force direct download via location assign (same as ZIP)
-          window.location.assign(result.downloadUrl);
-          toast.success(lang === "es" ? "PDF descargado" : "PDF downloaded");
+          // Native: download blob and save to MiSalud folder
+          try {
+            const pdfResponse = await fetch(result.downloadUrl);
+            const pdfBlob = await pdfResponse.blob();
+            const filename = getPdfFilename();
+            await savePdfToDevice({ blob: pdfBlob, filename });
+            toast.success(lang === "es" ? "PDF guardado en Documentos/MiSalud" : "PDF saved to Documents/MiSalud");
+          } catch (saveErr) {
+            console.error("Error saving server PDF to device:", saveErr);
+            window.location.assign(result.downloadUrl);
+            toast.success(lang === "es" ? "PDF descargado" : "PDF downloaded");
+          }
         } else {
           setDownloadUrl(result.downloadUrl);
           setDownloadFileName(result.fileName);
@@ -320,6 +366,22 @@ export default function ClinicalSummary() {
       const result = await response.json();
       
       if (result.success && result.downloadUrl) {
+        if (isNativeMobile) {
+          // Native: download blob and save ZIP to MiSalud folder
+          try {
+            const zipResponse = await fetch(result.downloadUrl);
+            const zipBlob = await zipResponse.blob();
+            const zipFilename = getZipFilename();
+            await savePdfToDevice({ blob: zipBlob, filename: zipFilename });
+            toast.success(lang === "es" ? `ZIP guardado en Documentos/MiSalud` : `ZIP saved to Documents/MiSalud`);
+          } catch (saveErr) {
+            console.error("Error saving ZIP to device:", saveErr);
+            window.location.assign(result.downloadUrl);
+          }
+          setGeneratingZip(false);
+          return;
+        }
+        
         setZipDownloadUrl(result.downloadUrl);
         setZipHasErrors(result.hasErrors || false);
         
@@ -374,7 +436,7 @@ export default function ClinicalSummary() {
   }
 
   const todayFormatted = format(new Date(), "dd/MM/yyyy");
-  const todayLong = format(new Date(), "MMMM d, yyyy");
+  const todayLong = lang === "es" ? formatDateEsAR(new Date()) : format(new Date(), "MMMM d, yyyy");
   const fullName = profile?.full_name || [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || t.misc.patient;
 
   /** Returns professional string or null if unassigned */
