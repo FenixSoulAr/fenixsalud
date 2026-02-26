@@ -16,13 +16,15 @@ function blobToBase64(blob: Blob): Promise<string> {
 
 const APP_FOLDER = "MiSalud";
 
-export async function savePdfToDevice(opts: { blob: Blob; filename: string }) {
+export async function saveFileToDevice(opts: { blob: Blob; filename: string; subfolder: "Reportes" | "Adjuntos" }) {
   const base64 = await blobToBase64(opts.blob);
 
-  // Ensure MiSalud folder exists
+  const folderPath = `${APP_FOLDER}/${opts.subfolder}`;
+
+  // Ensure subfolder exists
   try {
     await Filesystem.mkdir({
-      path: APP_FOLDER,
+      path: folderPath,
       directory: Directory.Documents,
       recursive: true,
     });
@@ -30,7 +32,7 @@ export async function savePdfToDevice(opts: { blob: Blob; filename: string }) {
     // Folder may already exist, ignore
   }
 
-  const filePath = `${APP_FOLDER}/${opts.filename}`;
+  const filePath = `${folderPath}/${opts.filename}`;
 
   const writeRes = await Filesystem.writeFile({
     path: filePath,
@@ -39,7 +41,12 @@ export async function savePdfToDevice(opts: { blob: Blob; filename: string }) {
     recursive: true,
   });
 
-  return writeRes;
+  return { ...writeRes, savedPath: `Documentos/${filePath}` };
+}
+
+/** @deprecated Use saveFileToDevice instead */
+export async function savePdfToDevice(opts: { blob: Blob; filename: string }) {
+  return saveFileToDevice({ ...opts, subfolder: "Reportes" });
 }
 
 export async function sharePdfFromDevice(opts: { uri: string; filename: string }) {
