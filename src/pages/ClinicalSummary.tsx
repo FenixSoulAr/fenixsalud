@@ -16,7 +16,7 @@ import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { toast } from "sonner";
 import { Capacitor } from "@capacitor/core";
 import { generateClinicalSummaryPdfBlob } from "@/utils/pdf/clinicalSummaryPdf";
-import { savePdfToDevice, sharePdfFromDevice } from "@/utils/pdf/nativePdfActions";
+import { saveFileToDevice, sharePdfFromDevice } from "@/utils/pdf/nativePdfActions";
 import { ClinicalSummaryPrintable } from "@/components/clinical/ClinicalSummaryPrintable";
 
 function slugName(input: string) {
@@ -41,12 +41,11 @@ function buildZipFileName(fullName: string, dateISO: string) {
   return `Adjuntos_${n}_${dateISO}.zip`;
 }
 
-function formatDateEsAR(d: Date) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(d);
+function formatDateLocalized(d: Date, lang: string) {
+  if (lang === "es") {
+    return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "long", year: "numeric" }).format(d);
+  }
+  return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(d);
 }
 
 export default function ClinicalSummary() {
@@ -222,8 +221,8 @@ export default function ClinicalSummary() {
         toast.success(lang === "es" ? "PDF descargado" : "PDF downloaded");
       } else {
         // Native: save to Documents
-        await savePdfToDevice({ blob, filename });
-        toast.success(lang === "es" ? "PDF guardado en Documentos/MiSalud" : "PDF saved to Documents/MiSalud");
+        const result = await saveFileToDevice({ blob, filename, subfolder: "Reportes" });
+        toast.success(lang === "es" ? `PDF guardado en ${result.savedPath}` : `PDF saved to ${result.savedPath}`);
       }
     } catch (error) {
       console.error("Error generating client PDF:", error);
@@ -239,7 +238,7 @@ export default function ClinicalSummary() {
     try {
       const blob = await generateClinicalSummaryPdfBlob(hiddenPrintRef.current);
       const filename = getPdfFilename();
-      const writeRes = await savePdfToDevice({ blob, filename });
+      const writeRes = await saveFileToDevice({ blob, filename, subfolder: "Reportes" });
       await sharePdfFromDevice({ uri: writeRes.uri, filename });
     } catch (error) {
       console.error("Error sharing PDF:", error);
@@ -299,8 +298,8 @@ export default function ClinicalSummary() {
             const pdfResponse = await fetch(result.downloadUrl);
             const pdfBlob = await pdfResponse.blob();
             const filename = getPdfFilename();
-            await savePdfToDevice({ blob: pdfBlob, filename });
-            toast.success(lang === "es" ? "PDF guardado en Documentos/MiSalud" : "PDF saved to Documents/MiSalud");
+            const saveResult = await saveFileToDevice({ blob: pdfBlob, filename, subfolder: "Reportes" });
+            toast.success(lang === "es" ? `PDF guardado en ${saveResult.savedPath}` : `PDF saved to ${saveResult.savedPath}`);
           } catch (saveErr) {
             console.error("Error saving server PDF to device:", saveErr);
             window.location.assign(result.downloadUrl);
@@ -372,8 +371,8 @@ export default function ClinicalSummary() {
             const zipResponse = await fetch(result.downloadUrl);
             const zipBlob = await zipResponse.blob();
             const zipFilename = getZipFilename();
-            await savePdfToDevice({ blob: zipBlob, filename: zipFilename });
-            toast.success(lang === "es" ? `ZIP guardado en Documentos/MiSalud` : `ZIP saved to Documents/MiSalud`);
+            const saveResult = await saveFileToDevice({ blob: zipBlob, filename: zipFilename, subfolder: "Adjuntos" });
+            toast.success(lang === "es" ? `ZIP guardado en ${saveResult.savedPath}` : `ZIP saved to ${saveResult.savedPath}`);
           } catch (saveErr) {
             console.error("Error saving ZIP to device:", saveErr);
             window.location.assign(result.downloadUrl);
@@ -436,7 +435,7 @@ export default function ClinicalSummary() {
   }
 
   const todayFormatted = format(new Date(), "dd/MM/yyyy");
-  const todayLong = lang === "es" ? formatDateEsAR(new Date()) : format(new Date(), "MMMM d, yyyy");
+  const todayLong = formatDateLocalized(new Date(), lang);
   const fullName = profile?.full_name || [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || t.misc.patient;
 
   /** Returns professional string or null if unassigned */
@@ -531,8 +530,20 @@ export default function ClinicalSummary() {
                 <Button 
                   variant="outline"
                   className="w-full sm:w-auto"
-                  onClick={() => {
-                    if (zipDownloadUrl?.startsWith("https://")) window.location.assign(zipDownloadUrl);
+                  onClick={async () => {
+                    if (!zipDownloadUrl?.startsWith("https://")) return;
+                    try {
+                      const res = await fetch(zipDownloadUrl);
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = getZipFilename();
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    } catch {
+                      window.location.assign(zipDownloadUrl);
+                    }
                   }}
                 >
                   <Download className="h-4 w-4 mr-2" />

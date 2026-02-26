@@ -36,7 +36,10 @@ export function ClinicalSummaryPrintable({
     profile?.full_name ||
     [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") ||
     (lang === "es" ? "Paciente" : "Patient");
-  const todayFormatted = format(new Date(), "dd/MM/yyyy");
+  
+  const todayLong = lang === "es"
+    ? new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "long", year: "numeric" }).format(new Date())
+    : new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date());
 
   const surgeries = procedures.filter((p) => p.type === "Surgery");
   const hospitalizations = procedures.filter((p) => p.type === "Hospitalization");
@@ -126,7 +129,7 @@ export function ClinicalSummaryPrintable({
       <div style={{ borderBottom: "2px solid #e5e5e5", paddingBottom: 12, marginBottom: 16 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{labels.title}</h1>
         <p style={{ fontSize: 11, color: "#888", margin: "4px 0 0" }}>
-          {labels.generatedOn}: {todayFormatted}
+          {labels.generatedOn} {todayLong}
         </p>
       </div>
 
