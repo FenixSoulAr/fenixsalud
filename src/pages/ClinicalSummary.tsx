@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar, HeartPulse, Crown, Lock, Loader2, Download, CheckCircle2, Archive, AlertTriangle } from "lucide-react";
+import { ArrowLeft, FileDown, Printer, Pill, FlaskConical, Syringe, Calendar, HeartPulse, Crown, Lock, Loader2, Download, CheckCircle2, Archive, AlertTriangle, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -14,11 +14,10 @@ import { useTranslations, getLanguage } from "@/i18n";
 import { groupMedicationsByDiagnosis } from "@/hooks/useMedicationsByDiagnosis";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { toast } from "sonner";
-
-// Detect if running inside Capacitor (native mobile app)
-function isCapacitorNative(): boolean {
-  return !!(window as any).Capacitor?.isNativePlatform?.();
-}
+import { Capacitor } from "@capacitor/core";
+import { generateClinicalSummaryPdfBlob } from "@/utils/pdf/clinicalSummaryPdf";
+import { savePdfToDevice, sharePdfFromDevice } from "@/utils/pdf/nativePdfActions";
+import { ClinicalSummaryPrintable } from "@/components/clinical/ClinicalSummaryPrintable";
 
 export default function ClinicalSummary() {
   const { activeProfileId, isViewingOwnProfile } = useActiveProfile();
@@ -27,6 +26,7 @@ export default function ClinicalSummary() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
+  const hiddenPrintRef = useRef<HTMLDivElement>(null);
   const t = useTranslations();
   const lang = getLanguage();
   
@@ -35,6 +35,8 @@ export default function ClinicalSummary() {
   
   // PDF generation states
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [generatingClientPdf, setGeneratingClientPdf] = useState(false);
+  const [sharingPdf, setSharingPdf] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [downloadFileName, setDownloadFileName] = useState<string | null>(null);
   
@@ -142,11 +144,11 @@ export default function ClinicalSummary() {
     setLoading(false);
   }
 
-  const isNativeMobile = useMemo(() => isCapacitorNative(), []);
+  const isNativeMobile = useMemo(() => Capacitor.isNativePlatform(), []);
 
   function handlePrint() {
     if (isNativeMobile) {
-      handleGenerateFullPdf();
+      handleClientPdfDownload();
     } else {
       window.print();
     }
@@ -154,9 +156,59 @@ export default function ClinicalSummary() {
 
   function handleSaveAsPDF() {
     if (isNativeMobile) {
-      handleGenerateFullPdf();
+      handleClientPdfDownload();
     } else {
       window.print();
+    }
+  }
+
+  function getPdfFilename(): string {
+    const dateStr = format(new Date(), "yyyy-MM-dd");
+    return `resumen-clinico-${activeProfileId}-${dateStr}.pdf`;
+  }
+
+  async function handleClientPdfDownload() {
+    if (!hiddenPrintRef.current) return;
+    setGeneratingClientPdf(true);
+    try {
+      const blob = await generateClinicalSummaryPdfBlob(hiddenPrintRef.current);
+      const filename = getPdfFilename();
+
+      if (!isNativeMobile) {
+        // Web: browser download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success(lang === "es" ? "PDF descargado" : "PDF downloaded");
+      } else {
+        // Native: save to Documents
+        await savePdfToDevice({ blob, filename });
+        toast.success(lang === "es" ? "PDF guardado en Documentos" : "PDF saved to Documents");
+      }
+    } catch (error) {
+      console.error("Error generating client PDF:", error);
+      toast.error(lang === "es" ? "Error al generar el PDF" : "Failed to generate PDF");
+    } finally {
+      setGeneratingClientPdf(false);
+    }
+  }
+
+  async function handleSharePdf() {
+    if (!hiddenPrintRef.current) return;
+    setSharingPdf(true);
+    try {
+      const blob = await generateClinicalSummaryPdfBlob(hiddenPrintRef.current);
+      const filename = getPdfFilename();
+      const writeRes = await savePdfToDevice({ blob, filename });
+      await sharePdfFromDevice({ uri: writeRes.uri, filename });
+    } catch (error) {
+      console.error("Error sharing PDF:", error);
+      toast.error(lang === "es" ? "Error al compartir el PDF" : "Failed to share PDF");
+    } finally {
+      setSharingPdf(false);
     }
   }
 
@@ -357,25 +409,56 @@ export default function ClinicalSummary() {
         <div>
           <h1 className="text-2xl font-bold">{t.clinicalSummary.title}</h1>
           <p className="text-muted-foreground">{t.clinicalSummary.generatedOn} {todayLong}</p>
-          {isNativeMobile && (
-            <p className="text-sm text-muted-foreground mt-1">
-              {lang === "es"
-                ? "En la app Android: usá el botón PDF (arriba a la derecha) para guardar el resumen."
-                : "On the Android app: use the PDF button (top right) to save the summary."}
-            </p>
-          )}
         </div>
         <div className="flex flex-col items-stretch sm:items-end gap-3">
-          {/* PDF export action – hidden on Android APK */}
+          {/* Native Android: client-side PDF buttons */}
+          {isNativeMobile && (
+            <>
+              <Button onClick={handleClientPdfDownload} disabled={generatingClientPdf}>
+                {generatingClientPdf ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {lang === "es" ? "Generando PDF…" : "Generating PDF…"}
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    {lang === "es" ? "Descargar PDF" : "Download PDF"}
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" onClick={handleSharePdf} disabled={sharingPdf}>
+                {sharingPdf ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {lang === "es" ? "Preparando…" : "Preparing…"}
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    {lang === "es" ? "Compartir resumen" : "Share summary"}
+                  </>
+                )}
+              </Button>
+            </>
+          )}
+
+          {/* Web: client-side PDF download */}
           {!isNativeMobile && (
             <div className="flex flex-col gap-1">
-              <Button onClick={handleSaveAsPDF}>
-                <FileDown className="h-4 w-4 mr-2" />
-                {t.clinicalSummary.exportPdf}
+              <Button onClick={handleClientPdfDownload} disabled={generatingClientPdf}>
+                {generatingClientPdf ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {lang === "es" ? "Generando PDF…" : "Generating PDF…"}
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    {lang === "es" ? "Descargar PDF" : "Download PDF"}
+                  </>
+                )}
               </Button>
-              <p className="text-xs text-muted-foreground text-right">
-                {t.clinicalSummary.saveAsPDFHelper}
-              </p>
             </div>
           )}
 
@@ -779,6 +862,36 @@ export default function ClinicalSummary() {
             </td></tr>
           </tbody>
         </table>
+      </div>
+
+      {/* Hidden off-screen printable component for client-side PDF generation */}
+      <div
+        ref={hiddenPrintRef}
+        style={{
+          position: "fixed",
+          left: "-99999px",
+          top: 0,
+          width: "794px",
+          background: "#fff",
+          color: "#000",
+          padding: "24px",
+        }}
+      >
+        <ClinicalSummaryPrintable
+          profile={profile}
+          medications={medications}
+          diagnoses={diagnoses}
+          tests={tests}
+          testAttachments={testAttachments}
+          procedures={procedures}
+          procedureAttachments={procedureAttachments}
+          appointments={appointments}
+          includeVisits={includeVisits}
+          totalAttachmentCount={totalAttachmentCount}
+          lang={lang as "en" | "es"}
+          userEmail={user?.email}
+          isViewingOwnProfile={isViewingOwnProfile}
+        />
       </div>
     </div>
   );
