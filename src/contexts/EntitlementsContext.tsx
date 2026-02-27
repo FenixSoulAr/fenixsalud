@@ -1,26 +1,11 @@
 import React, { createContext, useContext, ReactNode } from "react";
-import { useEntitlements } from "@/hooks/useEntitlements";
+import { useEntitlements, UseEntitlementsReturn } from "@/hooks/useEntitlements";
 
-interface EntitlementsContextValue {
-  loading: boolean;
-  error: string | null;
-  planCode: string | null;
-  planName: string | null;
-  isPlus: boolean;
-  isPro: boolean;
-  isAdmin: boolean;
-  hasPromoOverride: boolean;
-  promoExpiresAt: string | null;
-  maxProfiles: number;
-  maxAttachments: number;
-  canExportPdf: boolean;
-  canShareProfiles: boolean;
-  canUseRoles: boolean;
-  canUseProcedures: boolean;
-  canExportBackup: boolean;
-  maxSharedGrantees: number;
-  refetch: () => Promise<void>;
-}
+/**
+ * EntitlementsContext — provides server-resolved entitlements to the entire app.
+ * All premium feature gating MUST read from this context (via useEntitlementsContext).
+ */
+type EntitlementsContextValue = UseEntitlementsReturn;
 
 const EntitlementsContext = createContext<EntitlementsContextValue | undefined>(undefined);
 

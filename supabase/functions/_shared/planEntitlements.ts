@@ -12,6 +12,8 @@ export interface PlanEntitlements {
   maxSharedGrantees: number;
   isGracePeriod: boolean;    // payment failed but within 3-day grace
   gracePeriodEndsAt?: string;
+  hasPromoOverride: boolean;
+  promoExpiresAt?: string | null;
 }
 
 const FREE_PLAN: PlanEntitlements = {
@@ -25,6 +27,8 @@ const FREE_PLAN: PlanEntitlements = {
   canUseProcedures: false,
   maxSharedGrantees: 0,
   isGracePeriod: false,
+  hasPromoOverride: false,
+  promoExpiresAt: null,
 };
 
 const ADMIN_PLAN: PlanEntitlements = {
@@ -38,6 +42,8 @@ const ADMIN_PLAN: PlanEntitlements = {
   canUseProcedures: true,
   maxSharedGrantees: 99,
   isGracePeriod: false,
+  hasPromoOverride: false,
+  promoExpiresAt: null,
 };
 
 /**
@@ -86,7 +92,10 @@ export async function resolveUserEntitlements(
       .single();
 
     if (plusPlan) {
-      return await buildEntitlementsFromPlanId(plusPlan.id, "plus_monthly", "Plus (Promo)", adminClient, false);
+      const ent = await buildEntitlementsFromPlanId(plusPlan.id, "plus_monthly", "Plus (Promo)", adminClient, false);
+      ent.hasPromoOverride = true;
+      ent.promoExpiresAt = override.expires_at ?? null;
+      return ent;
     }
   }
 
