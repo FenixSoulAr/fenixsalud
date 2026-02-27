@@ -6,12 +6,16 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { getLanguage } from "@/i18n";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { useGooglePlayCheckout } from "@/hooks/useGooglePlayCheckout";
+import { isAndroidNative } from "@/utils/platform";
 import { BillingIntervalToggle, type BillingInterval } from "@/components/billing/BillingIntervalToggle";
 import { useSearchParams } from "react-router-dom";
 
 export default function Pricing() {
   const { isPlus, isPro } = useEntitlementsContext();
-  const { startCheckout, loading: checkoutLoading } = useStripeCheckout();
+  const { startCheckout, loading: stripeLoading } = useStripeCheckout();
+  const { startGooglePlayPurchase, loading: gplayLoading } = useGooglePlayCheckout();
+  const checkoutLoading = stripeLoading || gplayLoading;
   const lang = getLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -214,7 +218,7 @@ export default function Pricing() {
           ) : (
             <Button
               className="w-full mt-auto"
-              onClick={() => startCheckout(plusPlanCode)}
+              onClick={() => isAndroidNative ? startGooglePlayPurchase(plusPlanCode) : startCheckout(plusPlanCode)}
               disabled={checkoutLoading || isPro}
             >
               {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
@@ -263,7 +267,7 @@ export default function Pricing() {
             <Button
               className="w-full mt-auto"
               variant="outline"
-              onClick={() => startCheckout(proPlanCode)}
+              onClick={() => isAndroidNative ? startGooglePlayPurchase(proPlanCode) : startCheckout(proPlanCode)}
               disabled={checkoutLoading}
             >
               {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
