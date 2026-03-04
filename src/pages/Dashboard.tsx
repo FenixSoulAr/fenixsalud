@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { groupMedicationsByDiagnosis, DiagnosisGroup } from "@/hooks/useMedicationsByDiagnosis";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/lib/dateUtils";
 import { useTranslations } from "@/i18n";
 
 const DATA_FETCH_TIMEOUT_MS = 10_000;
@@ -286,7 +287,7 @@ export default function Dashboard() {
                             <p className="text-sm text-muted-foreground">{test.institutions?.name || ""}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-medium">{format(new Date(test.date), "MMM d, yyyy")}</p>
+                            <p className="text-sm font-medium">{format(parseDateOnly(test.date), "MMM d, yyyy")}</p>
                             <StatusBadge status={normalizeStatus(test.status)} />
                           </div>
                         </button>

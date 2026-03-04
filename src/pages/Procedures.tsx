@@ -18,6 +18,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useEntitlementGate } from "@/hooks/useEntitlementGate";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/lib/dateUtils";
 import { useTranslations, getLanguage } from "@/i18n";
 import { useNavigate } from "react-router-dom";
 import { sortByName } from "@/lib/utils";
@@ -196,7 +197,7 @@ const UNASSIGNED_ID = "__unassigned__";
         <div className="max-w-2xl space-y-6">
           <div className="health-card">
             <div className="flex items-start justify-between mb-4">
-              <div><h1 className="text-2xl font-bold">{viewingProcedure.title}</h1><p className="text-muted-foreground">{format(new Date(viewingProcedure.date), "MMMM d, yyyy")}</p></div>
+              <div><h1 className="text-2xl font-bold">{viewingProcedure.title}</h1><p className="text-muted-foreground">{format(parseDateOnly(viewingProcedure.date), "MMMM d, yyyy")}</p></div>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getProcedureStatusStyle(viewingProcedure.type)}`}>{getTranslatedType(viewingProcedure.type)}</span>
             </div>
             <div className="space-y-3 text-sm">
@@ -279,7 +280,7 @@ const UNASSIGNED_ID = "__unassigned__";
                   <h3 className="font-semibold">{p.title}</h3>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getProcedureStatusStyle(p.type)}`}>{getTranslatedType(p.type)}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{format(new Date(p.date), "MMM d, yyyy")}</p>
+                <p className="text-sm text-muted-foreground">{format(parseDateOnly(p.date), "MMM d, yyyy")}</p>
                 {p.institutions?.name && <p className="text-sm text-muted-foreground">{p.institutions.name}</p>}
                 {attachCount > 0 && <div className="mt-2"><AttachmentIndicator entityType="Procedure" entityId={p.id} count={attachCount} /></div>}
               </div>

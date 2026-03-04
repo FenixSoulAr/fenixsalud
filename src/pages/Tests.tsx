@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/lib/dateUtils";
 import { useTranslations, getLanguage } from "@/i18n";
 import { sortByName } from "@/lib/utils";
 
@@ -222,7 +223,7 @@ export default function Tests() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold">{viewingTest.type}</h1>
-                <p className="text-muted-foreground">{format(new Date(viewingTest.date), "MMMM d, yyyy")}</p>
+                <p className="text-muted-foreground">{format(parseDateOnly(viewingTest.date), "MMMM d, yyyy")}</p>
               </div>
               <StatusBadge status={normalizeStatus(viewingTest.status)} />
             </div>
@@ -378,7 +379,7 @@ export default function Tests() {
                     <h3 className="font-semibold">{test.type}</h3>
                     <StatusBadge status={normalizeStatus(test.status)} />
                   </div>
-                  <p className="text-sm text-muted-foreground">{format(new Date(test.date), "MMM d, yyyy")}</p>
+                  <p className="text-sm text-muted-foreground">{format(parseDateOnly(test.date), "MMM d, yyyy")}</p>
                   {test.institutions?.name && <p className="text-sm text-muted-foreground">{test.institutions.name}</p>}
                   {attachCount > 0 && <div className="mt-2"><AttachmentIndicator entityType="TestStudy" entityId={test.id} count={attachCount} /></div>}
                 </div>
@@ -409,7 +410,7 @@ export default function Tests() {
                           {attachCount > 0 && <AttachmentIndicator entityType="TestStudy" entityId={test.id} count={attachCount} />}
                         </div>
                       </td>
-                      <td className="p-4">{format(new Date(test.date), "MMM d, yyyy")}</td>
+                      <td className="p-4">{format(parseDateOnly(test.date), "MMM d, yyyy")}</td>
                       <td className="p-4">{test.institutions?.name || "—"}</td>
                       <td className="p-4"><StatusBadge status={normalizeStatus(test.status)} /></td>
                       <td className="p-4 text-right">

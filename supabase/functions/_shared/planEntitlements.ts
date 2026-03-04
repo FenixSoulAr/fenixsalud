@@ -178,6 +178,8 @@ async function buildEntitlementsFromPlanId(
     canUseProcedures: entMap["procedures.enabled"]?.enabled ?? FREE_PLAN.canUseProcedures,
     maxSharedGrantees: entMap["sharing.max_grantees"]?.limit ?? FREE_PLAN.maxSharedGrantees,
     isGracePeriod,
+    hasPromoOverride: false,
+    promoExpiresAt: null,
   };
 }
 
