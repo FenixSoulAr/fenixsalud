@@ -279,9 +279,13 @@ export default function Pricing() {
 
       <div className="mt-8 p-4 bg-muted/40 rounded-lg max-w-5xl">
         <p className="text-sm text-muted-foreground text-center">
-          {lang === "es"
-            ? "💳 Pagos seguros con Stripe. Cancelá en cualquier momento."
-            : "💳 Secure payments via Stripe. Cancel anytime."}
+          {isAndroidNative
+            ? (lang === "es"
+              ? "🛒 Compra segura a través de Google Play. Cancelá en cualquier momento."
+              : "🛒 Secure purchase via Google Play. Cancel anytime.")
+            : (lang === "es"
+              ? "💳 Pagos seguros con Stripe. Cancelá en cualquier momento."
+              : "💳 Secure payments via Stripe. Cancel anytime.")}
         </p>
       </div>
     </div>
