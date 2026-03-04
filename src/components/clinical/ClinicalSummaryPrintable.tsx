@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { groupMedicationsByDiagnosis } from "@/hooks/useMedicationsByDiagnosis";
+import { parseDateOnly } from "@/lib/dateUtils";
 
 interface ClinicalSummaryPrintableProps {
   profile: any;
@@ -221,7 +222,7 @@ export function ClinicalSummaryPrintable({
               <div key={test.id} style={{ borderBottom: "1px solid #f3f4f6", paddingBottom: 4, marginBottom: 4 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                   <strong>{test.type}</strong>
-                  <span style={{ color: "#888" }}>{format(new Date(test.date), "dd/MM/yyyy")}</span>
+                  <span style={{ color: "#888" }}>{format(parseDateOnly(test.date), "dd/MM/yyyy")}</span>
                 </div>
                 {secondary && <p style={{ fontSize: 11, color: "#888", margin: "2px 0 0" }}>{secondary}</p>}
                 {testAttachments[test.id]?.length > 0 && (
@@ -248,7 +249,7 @@ export function ClinicalSummaryPrintable({
                 <div key={p.id} style={{ borderBottom: "1px solid #f3f4f6", paddingBottom: 4, marginBottom: 4, fontSize: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <strong>{p.title}</strong>
-                    <span style={{ color: "#888" }}>{format(new Date(p.date), "dd/MM/yyyy")}</span>
+                    <span style={{ color: "#888" }}>{format(parseDateOnly(p.date), "dd/MM/yyyy")}</span>
                   </div>
                   {secondary && <p style={{ fontSize: 11, color: "#888", margin: "2px 0 0" }}>{secondary}</p>}
                 </div>
@@ -266,7 +267,7 @@ export function ClinicalSummaryPrintable({
                 <div key={p.id} style={{ borderBottom: "1px solid #f3f4f6", paddingBottom: 4, marginBottom: 4, fontSize: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <strong>{p.title}</strong>
-                    <span style={{ color: "#888" }}>{format(new Date(p.date), "dd/MM/yyyy")}</span>
+                    <span style={{ color: "#888" }}>{format(parseDateOnly(p.date), "dd/MM/yyyy")}</span>
                   </div>
                   {secondary && <p style={{ fontSize: 11, color: "#888", margin: "2px 0 0" }}>{secondary}</p>}
                 </div>
@@ -284,7 +285,7 @@ export function ClinicalSummaryPrintable({
                 <div key={p.id} style={{ borderBottom: "1px solid #f3f4f6", paddingBottom: 4, marginBottom: 4, fontSize: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <strong>{p.title}</strong>
-                    <span style={{ color: "#888" }}>{format(new Date(p.date), "dd/MM/yyyy")}</span>
+                    <span style={{ color: "#888" }}>{format(parseDateOnly(p.date), "dd/MM/yyyy")}</span>
                   </div>
                   {secondary && <p style={{ fontSize: 11, color: "#888", margin: "2px 0 0" }}>{secondary}</p>}
                 </div>
@@ -337,7 +338,7 @@ export function ClinicalSummaryPrintable({
                 .filter((t) => testAttachments[t.id]?.length > 0)
                 .map((test) => (
                   <div key={test.id} style={{ fontSize: 11, marginBottom: 4 }}>
-                    <strong>{format(new Date(test.date), "dd/MM/yyyy")} — {test.type}</strong>
+                    <strong>{format(parseDateOnly(test.date), "dd/MM/yyyy")} — {test.type}</strong>
                     <ul style={{ margin: "2px 0 0 16px", padding: 0, listStyleType: "none" }}>
                       {testAttachments[test.id].map((fname, i) => (
                         <li key={i} style={{ color: "#888", fontSize: 10 }}>→ {fname}</li>
@@ -355,7 +356,7 @@ export function ClinicalSummaryPrintable({
                 .filter((p) => procedureAttachments[p.id]?.length > 0)
                 .map((p) => (
                   <div key={p.id} style={{ fontSize: 11, marginBottom: 4 }}>
-                    <strong>{format(new Date(p.date), "dd/MM/yyyy")} — {p.title}</strong>
+                    <strong>{format(parseDateOnly(p.date), "dd/MM/yyyy")} — {p.title}</strong>
                     <ul style={{ margin: "2px 0 0 16px", padding: 0, listStyleType: "none" }}>
                       {procedureAttachments[p.id].map((fname, i) => (
                         <li key={i} style={{ color: "#888", fontSize: 10 }}>→ {fname}</li>
