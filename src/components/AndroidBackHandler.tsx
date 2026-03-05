@@ -1,20 +1,39 @@
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
 import { isAndroidNative } from "@/utils/platform";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 /**
- * Renders a toast-like message when user presses back at root screen.
- * Mount this inside <BrowserRouter>.
+ * Exit-confirmation dialog for Android back button at root screen.
+ * Mount inside <BrowserRouter>.
  */
 export function AndroidBackHandler() {
-  const { showExitToast } = useAndroidBackButton();
+  const { showExitDialog, confirmExit, cancelExit } = useAndroidBackButton();
 
-  if (!isAndroidNative || !showExitToast) return null;
+  if (!isAndroidNative) return null;
 
   return (
-    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] animate-in fade-in slide-in-from-bottom-4 duration-200">
-      <div className="bg-foreground text-background px-5 py-2.5 rounded-full text-sm font-medium shadow-lg">
-        Presioná atrás de nuevo para salir
-      </div>
-    </div>
+    <AlertDialog open={showExitDialog} onOpenChange={(open) => { if (!open) cancelExit(); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Salir de Mi Salud?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Vas a salir de la aplicación. ¿Querés continuar?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={cancelExit}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmExit}>Salir</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
