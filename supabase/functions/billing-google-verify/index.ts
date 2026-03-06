@@ -27,10 +27,10 @@ const PACKAGE_NAME = "com.fenixsoular.myhealthhub";
 
 /** Map Google Play product IDs to plan codes in our plans table */
 const PRODUCT_TO_PLAN_CODE: Record<string, string> = {
-  plus_monthly: "plus_monthly",
-  plus_yearly: "plus_yearly",
-  pro_monthly: "pro_monthly",
-  pro_yearly: "pro_yearly",
+  plus_mensual: "plus_monthly",
+  plus_anual: "plus_yearly",
+  pro_mensual: "pro_monthly",
+  pro_anual: "pro_yearly",
 };
 
 // ─── Google OAuth2 via Service Account JWT ───
