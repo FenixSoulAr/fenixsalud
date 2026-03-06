@@ -10,6 +10,7 @@ import { useEntitlementGate } from "@/hooks/useEntitlementGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { format, subMonths, isAfter } from "date-fns";
+import { parseDateOnly } from "@/lib/dateUtils";
 import { useTranslations, getLanguage } from "@/i18n";
 import { groupMedicationsByDiagnosis } from "@/hooks/useMedicationsByDiagnosis";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
@@ -117,15 +118,15 @@ export default function ClinicalSummary() {
     setDiagnoses(diagRes.data || []);
     
     const allTests = testsRes.data || [];
-    const recentTests = allTests.filter(t => isAfter(new Date(t.date), twelveMonthsAgo));
+    const recentTests = allTests.filter(t => isAfter(parseDateOnly(t.date), twelveMonthsAgo));
     setTests(recentTests);
     
     const allProcedures = proceduresRes.data || [];
     // Surgeries: full history. Hospitalizations: last 24 months. Vaccines: last 12 months.
     const filteredProcedures = allProcedures.filter(p => {
       if (p.type === "Surgery") return true;
-      if (p.type === "Hospitalization") return isAfter(new Date(p.date), twentyFourMonthsAgo);
-      return isAfter(new Date(p.date), twelveMonthsAgo);
+      if (p.type === "Hospitalization") return isAfter(parseDateOnly(p.date), twentyFourMonthsAgo);
+      return isAfter(parseDateOnly(p.date), twelveMonthsAgo);
     });
     setProcedures(filteredProcedures);
     
@@ -755,7 +756,7 @@ export default function ClinicalSummary() {
                   <div key={test.id} className="clinical-item border-b border-border/50 pb-2 last:border-0">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="font-medium text-sm">{test.type}</span>
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(test.date), "dd/MM/yyyy")}</span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">{format(parseDateOnly(test.date), "dd/MM/yyyy")}</span>
                     </div>
                     {secondary && (
                       <p className="text-xs text-muted-foreground mt-0.5">{secondary}</p>
@@ -788,7 +789,7 @@ export default function ClinicalSummary() {
                     <div key={p.id} className="clinical-item border-b border-border/50 pb-2 last:border-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="font-medium text-sm">{p.title}</span>
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(p.date), "dd/MM/yyyy")}</span>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">{format(parseDateOnly(p.date), "dd/MM/yyyy")}</span>
                       </div>
                       {secondary && (
                         <p className="text-xs text-muted-foreground mt-0.5">{secondary}</p>
@@ -813,7 +814,7 @@ export default function ClinicalSummary() {
                     <div key={p.id} className="clinical-item border-b border-border/50 pb-2 last:border-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="font-medium text-sm">{p.title}</span>
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(p.date), "dd/MM/yyyy")}</span>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">{format(parseDateOnly(p.date), "dd/MM/yyyy")}</span>
                       </div>
                       {secondary && (
                         <p className="text-xs text-muted-foreground mt-0.5">{secondary}</p>
@@ -835,7 +836,7 @@ export default function ClinicalSummary() {
                     <div key={p.id} className="clinical-item border-b border-border/50 pb-2 last:border-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="font-medium text-sm">{p.title}</span>
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">{format(new Date(p.date), "dd/MM/yyyy")}</span>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">{format(parseDateOnly(p.date), "dd/MM/yyyy")}</span>
                       </div>
                       {secondary && (
                         <p className="text-xs text-muted-foreground mt-0.5">{secondary}</p>
@@ -897,7 +898,7 @@ export default function ClinicalSummary() {
                 <div className="space-y-1 text-sm">
                   {tests.filter(test => testAttachments[test.id]?.length > 0).map(test => (
                     <div key={test.id}>
-                      <span className="font-medium">{format(new Date(test.date), "dd/MM/yyyy")} — {test.type}</span>
+                      <span className="font-medium">{format(parseDateOnly(test.date), "dd/MM/yyyy")} — {test.type}</span>
                       <ul className="ml-4 text-xs text-muted-foreground">
                         {testAttachments[test.id].map((fname, i) => (
                           <li key={i}>→ {fname}</li>
@@ -916,7 +917,7 @@ export default function ClinicalSummary() {
                 <div className="space-y-1 text-sm">
                   {procedures.filter(p => procedureAttachments[p.id]?.length > 0).map(p => (
                     <div key={p.id}>
-                      <span className="font-medium">{format(new Date(p.date), "dd/MM/yyyy")} — {p.title}</span>
+                      <span className="font-medium">{format(parseDateOnly(p.date), "dd/MM/yyyy")} — {p.title}</span>
                       <ul className="ml-4 text-xs text-muted-foreground">
                         {procedureAttachments[p.id].map((fname, i) => (
                           <li key={i}>→ {fname}</li>

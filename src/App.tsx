@@ -11,6 +11,7 @@ import { EntitlementsProvider } from "@/contexts/EntitlementsContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AndroidBackHandler } from "@/components/AndroidBackHandler";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 // Pages
@@ -187,6 +188,7 @@ function App() {
           <AuthProvider>
             <EntitlementsProvider>
               <SharingProvider>
+                <AndroidBackHandler />
                 <AppRoutes />
               </SharingProvider>
             </EntitlementsProvider>

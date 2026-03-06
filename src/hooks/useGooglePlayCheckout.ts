@@ -27,14 +27,17 @@ const PRODUCT_IDS = [
   "pro_yearly",
 ];
 
+// Google Play License Key (Base64 RSA public key) for local receipt signature verification.
+// Only used by cordova-plugin-purchase on Android native — never exposed in web UI.
+const GOOGLE_PLAY_LICENSE_KEY =
+  "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAw/BK/s7NZlCjlIk7TrfvJ4GWxJQz3y5IND8eCWfvXEN3lvqsEUWNzXQjLWUtxaJFBqhoqH2/GEwgaEN4dFn9egeEUnZoUvdGd/fq38PqzsyGddzM3qMgwM3LW97x03sUtlwO21tV7HTwxgOrkPnIceHRVp1/TwqgeXh89znW6KGlmLBxo6yxy2hWZMfB38/FCNSv3/Yu29Z8ilGZZgplhVOyQWq514n9oFg3CeITvbYeqoAGhsgItPLhu+jlS1hSHyErHs9KnHH49eu7+ggc7LR4FatRlBQjD4tE3+scjGPXOdEo/VsuehaI78JU0ZyA2gYLKepVNwlh1EWVlvlHXwIDAQAB";
+
 // Access CdvPurchase from the global scope (injected by cordova-plugin-purchase)
 function getStore(): any | null {
-  // deno-lint-ignore no-explicit-any
   return (window as any).CdvPurchase?.store ?? null;
 }
 
 function getCdvPurchase(): any | null {
-  // deno-lint-ignore no-explicit-any
   return (window as any).CdvPurchase ?? null;
 }
 
@@ -135,7 +138,12 @@ export function useGooglePlayCheckout() {
     });
 
     store
-      .initialize([CdvPurchase.Platform.GOOGLE_PLAY])
+      .initialize([
+        {
+          platform: CdvPurchase.Platform.GOOGLE_PLAY,
+          options: { google: { license: GOOGLE_PLAY_LICENSE_KEY } },
+        },
+      ])
       .then(() => {
         storeReady.current = true;
         console.log("[GooglePlay] Store initialized successfully");

@@ -18,6 +18,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
 import { useTranslations } from "@/i18n";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/lib/dateUtils";
 
 export default function Diagnoses() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
@@ -181,7 +182,7 @@ export default function Diagnoses() {
             <p className="font-medium">{d.condition}</p>
             {d.diagnosed_date && (
               <p className="text-sm text-muted-foreground">
-                {t.diagnoses.diagnosed}: {format(new Date(d.diagnosed_date), "PP")}
+                {t.diagnoses.diagnosed}: {format(parseDateOnly(d.diagnosed_date), "PP")}
               </p>
             )}
             {linkedMeds[d.id] && linkedMeds[d.id].length > 0 && (
@@ -235,7 +236,7 @@ export default function Diagnoses() {
                 {detailDiag.diagnosed_date && (
                   <div>
                     <p className="text-sm text-muted-foreground">{t.diagnoses.diagnosedDate}</p>
-                    <p className="font-medium">{format(new Date(detailDiag.diagnosed_date), "PP")}</p>
+                    <p className="font-medium">{format(parseDateOnly(detailDiag.diagnosed_date), "PP")}</p>
                   </div>
                 )}
               </div>

@@ -20,6 +20,7 @@ import { useTranslations, getLanguage } from "@/i18n";
 import { sortByName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { parseDateOnly } from "@/lib/dateUtils";
 
 const SPECIALTY_KEYS = [
   "cardiology", "dermatology", "endocrinology", "gastroenterology",
@@ -509,7 +510,7 @@ export default function Doctors() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">{p.title}</p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(p.date), "dd/MM/yyyy")}
+                            {format(parseDateOnly(p.date), "dd/MM/yyyy")}
                             {p.institutions?.name && ` · ${p.institutions.name}`}
                           </p>
                         </div>
@@ -537,7 +538,7 @@ export default function Doctors() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">{te.type}</p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(te.date), "dd/MM/yyyy")}
+                            {format(parseDateOnly(te.date), "dd/MM/yyyy")}
                             {te.institutions?.name && ` · ${te.institutions.name}`}
                           </p>
                         </div>

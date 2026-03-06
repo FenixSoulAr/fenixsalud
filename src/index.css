@@ -7,6 +7,20 @@ html, body {
   overscroll-behavior-y: none;
 }
 
+/* Force 24h format on time inputs in Android WebView to avoid AM/PM rendering issues */
+input[type="time"] {
+  /* Ensure enough width for the time value + controls */
+  min-width: 7rem;
+}
+
+/* Android WebView: hide broken AM/PM spinner, use 24h display */
+@supports (-webkit-touch-callout: none), (not (-webkit-touch-callout: none)) {
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    /* keep the native clock icon clickable */
+    opacity: 0.6;
+  }
+}
+
 /* Friendly Wellness Design System - Teal/Blue Gradient Theme */
 
 @layer base {
