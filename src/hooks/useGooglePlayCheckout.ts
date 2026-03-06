@@ -21,10 +21,10 @@ import { useAuth } from "@/contexts/AuthContext";
 
 // Product IDs matching Google Play Console configuration
 const PRODUCT_IDS = [
-  "plus_monthly",
-  "plus_yearly",
-  "pro_monthly",
-  "pro_yearly",
+  "plus_mensual",
+  "plus_anual",
+  "pro_mensual",
+  "pro_anual",
 ];
 
 // Google Play License Key (Base64 RSA public key) for local receipt signature verification.
@@ -154,7 +154,16 @@ export function useGooglePlayCheckout() {
   }, [verifyGooglePurchase]);
 
   /** Start a subscription purchase */
+  // Map generic plan codes (used by Pricing page) to Google Play product IDs
+  const PLAN_TO_GPLAY: Record<string, string> = {
+    plus_monthly: "plus_mensual",
+    plus_yearly: "plus_anual",
+    pro_monthly: "pro_mensual",
+    pro_yearly: "pro_anual",
+  };
+
   async function startGooglePlayPurchase(planCode: string = "plus_monthly") {
+    const gplayProductId = PLAN_TO_GPLAY[planCode] ?? planCode;
     setLoading(true);
     try {
       const CdvPurchase = getCdvPurchase();
@@ -172,7 +181,7 @@ export function useGooglePlayCheckout() {
       }
 
       // ── Find the product and its offer ──
-      const product = store.get(planCode, CdvPurchase.Platform.GOOGLE_PLAY);
+      const product = store.get(gplayProductId, CdvPurchase.Platform.GOOGLE_PLAY);
       if (!product) {
         throw new Error(
           lang === "es"
@@ -190,7 +199,7 @@ export function useGooglePlayCheckout() {
         );
       }
 
-      console.log("[GooglePlay] Ordering offer for:", planCode);
+      console.log("[GooglePlay] Ordering offer for:", gplayProductId);
       const orderResult = await store.order(offer);
 
       // order() returns an error object if the purchase failed/was cancelled
