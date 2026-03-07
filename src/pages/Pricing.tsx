@@ -19,6 +19,15 @@ export default function Pricing() {
   const lang = getLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // DEBUG: platform detection — remove after confirming
+  useEffect(() => {
+    console.log("[Pricing] Platform detection:", {
+      isAndroidNative,
+      capacitorPlatform: (window as any).Capacitor?.getPlatform?.() ?? "N/A",
+      capacitorIsNative: (window as any).Capacitor?.isNativePlatform?.() ?? false,
+    });
+  }, []);
+
   // Persist toggle via URL param ?billing=monthly|yearly
   const billingParam = searchParams.get("billing");
   const [interval, setInterval] = useState<BillingInterval>(
@@ -218,7 +227,10 @@ export default function Pricing() {
           ) : (
             <Button
               className="w-full mt-auto"
-              onClick={() => isAndroidNative ? startGooglePlayPurchase(plusPlanCode) : startCheckout(plusPlanCode)}
+              onClick={() => {
+                console.log("[Pricing] Plus button clicked:", { isAndroidNative, planCode: plusPlanCode, fn: isAndroidNative ? "startGooglePlayPurchase" : "startCheckout" });
+                isAndroidNative ? startGooglePlayPurchase(plusPlanCode) : startCheckout(plusPlanCode);
+              }}
               disabled={checkoutLoading || isPro}
             >
               {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
@@ -267,7 +279,10 @@ export default function Pricing() {
             <Button
               className="w-full mt-auto"
               variant="outline"
-              onClick={() => isAndroidNative ? startGooglePlayPurchase(proPlanCode) : startCheckout(proPlanCode)}
+              onClick={() => {
+                console.log("[Pricing] Pro button clicked:", { isAndroidNative, planCode: proPlanCode, fn: isAndroidNative ? "startGooglePlayPurchase" : "startCheckout" });
+                isAndroidNative ? startGooglePlayPurchase(proPlanCode) : startCheckout(proPlanCode);
+              }}
               disabled={checkoutLoading}
             >
               {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
