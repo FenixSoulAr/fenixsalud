@@ -1182,17 +1182,7 @@ export type Database = {
       }
     }
     Views: {
-      v_user_billing_status: {
-        Row: {
-          cancel_at_period_end: boolean | null
-          current_period_end: string | null
-          plan_code: string | null
-          plan_name: string | null
-          status: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       can_access_profile: {
@@ -1248,6 +1238,17 @@ export type Database = {
         }[]
       }
       get_current_user_email: { Args: never; Returns: string }
+      get_my_billing_status: {
+        Args: never
+        Returns: {
+          cancel_at_period_end: boolean
+          current_period_end: string
+          plan_code: string
+          plan_name: string
+          status: string
+          user_id: string
+        }[]
+      }
       get_profile_for_role: { Args: { _profile_id: string }; Returns: Json }
       get_sharing_role: {
         Args: { _profile_owner_id: string; _user_id: string }
