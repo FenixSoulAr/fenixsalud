@@ -33,7 +33,7 @@ export function ActiveProfileIndicator() {
     needsProfileSelection,
   } = useSharing();
   const { label: roleLabel } = useProfileTypeLabel();
-  const { isPlus, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
+  const { isPlus, isPro, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
   const lang = getLanguage();
   const navigate = useNavigate();
 
@@ -44,6 +44,13 @@ export function ActiveProfileIndicator() {
         label: "Plus",
         className: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25 cursor-pointer",
         showIcon: true,
+      };
+    }
+    if (isPro) {
+      return {
+        label: "Pro",
+        className: "bg-violet-500/15 text-violet-600 border-violet-500/30 hover:bg-violet-500/25 cursor-pointer",
+        showIcon: false,
       };
     }
     if (isPlus) {

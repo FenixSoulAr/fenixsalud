@@ -575,7 +575,7 @@ export default function Settings() {
                     ) : (
                       <>
                         <span className="font-medium">{fp.full_name || "Unnamed"}</span>
-                        {isPlus && (
+                        {(isPlus || isPro) && (
                           <div className="flex items-center gap-1">
                             <Button 
                               variant="ghost" 
@@ -630,7 +630,7 @@ export default function Settings() {
             )}
             
         {/* Add profile form (Pro only for multi-profiles) */}
-            {isPlus ? (
+            {(isPlus || isPro) ? (
               <>
                 {showAddProfileForm ? (
                   <form onSubmit={handleAddFamilyProfile} className="space-y-3 p-3 border border-border rounded-lg">
