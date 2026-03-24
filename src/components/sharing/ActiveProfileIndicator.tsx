@@ -46,6 +46,13 @@ export function ActiveProfileIndicator() {
         showIcon: true,
       };
     }
+    if (isPro) {
+      return {
+        label: "Pro",
+        className: "bg-violet-500/15 text-violet-600 border-violet-500/30 hover:bg-violet-500/25 cursor-pointer",
+        showIcon: false,
+      };
+    }
     if (isPlus) {
       return {
         label: "Plus",
