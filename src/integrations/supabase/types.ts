@@ -619,6 +619,7 @@ export type Database = {
           granted_by_email: string
           id: string
           notes: string | null
+          plan_code: string
           revoked_at: string | null
           user_id: string
         }
@@ -628,6 +629,7 @@ export type Database = {
           granted_by_email: string
           id?: string
           notes?: string | null
+          plan_code?: string
           revoked_at?: string | null
           user_id: string
         }
@@ -637,6 +639,7 @@ export type Database = {
           granted_by_email?: string
           id?: string
           notes?: string | null
+          plan_code?: string
           revoked_at?: string | null
           user_id?: string
         }
