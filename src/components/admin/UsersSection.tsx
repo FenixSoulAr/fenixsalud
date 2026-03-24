@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { Users, Gift, Loader2, Check, X, Clock, CreditCard, Shield } from "lucide-react";
+import { Users, Gift, Loader2, Check, X, Clock, CreditCard, Shield, Zap, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
@@ -44,15 +50,18 @@ interface UsersSectionProps {
   onRefresh: () => void;
 }
 
+type GrantPlanType = "plus" | "pro";
+
 export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
   const lang = getLanguage();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Grant override dialog
-  const [grantDialog, setGrantDialog] = useState<{ open: boolean; user: AdminUser | null }>({
+  const [grantDialog, setGrantDialog] = useState<{ open: boolean; user: AdminUser | null; planType: GrantPlanType }>({
     open: false,
     user: null,
+    planType: "plus",
   });
   const [grantDuration, setGrantDuration] = useState<string>("30");
   const [grantNotes, setGrantNotes] = useState("");
@@ -62,6 +71,12 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
     open: false,
     user: null,
   });
+
+  const openGrantDialog = (user: AdminUser, planType: GrantPlanType) => {
+    setGrantDialog({ open: true, user, planType });
+    setGrantDuration("30");
+    setGrantNotes("");
+  };
 
   const handleGrantOverride = async () => {
     if (!grantDialog.user) return;
@@ -76,14 +91,16 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
           userId: grantDialog.user.user_id,
           expiresInDays,
           notes: grantNotes || undefined,
+          planCode: grantDialog.planType,
         },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      toast.success(lang === "es" ? "Override Plus otorgado" : "Plus override granted");
-      setGrantDialog({ open: false, user: null });
+      const planLabel = grantDialog.planType === "pro" ? "Pro" : "Plus";
+      toast.success(lang === "es" ? `Override ${planLabel} otorgado` : `${planLabel} override granted`);
+      setGrantDialog({ open: false, user: null, planType: "plus" });
       setGrantNotes("");
       setGrantDuration("30");
       onRefresh();
@@ -122,7 +139,6 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
   };
 
   const getEffectivePlanBadge = (user: AdminUser) => {
-    // Check if user has admin role (from server-enriched data)
     if (user.is_admin_role) {
       return (
         <Badge variant="outline" className="border-primary text-primary">
@@ -130,8 +146,20 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
         </Badge>
       );
     }
-    
+
     switch (user.effective_plan) {
+      case "override_pro":
+        return (
+          <Badge className="bg-violet-600 hover:bg-violet-600/90 text-white">
+            <Zap className="h-3 w-3 mr-1" /> Pro (Override)
+          </Badge>
+        );
+      case "stripe_pro":
+        return (
+          <Badge className="bg-violet-600 hover:bg-violet-600/90 text-white">
+            <CreditCard className="h-3 w-3 mr-1" /> Pro (Stripe)
+          </Badge>
+        );
       case "override_plus":
         return (
           <Badge className="bg-primary hover:bg-primary/90">
@@ -149,9 +177,106 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
     }
   };
 
+  const renderActions = (user: AdminUser) => {
+    if (user.is_admin_role) {
+      return (
+        <span className="text-xs text-muted-foreground">
+          {lang === "es" ? "Acceso Admin" : "Admin Access"}
+        </span>
+      );
+    }
+
+    const isLoading = actionLoading === user.user_id;
+
+    // User has an active override
+    if (user.override_id) {
+      const isCurrentlyPlus = user.effective_plan === "override_plus";
+      return (
+        <div className="flex items-center justify-end gap-2">
+          {/* Upgrade to Pro if currently Plus */}
+          {isCurrentlyPlus && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openGrantDialog(user, "pro")}
+              disabled={isLoading}
+              className="text-violet-600 hover:text-violet-700"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Zap className="h-4 w-4 mr-1" />
+                  {lang === "es" ? "Upgrade a Pro" : "Upgrade to Pro"}
+                </>
+              )}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setRevokeDialog({ open: true, user })}
+            disabled={isLoading}
+            className="text-destructive hover:text-destructive"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <X className="h-4 w-4 mr-1" />
+                {lang === "es" ? "Revocar" : "Revoke"}
+              </>
+            )}
+          </Button>
+        </div>
+      );
+    }
+
+    // User has Stripe subscription — no override actions for Pro
+    if (user.effective_plan === "stripe_plus" || user.effective_plan === "stripe_pro") {
+      return (
+        <span className="text-xs text-muted-foreground">
+          {lang === "es" ? "Suscripción activa" : "Active subscription"}
+        </span>
+      );
+    }
+
+    // Free user — show dropdown to grant Plus or Pro
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Gift className="h-4 w-4 mr-1" />
+                {lang === "es" ? "Otorgar Plan" : "Grant Plan"}
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => openGrantDialog(user, "plus")}>
+            <Gift className="h-4 w-4 mr-2" />
+            {lang === "es" ? "Otorgar Plus" : "Grant Plus"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openGrantDialog(user, "pro")}>
+            <Zap className="h-4 w-4 mr-2" />
+            {lang === "es" ? "Otorgar Pro" : "Grant Pro"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
   const filteredUsers = users.filter((user) =>
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const grantPlanLabel = grantDialog.planType === "pro" ? "Pro" : "Plus";
+  const isUpgrade = grantDialog.user?.effective_plan === "override_plus" && grantDialog.planType === "pro";
 
   return (
     <>
@@ -249,51 +374,7 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {/* Don't show actions for admin users - they have full access by role */}
-                          {user.is_admin_role ? (
-                            <span className="text-xs text-muted-foreground">
-                              {lang === "es" ? "Acceso Admin" : "Admin Access"}
-                            </span>
-                          ) : (
-                            <div className="flex items-center justify-end gap-2">
-                              {user.override_id ? (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setRevokeDialog({ open: true, user })}
-                                  disabled={actionLoading === user.user_id}
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  {actionLoading === user.user_id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <>
-                                      <X className="h-4 w-4 mr-1" />{" "}
-                                      {lang === "es" ? "Revocar" : "Revoke"}
-                                    </>
-                                  )}
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setGrantDialog({ open: true, user })}
-                                  disabled={
-                                    actionLoading === user.user_id || user.effective_plan === "stripe_plus"
-                                  }
-                                >
-                                  {actionLoading === user.user_id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <>
-                                      <Gift className="h-4 w-4 mr-1" />{" "}
-                                      {lang === "es" ? "Otorgar Plus" : "Grant Plus"}
-                                    </>
-                                  )}
-                                </Button>
-                              )}
-                            </div>
-                          )}
+                          {renderActions(user)}
                         </TableCell>
                       </TableRow>
                     ))
@@ -308,19 +389,25 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
       {/* Grant Override Dialog */}
       <AlertDialog
         open={grantDialog.open}
-        onOpenChange={(open) => setGrantDialog({ open, user: open ? grantDialog.user : null })}
+        onOpenChange={(open) => setGrantDialog({ open, user: open ? grantDialog.user : null, planType: grantDialog.planType })}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {lang === "es" ? "Otorgar Plus Override" : "Grant Plus Override"}
+              {isUpgrade
+                ? (lang === "es" ? "Upgrade a Pro" : "Upgrade to Pro")
+                : (lang === "es" ? `Otorgar ${grantPlanLabel} Override` : `Grant ${grantPlanLabel} Override`)}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-4">
                 <p>
-                  {lang === "es"
-                    ? `Esto otorgará acceso Plus a ${grantDialog.user?.email}.`
-                    : `This will grant Plus access to ${grantDialog.user?.email}.`}
+                  {isUpgrade
+                    ? (lang === "es"
+                        ? `Se otorgará acceso Pro a ${grantDialog.user?.email} de forma inmediata mediante un override administrativo.`
+                        : `This will upgrade ${grantDialog.user?.email} to Pro access via an administrative override.`)
+                    : (lang === "es"
+                        ? `Se otorgará acceso ${grantPlanLabel} a ${grantDialog.user?.email} de forma inmediata mediante un override administrativo.`
+                        : `This will grant ${grantPlanLabel} access to ${grantDialog.user?.email} via an administrative override.`)}
                 </p>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
@@ -356,7 +443,9 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>{lang === "es" ? "Cancelar" : "Cancel"}</AlertDialogCancel>
             <AlertDialogAction onClick={handleGrantOverride}>
-              {lang === "es" ? "Otorgar" : "Grant"}
+              {isUpgrade
+                ? (lang === "es" ? "Sí, upgrade a Pro" : "Yes, upgrade to Pro")
+                : (lang === "es" ? `Sí, otorgar ${grantPlanLabel}` : `Yes, grant ${grantPlanLabel}`)}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -372,8 +461,8 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
             <AlertDialogTitle>{lang === "es" ? "Revocar Override" : "Revoke Override"}</AlertDialogTitle>
             <AlertDialogDescription>
               {lang === "es"
-                ? `Esto revocará el acceso Plus de ${revokeDialog.user?.email}. El usuario volverá al plan Free.`
-                : `This will revoke Plus access from ${revokeDialog.user?.email}. The user will return to the Free plan.`}
+                ? `Esto revocará el acceso de ${revokeDialog.user?.email}. El usuario volverá al plan Free.`
+                : `This will revoke access from ${revokeDialog.user?.email}. The user will return to the Free plan.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
