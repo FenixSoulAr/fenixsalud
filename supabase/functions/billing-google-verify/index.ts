@@ -292,10 +292,13 @@ Deno.serve(async (req) => {
             purchase.subscriptionState === "SUBSCRIPTION_STATE_IN_GRACE_PERIOD"
               ? "past_due"
               : "active",
-          stripe_subscription_id: purchaseToken, // reuse column for the token
+          stripe_subscription_id: purchaseToken, // legacy column kept for compat
+          provider_subscription_id: purchaseToken,
+          provider_product_id: productId,
           current_period_start: startTime,
           current_period_end: expiryTime ?? null,
           cancel_at_period_end: false,
+          last_verified_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" }
