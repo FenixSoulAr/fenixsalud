@@ -129,8 +129,8 @@ serve(async (req) => {
       }
 
       case "grant_override": {
-        const { userId, expiresInDays, notes } = params;
-        
+        const { userId, expiresInDays, notes, planCode: overridePlanCode } = params;
+
         if (!userId) {
           return new Response(
             JSON.stringify({ error: "userId is required" }),
