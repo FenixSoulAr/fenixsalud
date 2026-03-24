@@ -575,7 +575,7 @@ export default function Settings() {
                     ) : (
                       <>
                         <span className="font-medium">{fp.full_name || "Unnamed"}</span>
-                        {isPlus && (
+                        {(isPlus || isPro) && (
                           <div className="flex items-center gap-1">
                             <Button 
                               variant="ghost" 
