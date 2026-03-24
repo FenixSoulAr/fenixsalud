@@ -134,7 +134,7 @@ export default function RedeemPromo() {
   }
 
   // If already Plus, show a message
-  if (isPlus || hasPromoOverride) {
+  if (isPlus || isPro || hasPromoOverride) {
     return (
       <div className="container max-w-lg py-8">
         <PageHeader
