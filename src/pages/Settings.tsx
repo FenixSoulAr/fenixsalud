@@ -697,67 +697,6 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Data Export & Backup Section */}
-        <section className="health-card">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            {t.settings.dataExportBackup}
-          </h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            {t.settings.dataExportBackupDesc}
-          </p>
-          
-          <div className="space-y-3">
-            {/* Export Health Data Button */}
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              disabled={!isPlus}
-              onClick={() => {
-                if (isPlus) {
-                  toast.info(t.settings.exportComingSoon);
-                } else {
-                  navigate("/pricing?highlight=plus");
-                }
-              }}
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              {t.settings.exportHealthData}
-              {!isPlus && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
-            </Button>
-            
-            {/* Download Full Backup Button */}
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              disabled={!isPlus}
-              onClick={() => {
-                if (isPlus) {
-                  toast.info(t.settings.exportComingSoon);
-                } else {
-                  navigate("/pricing?highlight=pro");
-                }
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {t.settings.downloadFullBackup}
-              {!isPlus && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
-            </Button>
-            
-            {!isPlus && (
-              <div className="text-center py-3 space-y-2">
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  onClick={() => navigate("/pricing?highlight=plus")}
-                >
-                  <Crown className="h-4 w-4 mr-2" />
-                  {lang === "es" ? "Ver planes" : "See plans"}
-                </Button>
-              </div>
-            )}
-          </div>
-        </section>
 
         {/* Sharing Section */}
         <SharingSection />
@@ -862,48 +801,71 @@ export default function Settings() {
               <h3 className="text-sm font-medium mb-2">{t.settings.exportMyData}</h3>
               <p className="text-sm text-muted-foreground mb-3">{t.settings.exportMyDataDesc}</p>
               
-              {exportResult ? (
-                <div className="space-y-3">
-                  <div className="p-3 bg-primary/10 rounded-lg">
-                    <p className="text-sm font-medium text-primary">{t.settings.exportReady}</p>
-                    <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-                      <p>{getTotalRecords()} {t.settings.recordsExported}</p>
-                      {getAttachmentCount() > 0 && (
-                        <p>{getAttachmentCount()} {t.settings.attachmentsIncluded}</p>
-                      )}
+              {(isPro || isAdmin) ? (
+                <>
+                  {exportResult ? (
+                    <div className="space-y-3">
+                      <div className="p-3 bg-primary/10 rounded-lg">
+                        <p className="text-sm font-medium text-primary">{t.settings.exportReady}</p>
+                        <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                          <p>{getTotalRecords()} {t.settings.recordsExported}</p>
+                          {getAttachmentCount() > 0 && (
+                            <p>{getAttachmentCount()} {t.settings.attachmentsIncluded}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (exportResult.signedUrl && exportResult.signedUrl.startsWith("https://")) {
+                              window.location.assign(exportResult.signedUrl);
+                            }
+                          }}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          {t.settings.downloadExport}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{t.settings.expiresIn24Hours}</p>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        // Use direct Supabase signed URL - hard browser redirect (no SPA routing)
-                        if (exportResult.signedUrl && exportResult.signedUrl.startsWith("https://")) {
-                          window.location.assign(exportResult.signedUrl);
-                        }
-                      }}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      {t.settings.downloadExport}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{t.settings.expiresIn24Hours}</p>
-                </div>
-              ) : (
-                <Button onClick={handleExportData} disabled={exporting} variant="outline">
-                  {exporting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {t.settings.exportingData}
-                    </>
                   ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      {t.settings.exportMyData}
-                    </>
+                    <Button onClick={handleExportData} disabled={exporting} variant="outline">
+                      {exporting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {t.settings.exportingData}
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          {t.settings.exportMyData}
+                        </>
+                      )}
+                    </Button>
                   )}
-                </Button>
+                </>
+              ) : (
+                <div className="p-4 rounded-lg border border-border bg-muted/30 text-center space-y-3">
+                  <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
+                  <div className="space-y-1">
+                    <p className="font-medium">{lang === "es" ? "Función exclusiva del plan Pro" : "Pro plan exclusive feature"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {lang === "es" 
+                        ? "Exportar tus datos y hacer backup completo está disponible en el plan Pro. Actualizá tu plan para acceder a esta función."
+                        : "Exporting your data and full backup is available on the Pro plan. Upgrade your plan to access this feature."}
+                    </p>
+                  </div>
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => navigate("/pricing?highlight=pro")}
+                  >
+                    <Crown className="h-4 w-4 mr-2" />
+                    {lang === "es" ? "Ver planes" : "See plans"}
+                  </Button>
+                </div>
               )}
             </div>
             
