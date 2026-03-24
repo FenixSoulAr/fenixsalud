@@ -34,7 +34,7 @@ export default function RedeemPromo() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isPlus, hasPromoOverride, isAdmin: entIsAdmin, refetch } = useEntitlementsContext();
+  const { isPlus, isPro, hasPromoOverride, isAdmin: entIsAdmin, refetch } = useEntitlementsContext();
   const { isAdmin: roleIsAdmin } = useAdmin();
   
   // Admins don't need promos - they have full access
