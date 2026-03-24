@@ -33,7 +33,7 @@ export function ActiveProfileIndicator() {
     needsProfileSelection,
   } = useSharing();
   const { label: roleLabel } = useProfileTypeLabel();
-  const { isPlus, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
+  const { isPlus, isPro, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
   const lang = getLanguage();
   const navigate = useNavigate();
 
