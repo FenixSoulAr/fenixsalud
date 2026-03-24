@@ -74,7 +74,7 @@ export async function resolveUserEntitlements(
   // 2. Check plan override (promo)
   const { data: override } = await adminClient
     .from("plan_overrides")
-    .select("id, expires_at")
+    .select("id, expires_at, plan_code")
     .eq("user_id", userId)
     .is("revoked_at", null)
     .maybeSingle();
@@ -84,15 +84,19 @@ export async function resolveUserEntitlements(
     (!override.expires_at || new Date(override.expires_at) > new Date());
 
   if (hasActiveOverride) {
-    // Override grants Plus entitlements
-    const { data: plusPlan } = await adminClient
+    // Determine which plan to grant based on override plan_code
+    const overridePlanCode = override.plan_code || "plus";
+    const lookupCode = overridePlanCode === "pro" ? "pro_monthly" : "plus_monthly";
+    const displayName = overridePlanCode === "pro" ? "Pro (Promo)" : "Plus (Promo)";
+
+    const { data: overridePlan } = await adminClient
       .from("plans")
       .select("id")
-      .eq("code", "plus_monthly")
+      .eq("code", lookupCode)
       .single();
 
-    if (plusPlan) {
-      const ent = await buildEntitlementsFromPlanId(plusPlan.id, "plus_monthly", "Plus (Promo)", adminClient, false);
+    if (overridePlan) {
+      const ent = await buildEntitlementsFromPlanId(overridePlan.id, lookupCode, displayName, adminClient, false);
       ent.hasPromoOverride = true;
       ent.promoExpiresAt = override.expires_at ?? null;
       return ent;

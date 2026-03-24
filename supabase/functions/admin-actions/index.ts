@@ -155,6 +155,9 @@ serve(async (req) => {
           expiresAt = expDate.toISOString();
         }
 
+        // Validate plan code
+        const effectivePlanCode = overridePlanCode === "pro" ? "pro" : "plus";
+
         // Upsert the override (handles both new grants and updates)
         const { data, error } = await serviceClient
           .from("plan_overrides")
@@ -164,6 +167,7 @@ serve(async (req) => {
             expires_at: expiresAt,
             notes: notes || null,
             revoked_at: null, // Clear any previous revocation
+            plan_code: effectivePlanCode,
           }, {
             onConflict: "user_id",
           })
