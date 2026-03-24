@@ -697,67 +697,6 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Data Export & Backup Section */}
-        <section className="health-card">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            {t.settings.dataExportBackup}
-          </h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            {t.settings.dataExportBackupDesc}
-          </p>
-          
-          <div className="space-y-3">
-            {/* Export Health Data Button */}
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              disabled={!isPlus}
-              onClick={() => {
-                if (isPlus) {
-                  toast.info(t.settings.exportComingSoon);
-                } else {
-                  navigate("/pricing?highlight=plus");
-                }
-              }}
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              {t.settings.exportHealthData}
-              {!isPlus && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
-            </Button>
-            
-            {/* Download Full Backup Button */}
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              disabled={!isPlus}
-              onClick={() => {
-                if (isPlus) {
-                  toast.info(t.settings.exportComingSoon);
-                } else {
-                  navigate("/pricing?highlight=pro");
-                }
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {t.settings.downloadFullBackup}
-              {!isPlus && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
-            </Button>
-            
-            {!isPlus && (
-              <div className="text-center py-3 space-y-2">
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  onClick={() => navigate("/pricing?highlight=plus")}
-                >
-                  <Crown className="h-4 w-4 mr-2" />
-                  {lang === "es" ? "Ver planes" : "See plans"}
-                </Button>
-              </div>
-            )}
-          </div>
-        </section>
 
         {/* Sharing Section */}
         <SharingSection />
