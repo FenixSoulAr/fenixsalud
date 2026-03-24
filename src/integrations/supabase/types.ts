@@ -1065,8 +1065,11 @@ export type Database = {
           current_period_start: string | null
           default_payment_method_last4: string | null
           id: string
+          last_verified_at: string | null
           plan_id: string
           provider: string
+          provider_product_id: string | null
+          provider_subscription_id: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -1080,8 +1083,11 @@ export type Database = {
           current_period_start?: string | null
           default_payment_method_last4?: string | null
           id?: string
+          last_verified_at?: string | null
           plan_id: string
           provider?: string
+          provider_product_id?: string | null
+          provider_subscription_id?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -1095,8 +1101,11 @@ export type Database = {
           current_period_start?: string | null
           default_payment_method_last4?: string | null
           id?: string
+          last_verified_at?: string | null
           plan_id?: string
           provider?: string
+          provider_product_id?: string | null
+          provider_subscription_id?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
