@@ -83,7 +83,7 @@ export function ActiveProfileBanner() {
 
   const planBadge = getPlanBadgeConfig();
 
-  // Generate tooltip content - standardized promo messages
+  // Generate tooltip content
   const getTooltipContent = () => {
     if (hasPromoOverride && promoExpiresAt) {
       const expirationDate = new Date(promoExpiresAt);

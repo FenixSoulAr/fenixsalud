@@ -80,6 +80,9 @@ export function ActiveProfileIndicator() {
 
   // Generate tooltip content - standardized promo messages
   const getTooltipContent = () => {
+    if (isAdmin) {
+      return lang === "es" ? "Acceso administrativo" : "Admin access";
+    }
     if (hasPromoOverride && promoExpiresAt) {
       const expirationDate = new Date(promoExpiresAt);
       const formattedDate = format(expirationDate, "dd/MM", { 
