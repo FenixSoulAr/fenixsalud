@@ -22,7 +22,7 @@ export function ActiveProfileBanner() {
     loading 
   } = useSharing();
   const { label: roleLabel, type: profileType } = useProfileTypeLabel();
-  const { isPlus, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
+  const { isPlus, isPro, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
   const lang = getLanguage();
   const navigate = useNavigate();
 
