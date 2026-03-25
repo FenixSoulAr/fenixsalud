@@ -24,6 +24,7 @@ export function ActiveProfileBanner() {
   } = useSharing();
   const { label: roleLabel, type: profileType } = useProfileTypeLabel();
   const { isPlus, isPro, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
+  const { isAdmin } = useAdmin();
   const lang = getLanguage();
   const navigate = useNavigate();
 
