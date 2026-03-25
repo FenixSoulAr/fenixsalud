@@ -50,23 +50,16 @@ export function ActiveProfileIndicator() {
     }
     if (isPro) {
       return {
-        label: "Pro",
+        label: hasPromoOverride ? "Pro (Promo)" : "Pro",
         className: "bg-violet-500/15 text-violet-600 border-violet-500/30 hover:bg-violet-500/25 cursor-pointer",
         showIcon: hasPromoOverride,
       };
     }
-    if (hasPromoOverride) {
-      return {
-        label: "Pro",
-        className: "bg-violet-500/15 text-violet-600 border-violet-500/30 hover:bg-violet-500/25 cursor-pointer",
-        showIcon: false,
-      };
-    }
     if (isPlus) {
       return {
-        label: "Plus",
+        label: hasPromoOverride ? "Plus (Promo)" : "Plus",
         className: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25 cursor-pointer",
-        showIcon: false,
+        showIcon: hasPromoOverride,
       };
     }
     return {
