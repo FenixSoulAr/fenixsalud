@@ -35,11 +35,19 @@ export function ActiveProfileIndicator() {
   } = useSharing();
   const { label: roleLabel } = useProfileTypeLabel();
   const { isPlus, isPro, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
+  const { isAdmin } = useAdmin();
   const lang = getLanguage();
   const navigate = useNavigate();
 
-  // Plan badge configuration
+  // Plan badge configuration — Admin first, then plan hierarchy
   const getPlanBadgeConfig = () => {
+    if (isAdmin) {
+      return {
+        label: "Admin",
+        className: "bg-destructive/15 text-destructive border-destructive/30",
+        showIcon: false,
+      };
+    }
     if (isPro) {
       return {
         label: "Pro",
