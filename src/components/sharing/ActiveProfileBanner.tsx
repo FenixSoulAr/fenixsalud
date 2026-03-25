@@ -161,26 +161,28 @@ export function ActiveProfileBanner() {
         </div>
       </div>
       
-      {/* Plan Badge with Tooltip */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex-shrink-0" onClick={handleBadgeClick}>
-            <Badge 
-              variant="outline" 
-              className={cn(
-                "text-[10px] px-2 py-0.5 h-5 font-semibold border flex items-center gap-1 transition-colors",
-                planBadge.className
-              )}
-            >
-              {planBadge.showIcon && <Gift className="h-3 w-3" />}
-              {planBadge.label}
-            </Badge>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">
-          {getTooltipContent()}
-        </TooltipContent>
-      </Tooltip>
+      {/* Plan Badge with Tooltip — hidden for admins */}
+      {planBadge && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex-shrink-0" onClick={handleBadgeClick}>
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-[10px] px-2 py-0.5 h-5 font-semibold border flex items-center gap-1 transition-colors",
+                  planBadge.className
+                )}
+              >
+                {planBadge.showIcon && <Gift className="h-3 w-3" />}
+                {planBadge.label}
+              </Badge>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            {getTooltipContent()}
+          </TooltipContent>
+        </Tooltip>
+      )}
     </div>
   );
 }
