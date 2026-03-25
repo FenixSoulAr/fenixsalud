@@ -1060,7 +1060,7 @@ function PlanSubscriptionSection({
                 </>
               ) : (
                 <p className="text-sm font-medium">
-                  Tenés acceso Plus promocional activo.
+                  Tenés acceso {isPro ? "Pro" : "Plus"} promocional activo.
                 </p>
               )}
             </div>
