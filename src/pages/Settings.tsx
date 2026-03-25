@@ -1037,7 +1037,7 @@ function PlanSubscriptionSection({
                   <p className="text-sm font-medium">
                     {expirationInfo.isExpiringSoon 
                       ? (t.settings.promoExpiringSoon || "Promo expiring soon!")
-                      : `Tu acceso Plus promocional vence el ${formatExpiryDate(expirationInfo.date)}.`}
+                      : `Tu acceso ${isPro ? "Pro" : "Plus"} promocional vence el ${formatExpiryDate(expirationInfo.date)}.`}
                   </p>
                   {expirationInfo.daysLeft > 0 && (
                     <p className="text-sm text-muted-foreground">
@@ -1060,7 +1060,7 @@ function PlanSubscriptionSection({
                 </>
               ) : (
                 <p className="text-sm font-medium">
-                  Tenés acceso Plus promocional activo.
+                  Tenés acceso {isPro ? "Pro" : "Plus"} promocional activo.
                 </p>
               )}
             </div>

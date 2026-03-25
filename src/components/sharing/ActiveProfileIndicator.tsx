@@ -39,14 +39,14 @@ export function ActiveProfileIndicator() {
 
   // Plan badge configuration
   const getPlanBadgeConfig = () => {
-    if (hasPromoOverride) {
+    if (isPro) {
       return {
-        label: "Plus",
-        className: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25 cursor-pointer",
-        showIcon: true,
+        label: "Pro",
+        className: "bg-violet-500/15 text-violet-600 border-violet-500/30 hover:bg-violet-500/25 cursor-pointer",
+        showIcon: hasPromoOverride,
       };
     }
-    if (isPro) {
+    if (hasPromoOverride) {
       return {
         label: "Pro",
         className: "bg-violet-500/15 text-violet-600 border-violet-500/30 hover:bg-violet-500/25 cursor-pointer",
@@ -76,14 +76,16 @@ export function ActiveProfileIndicator() {
       const formattedDate = format(expirationDate, "dd/MM", { 
         locale: lang === "es" ? es : undefined 
       });
+      const planLabel = isPro ? "Pro" : "Plus";
       return lang === "es" 
-        ? `Tu acceso Plus promocional vence el ${formattedDate}.`
-        : `Your promotional Plus access expires on ${formattedDate}.`;
+        ? `Tu acceso ${planLabel} promocional vence el ${formattedDate}.`
+        : `Your promotional ${planLabel} access expires on ${formattedDate}.`;
     }
     if (hasPromoOverride) {
+      const planLabel = isPro ? "Pro" : "Plus";
       return lang === "es" 
-        ? "Tenés acceso Plus promocional activo." 
-        : "You have active promotional Plus access.";
+        ? `Tenés acceso ${planLabel} promocional activo.`
+        : `You have active promotional ${planLabel} access.`;
     }
     if (isPlus) {
       return lang === "es" ? "Plan Plus activo" : "Plus plan active";
