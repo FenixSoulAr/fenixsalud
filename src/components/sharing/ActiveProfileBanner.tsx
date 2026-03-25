@@ -6,6 +6,7 @@ import { getLanguage } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useAdmin } from "@/hooks/useAdmin";
 import {
   Tooltip,
   TooltipContent,
@@ -23,6 +24,7 @@ export function ActiveProfileBanner() {
   } = useSharing();
   const { label: roleLabel, type: profileType } = useProfileTypeLabel();
   const { isPlus, isPro, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
+  const { isAdmin } = useAdmin();
   const lang = getLanguage();
   const navigate = useNavigate();
 
@@ -47,11 +49,20 @@ export function ActiveProfileBanner() {
   const isContributor = profileType === "contributor";
   const isFamily = profileType === "family";
 
-  // Plan badge configuration
+  // Plan badge configuration — Admin first
   const getPlanBadgeConfig = () => {
-    if (hasPromoOverride) {
+    if (isAdmin) return null; // No plan badge for admins
+    if (isPro) {
       return {
-        label: lang === "es" ? "Plus (Promo)" : "Plus (Promo)",
+        label: "Pro",
+        className: "bg-violet-500/15 text-violet-600 border-violet-500/30 hover:bg-violet-500/25 cursor-pointer",
+        showIcon: hasPromoOverride,
+      };
+    }
+    if (hasPromoOverride) {
+      const planLabel = isPro ? "Pro" : "Plus";
+      return {
+        label: `${planLabel} (Promo)`,
         className: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25 cursor-pointer",
         showIcon: true,
       };
@@ -72,7 +83,7 @@ export function ActiveProfileBanner() {
 
   const planBadge = getPlanBadgeConfig();
 
-  // Generate tooltip content - standardized promo messages
+  // Generate tooltip content
   const getTooltipContent = () => {
     if (hasPromoOverride && promoExpiresAt) {
       const expirationDate = new Date(promoExpiresAt);
@@ -150,26 +161,28 @@ export function ActiveProfileBanner() {
         </div>
       </div>
       
-      {/* Plan Badge with Tooltip */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex-shrink-0" onClick={handleBadgeClick}>
-            <Badge 
-              variant="outline" 
-              className={cn(
-                "text-[10px] px-2 py-0.5 h-5 font-semibold border flex items-center gap-1 transition-colors",
-                planBadge.className
-              )}
-            >
-              {planBadge.showIcon && <Gift className="h-3 w-3" />}
-              {planBadge.label}
-            </Badge>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">
-          {getTooltipContent()}
-        </TooltipContent>
-      </Tooltip>
+      {/* Plan Badge with Tooltip — hidden for admins */}
+      {planBadge && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex-shrink-0" onClick={handleBadgeClick}>
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-[10px] px-2 py-0.5 h-5 font-semibold border flex items-center gap-1 transition-colors",
+                  planBadge.className
+                )}
+              >
+                {planBadge.showIcon && <Gift className="h-3 w-3" />}
+                {planBadge.label}
+              </Badge>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            {getTooltipContent()}
+          </TooltipContent>
+        </Tooltip>
+      )}
     </div>
   );
 }

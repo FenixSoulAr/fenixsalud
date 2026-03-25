@@ -18,6 +18,7 @@ import { useSharing } from "@/contexts/SharingContext";
 import { useProfileTypeLabel } from "@/hooks/useProfileTypeLabel";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { useNavigate } from "react-router-dom";
+import { useAdmin } from "@/hooks/useAdmin";
 import { getLanguage } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -34,11 +35,19 @@ export function ActiveProfileIndicator() {
   } = useSharing();
   const { label: roleLabel } = useProfileTypeLabel();
   const { isPlus, isPro, hasPromoOverride, promoExpiresAt } = useEntitlementsContext();
+  const { isAdmin } = useAdmin();
   const lang = getLanguage();
   const navigate = useNavigate();
 
-  // Plan badge configuration
+  // Plan badge configuration — Admin first, then plan hierarchy
   const getPlanBadgeConfig = () => {
+    if (isAdmin) {
+      return {
+        label: "Admin",
+        className: "bg-destructive/15 text-destructive border-destructive/30",
+        showIcon: false,
+      };
+    }
     if (isPro) {
       return {
         label: "Pro",
@@ -71,6 +80,9 @@ export function ActiveProfileIndicator() {
 
   // Generate tooltip content - standardized promo messages
   const getTooltipContent = () => {
+    if (isAdmin) {
+      return lang === "es" ? "Acceso administrativo" : "Admin access";
+    }
     if (hasPromoOverride && promoExpiresAt) {
       const expirationDate = new Date(promoExpiresAt);
       const formattedDate = format(expirationDate, "dd/MM", { 
