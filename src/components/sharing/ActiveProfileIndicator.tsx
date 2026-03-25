@@ -76,14 +76,16 @@ export function ActiveProfileIndicator() {
       const formattedDate = format(expirationDate, "dd/MM", { 
         locale: lang === "es" ? es : undefined 
       });
+      const planLabel = isPro ? "Pro" : "Plus";
       return lang === "es" 
-        ? `Tu acceso Plus promocional vence el ${formattedDate}.`
-        : `Your promotional Plus access expires on ${formattedDate}.`;
+        ? `Tu acceso ${planLabel} promocional vence el ${formattedDate}.`
+        : `Your promotional ${planLabel} access expires on ${formattedDate}.`;
     }
     if (hasPromoOverride) {
+      const planLabel = isPro ? "Pro" : "Plus";
       return lang === "es" 
-        ? "Tenés acceso Plus promocional activo." 
-        : "You have active promotional Plus access.";
+        ? `Tenés acceso ${planLabel} promocional activo.`
+        : `You have active promotional ${planLabel} access.`;
     }
     if (isPlus) {
       return lang === "es" ? "Plan Plus activo" : "Plus plan active";
