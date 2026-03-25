@@ -39,14 +39,14 @@ export function ActiveProfileIndicator() {
 
   // Plan badge configuration
   const getPlanBadgeConfig = () => {
-    if (hasPromoOverride) {
+    if (isPro) {
       return {
-        label: "Plus",
-        className: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25 cursor-pointer",
-        showIcon: true,
+        label: "Pro",
+        className: "bg-violet-500/15 text-violet-600 border-violet-500/30 hover:bg-violet-500/25 cursor-pointer",
+        showIcon: hasPromoOverride,
       };
     }
-    if (isPro) {
+    if (hasPromoOverride) {
       return {
         label: "Pro",
         className: "bg-violet-500/15 text-violet-600 border-violet-500/30 hover:bg-violet-500/25 cursor-pointer",
