@@ -6,6 +6,7 @@ import { getLanguage } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useAdmin } from "@/hooks/useAdmin";
 import {
   Tooltip,
   TooltipContent,
