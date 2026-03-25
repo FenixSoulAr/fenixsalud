@@ -18,6 +18,7 @@ import { useSharing } from "@/contexts/SharingContext";
 import { useProfileTypeLabel } from "@/hooks/useProfileTypeLabel";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { useNavigate } from "react-router-dom";
+import { useAdmin } from "@/hooks/useAdmin";
 import { getLanguage } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
