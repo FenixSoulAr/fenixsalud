@@ -9,12 +9,10 @@ import {
   HeartPulse,
   Stethoscope,
   Building2,
-  Bell,
   Settings,
   Menu,
   X,
   LogOut,
-  
   FileText,
   Info,
   Mail,
@@ -26,7 +24,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/i18n";
 import { SharingBanner } from "@/components/sharing/SharingBanner";
-import { ActiveProfileBanner } from "@/components/sharing/ActiveProfileBanner";
+import { NavbarProfileMenu } from "@/components/sharing/NavbarProfileMenu";
 import { ActiveProfileIndicator } from "@/components/sharing/ActiveProfileIndicator";
 import { Separator } from "@/components/ui/separator";
 
@@ -57,7 +55,6 @@ export function AppShell({ children }: AppShellProps) {
   const secondaryNavigation = [
     { name: t.nav.about, href: "/about", icon: Info },
     { name: t.nav.contact, href: "/contact", icon: Mail },
-    // Admin item - only shown for admins
     ...(isAdmin && !adminLoading ? [{ name: "Admin", href: "/admin", icon: Shield }] : []),
   ];
 
@@ -108,7 +105,6 @@ export function AppShell({ children }: AppShellProps) {
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-            {/* Primary navigation - Health features */}
             {primaryNavigation.map((item) => {
               const isActive = location.pathname === item.href || 
                 (item.href !== "/" && location.pathname.startsWith(item.href));
@@ -128,10 +124,8 @@ export function AppShell({ children }: AppShellProps) {
               );
             })}
 
-            {/* Separator */}
             <Separator className="my-3" />
 
-            {/* Secondary navigation - About & Contact */}
             {secondaryNavigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (
@@ -179,29 +173,32 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main content */}
       <div className="lg:pl-72">
         {/* Mobile header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <Link to="/" className="flex items-center gap-2 min-w-0">
-            <img 
-              src="/favicon-96x96.png" 
-              alt="Mi Salud" 
-              className="h-9 w-9 flex-shrink-0 rounded-xl object-contain"
-            />
-            <span className="text-lg font-semibold tracking-tight whitespace-nowrap">{t.appName}</span>
-          </Link>
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:hidden">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <Link to="/" className="flex items-center gap-2 min-w-0">
+              <img 
+                src="/favicon-96x96.png" 
+                alt="Mi Salud" 
+                className="h-8 w-8 flex-shrink-0 rounded-lg object-contain"
+              />
+              <span className="text-base font-semibold tracking-tight whitespace-nowrap">{t.appName}</span>
+            </Link>
+          </div>
+          <NavbarProfileMenu />
         </header>
 
         {/* Page content */}
-        <main className="min-h-[calc(100dvh-4rem)] lg:min-h-[100dvh]">
+        <main className="min-h-[calc(100dvh-3.5rem)] lg:min-h-[100dvh]">
           <div className="container py-6 lg:py-8 max-w-7xl px-4 lg:px-8">
             <div className="print:hidden">
-              <ActiveProfileBanner />
               <SharingBanner />
             </div>
             {children}
