@@ -7,6 +7,11 @@ html, body {
   overscroll-behavior-y: none;
 }
 
+/* Fallback for visualViewport CSS variable (set dynamically in main.tsx) */
+:root {
+  --visual-viewport-height: 100dvh;
+}
+
 /* Force 24h format on time inputs in Android WebView to avoid AM/PM rendering issues */
 input[type="time"] {
   /* Ensure enough width for the time value + controls */
