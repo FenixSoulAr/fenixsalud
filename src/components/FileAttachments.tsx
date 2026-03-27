@@ -144,9 +144,9 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
           <Paperclip className="h-4 w-4" />
           <h3 className="text-sm font-medium">{lang === "es" ? "Adjuntos" : "Attachments"}</h3>
         </div>
-        {/* File usage counter */}
+        {/* File usage counter - global plan usage */}
         <span className={`text-xs font-medium ${nearLimit ? "text-amber-600" : "text-muted-foreground"}`}>
-          {userAttachmentCount} / {maxAttachments}
+          {lang === "es" ? "Total:" : "Total:"} {userAttachmentCount} / {maxAttachments >= 9999 ? "∞" : maxAttachments}
         </span>
       </div>
 
