@@ -56,7 +56,7 @@ export function MobileSelect({
             className
           )}
         >
-          <span className={cn(!selectedOption && "text-muted-foreground")}>
+          <span className={cn("truncate min-w-0", !selectedOption && "text-muted-foreground")}>
             {selectedOption?.label || placeholder}
           </span>
           <ChevronDown className="h-4 w-4 opacity-50" />

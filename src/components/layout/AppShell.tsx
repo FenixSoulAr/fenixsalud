@@ -187,13 +187,13 @@ export function AppShell({ children }: AppShellProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 min-w-0">
             <img 
               src="/favicon-96x96.png" 
               alt="Mi Salud" 
-              className="h-9 w-9 rounded-xl object-contain"
+              className="h-9 w-9 flex-shrink-0 rounded-xl object-contain"
             />
-            <span className="text-lg font-semibold tracking-tight">{t.appName}</span>
+            <span className="text-lg font-semibold tracking-tight whitespace-nowrap">{t.appName}</span>
           </Link>
         </header>
 
