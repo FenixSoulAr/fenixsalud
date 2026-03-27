@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Plus, FlaskConical, Pencil, Trash2, Eye, ArrowLeft, Building2, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
@@ -26,6 +27,9 @@ const UNASSIGNED_ID = "__unassigned__";
 
 export default function Tests() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
+  const { id: routeId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const t = useTranslations();
   const lang = getLanguage();
   const [loading, setLoading] = useState(true);
@@ -40,6 +44,15 @@ export default function Tests() {
   const [form, setForm] = useState({ type: "", date: "", notes: "", institution_id: "", status: "Scheduled", doctor_id: "" });
   
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
+
+  // Handle deep link via route param or query param
+  useEffect(() => {
+    const viewId = routeId || searchParams.get("view");
+    if (viewId && tests.length > 0) {
+      const test = tests.find(t => t.id === viewId);
+      if (test) setViewingTest(test);
+    }
+  }, [routeId, searchParams, tests]);
 
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 

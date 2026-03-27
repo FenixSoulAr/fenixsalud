@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Plus, Syringe, Pencil, Trash2, Eye, ArrowLeft, Filter, Crown, Building2, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
@@ -20,7 +21,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { parseDateOnly } from "@/lib/dateUtils";
 import { useTranslations, getLanguage } from "@/i18n";
-import { useNavigate } from "react-router-dom";
+
 import { sortByName } from "@/lib/utils";
 
 type ProcedureType = "Surgery" | "Hospitalization" | "Vaccine";
@@ -38,6 +39,8 @@ function getProcedureStatusStyle(type: ProcedureType) {
 export default function Procedures() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const { canUseProcedures, loading: entitlementsLoading } = useEntitlementGate();
+  const { id: routeId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const t = useTranslations();
   const lang = getLanguage();
@@ -56,6 +59,15 @@ const UNASSIGNED_ID = "__unassigned__";
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
+
+  // Handle deep link via route param or query param
+  useEffect(() => {
+    const viewId = routeId || searchParams.get("view");
+    if (viewId && procedures.length > 0) {
+      const proc = procedures.find(p => p.id === viewId);
+      if (proc) setViewingProcedure(proc);
+    }
+  }, [routeId, searchParams, procedures]);
 
   function getTranslatedType(type: ProcedureType) {
     switch (type) {
