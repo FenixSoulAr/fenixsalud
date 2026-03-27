@@ -61,7 +61,8 @@ export function ResponsiveFormModal({
         dismissible={true}
       >
         <DrawerContent 
-          className="max-h-[90vh] flex flex-col"
+          className="flex flex-col"
+          style={{ maxHeight: "var(--visual-viewport-height, 90vh)" }}
           onPointerDownOutside={(e) => {
             // Allow clicks on select popovers
             const target = e.target as HTMLElement;
