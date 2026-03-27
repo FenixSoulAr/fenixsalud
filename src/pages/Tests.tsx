@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Plus, FlaskConical, Pencil, Trash2, Eye, ArrowLeft, Building2, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";
