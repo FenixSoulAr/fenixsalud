@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { parseDateOnly } from "@/lib/dateUtils";
 import { useTranslations, getLanguage } from "@/i18n";
-import { useNavigate } from "react-router-dom";
+
 import { sortByName } from "@/lib/utils";
 
 type ProcedureType = "Surgery" | "Hospitalization" | "Vaccine";
