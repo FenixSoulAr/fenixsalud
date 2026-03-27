@@ -234,7 +234,7 @@ export function AttachmentDownloadButton({
   }
 
   // Button label and icon based on platform
-  const buttonLabel = isNative ? "Guardar" : "Descargar";
+  const buttonLabel = "Descargar";
   const ButtonIcon = isNative ? ExternalLink : Download;
 
   if (compact) {
