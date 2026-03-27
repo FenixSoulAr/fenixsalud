@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams } from "react-router-dom";
 import { Plus, Calendar, Pencil, Trash2, Stethoscope, Building2, Eye, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveFormModal } from "@/components/ui/responsive-form-modal";

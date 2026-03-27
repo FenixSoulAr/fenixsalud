@@ -39,6 +39,8 @@ function getProcedureStatusStyle(type: ProcedureType) {
 export default function Procedures() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const { canUseProcedures, loading: entitlementsLoading } = useEntitlementGate();
+  const { id: routeId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const t = useTranslations();
   const lang = getLanguage();
@@ -57,6 +59,15 @@ const UNASSIGNED_ID = "__unassigned__";
   const [attachmentCounts, setAttachmentCounts] = useState<Record<string, number>>({});
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
+
+  // Handle deep link via route param or query param
+  useEffect(() => {
+    const viewId = routeId || searchParams.get("view");
+    if (viewId && procedures.length > 0) {
+      const proc = procedures.find(p => p.id === viewId);
+      if (proc) setViewingProcedure(proc);
+    }
+  }, [routeId, searchParams, procedures]);
 
   function getTranslatedType(type: ProcedureType) {
     switch (type) {
