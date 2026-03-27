@@ -37,6 +37,7 @@ function getDisplayStatus(apt: any): "Upcoming" | "Past" | "Completed" | "Cancel
 export default function Appointments() {
   const { dataProfileId, activeProfileId, currentUserId, canEdit, canDelete } = useActiveProfile();
   const { localToISO, isoToLocal, formatDateTime, formatTime } = useTimezone();
+  const { id: routeId } = useParams<{ id: string }>();
   const t = useTranslations();
   const lang = getLanguage();
   const [searchParams] = useSearchParams();
@@ -55,14 +56,14 @@ export default function Appointments() {
 
   useEffect(() => { if (activeProfileId) fetchData(); }, [activeProfileId]);
   
-  // Handle URL params for opening view
+  // Handle deep link via route param or query param
   useEffect(() => {
-    const viewId = searchParams.get("view");
+    const viewId = routeId || searchParams.get("view");
     if (viewId && appointments.length > 0) {
       const apt = appointments.find(a => a.id === viewId);
       if (apt) setViewingAppointment(apt);
     }
-  }, [searchParams, appointments]);
+  }, [routeId, searchParams, appointments]);
 
   async function fetchData() {
     if (!activeProfileId) return;
