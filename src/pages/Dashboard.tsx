@@ -275,7 +275,7 @@ export default function Dashboard() {
                 {tests.length > 0 && (
                   <section className="health-card">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold flex items-center gap-2"><FlaskConical className="h-5 w-5 text-primary" />{t.nav.tests}</h2>
+                      <h2 className="text-lg font-semibold flex items-center gap-2"><FlaskConical className="h-5 w-5 text-primary" />Estudios recientes</h2>
                       <Link to="/tests" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                     </div>
                     <div className="space-y-3">
