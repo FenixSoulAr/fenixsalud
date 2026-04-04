@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Download, Loader2, ExternalLink } from "lucide-react";
+import { getLanguage } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -234,7 +235,7 @@ export function AttachmentDownloadButton({
   }
 
   // Button label and icon based on platform
-  const buttonLabel = "Descargar";
+  const buttonLabel = getLanguage() === "es" ? "Ver archivo" : "View file";
   const ButtonIcon = isNative ? ExternalLink : Download;
 
   if (compact) {
