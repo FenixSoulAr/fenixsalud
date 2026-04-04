@@ -67,7 +67,7 @@ export default function Dashboard() {
         supabase.from("reminders").select("*").eq("profile_id", activeProfileId).gte("due_date_time", today).eq("is_completed", false).order("due_date_time").limit(5),
         supabase.from("medications").select("*").eq("profile_id", activeProfileId).eq("status", "Active"),
         supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId),
-        supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).gte("date", todayDateStr).order("date").limit(5),
+        supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).gte("date", ninetyDaysAgoStr).order("date", { ascending: false }).limit(5),
       ]);
 
       const timeoutPromise = new Promise<never>((_, reject) =>
