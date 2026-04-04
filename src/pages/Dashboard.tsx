@@ -57,6 +57,9 @@ export default function Dashboard() {
     try {
       const today = new Date().toISOString();
       const todayDateStr = today.split("T")[0];
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split("T")[0];
 
       // Race data fetch against timeout
       const dataPromise = Promise.all([
