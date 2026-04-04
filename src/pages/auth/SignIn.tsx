@@ -35,7 +35,11 @@ export default function SignIn() {
       navigate("/");
     } catch (error: any) {
       console.error("[SignIn] Error:", error);
-      toast.error(t.toast?.error || "Ocurrió un error inesperado. Por favor, intentá nuevamente.");
+      if (error?.message?.toLowerCase().includes("invalid login credentials") || error?.code === "invalid_credentials") {
+        toast.error("No encontramos una cuenta con ese email o la contraseña es incorrecta. ¿Ya te registraste?");
+      } else {
+        toast.error(t.toast?.error || "Ocurrió un error inesperado. Por favor, intentá nuevamente.");
+      }
     } finally {
       setLoading(false);
     }
