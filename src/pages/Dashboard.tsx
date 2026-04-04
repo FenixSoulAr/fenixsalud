@@ -152,10 +152,10 @@ export default function Dashboard() {
               <Button asChild><Link to="/appointments?new=true"><Plus className="h-4 w-4 mr-2" />{t.dashboard.addAppointment}</Link></Button>
               <Button variant="outline" asChild><Link to="/tests?new=true">{t.dashboard.addTest}</Link></Button>
               <Button variant="outline" asChild><Link to="/medications?new=true">{t.dashboard.addMedication}</Link></Button>
-              <Button variant="outline" asChild><Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />{t.nav.clinicalSummary}</Link></Button>
+              <Button variant="outline" asChild><Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" /><span className="text-[10px] font-semibold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full mr-1.5">Plus</span>{t.nav.clinicalSummary}</Link></Button>
             </div>
           ) : (
-            <Button variant="outline" asChild><Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" />{t.nav.clinicalSummary}</Link></Button>
+            <Button variant="outline" asChild><Link to="/clinical-summary"><FileText className="h-4 w-4 mr-2" /><span className="text-[10px] font-semibold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full mr-1.5">Plus</span>{t.nav.clinicalSummary}</Link></Button>
           )
         }
       />
