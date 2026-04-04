@@ -57,6 +57,9 @@ export default function Dashboard() {
     try {
       const today = new Date().toISOString();
       const todayDateStr = today.split("T")[0];
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split("T")[0];
 
       // Race data fetch against timeout
       const dataPromise = Promise.all([
@@ -64,7 +67,7 @@ export default function Dashboard() {
         supabase.from("reminders").select("*").eq("profile_id", activeProfileId).gte("due_date_time", today).eq("is_completed", false).order("due_date_time").limit(5),
         supabase.from("medications").select("*").eq("profile_id", activeProfileId).eq("status", "Active"),
         supabase.from("diagnoses").select("*").eq("profile_id", activeProfileId),
-        supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).gte("date", todayDateStr).order("date").limit(5),
+        supabase.from("tests").select("*, institutions(name)").eq("profile_id", activeProfileId).gte("date", ninetyDaysAgoStr).order("date", { ascending: false }).limit(5),
       ]);
 
       const timeoutPromise = new Promise<never>((_, reject) =>
@@ -272,7 +275,7 @@ export default function Dashboard() {
                 {tests.length > 0 && (
                   <section className="health-card">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold flex items-center gap-2"><FlaskConical className="h-5 w-5 text-primary" />{t.nav.tests}</h2>
+                      <h2 className="text-lg font-semibold flex items-center gap-2"><FlaskConical className="h-5 w-5 text-primary" />Estudios recientes</h2>
                       <Link to="/tests" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                     </div>
                     <div className="space-y-3">
