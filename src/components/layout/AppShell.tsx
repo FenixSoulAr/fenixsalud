@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Calendar,
@@ -27,6 +27,9 @@ import { SharingBanner } from "@/components/sharing/SharingBanner";
 import { NavbarProfileMenu } from "@/components/sharing/NavbarProfileMenu";
 import { ActiveProfileIndicator } from "@/components/sharing/ActiveProfileIndicator";
 import { Separator } from "@/components/ui/separator";
+import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
+import { toast } from "sonner";
+import { getLanguage } from "@/i18n";
 
 interface AppShellProps {
   children: ReactNode;
@@ -38,6 +41,9 @@ export function AppShell({ children }: AppShellProps) {
   const { signOut, user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const t = useTranslations();
+  const navigate = useNavigate();
+  const { isPlusActive } = useEntitlementsContext();
+  const lang = getLanguage();
 
   const primaryNavigation = [
     { name: t.nav.dashboard, href: "/", icon: LayoutDashboard },
@@ -108,17 +114,35 @@ export function AppShell({ children }: AppShellProps) {
             {primaryNavigation.map((item) => {
               const isActive = location.pathname === item.href || 
                 (item.href !== "/" && location.pathname.startsWith(item.href));
+              const isClinicalSummary = item.href === "/clinical-summary";
+
+              const handleClick = (e: React.MouseEvent) => {
+                setSidebarOpen(false);
+                if (isClinicalSummary && !isPlusActive) {
+                  e.preventDefault();
+                  toast.error(
+                    lang === "es"
+                      ? "Esta acción está limitada por tu plan actual. Podés actualizar a Plus para habilitarla."
+                      : "This action is limited by your current plan. You can upgrade to Plus to enable it."
+                  );
+                  navigate("/pricing");
+                }
+              };
+
               return (
                 <Link
                   key={item.href}
                   to={item.href}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={handleClick}
                   className={cn(
                     "nav-item",
                     isActive && "active"
                   )}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {isClinicalSummary && (
+                    <span className="text-[10px] font-semibold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full">Plus</span>
+                  )}
                   {item.name}
                 </Link>
               );
