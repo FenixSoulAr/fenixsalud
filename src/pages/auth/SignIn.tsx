@@ -35,10 +35,18 @@ export default function SignIn() {
       navigate("/");
     } catch (error: any) {
       console.error("[SignIn] Error:", error);
-      if (error?.message?.toLowerCase().includes("invalid login credentials") || error?.code === "invalid_credentials") {
-        toast.error("No encontramos una cuenta con ese email o la contraseña es incorrecta. ¿Ya te registraste?");
+      const code = error?.code || "";
+      const msg = error?.message?.toLowerCase() || "";
+      if (msg.includes("invalid login credentials") || code === "invalid_credentials") {
+        toast.error("El email o la contraseña son incorrectos. ¿Olvidaste tu contraseña?");
+      } else if (code === "email_not_confirmed") {
+        toast.error("Tu cuenta aún no fue confirmada. Revisá tu casilla de email.");
+      } else if (code === "user_not_found") {
+        toast.error("No encontramos una cuenta con ese email. ¿Ya te registraste?");
+      } else if (msg.includes("network") || msg.includes("fetch")) {
+        toast.error("Error de conexión. Verificá tu internet e intentá nuevamente.");
       } else {
-        toast.error(t.toast?.error || "Ocurrió un error inesperado. Por favor, intentá nuevamente.");
+        toast.error("No pudimos iniciar sesión. Intentá con '¿Olvidaste tu contraseña?' para recuperar el acceso.");
       }
     } finally {
       setLoading(false);
