@@ -31,13 +31,23 @@ function detectInAppBrowser(): { isInApp: boolean; browserName: string | null } 
   return { isInApp: false, browserName: null };
 }
 
+const EXT_TO_MIME: Record<string, string> = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  heic: "image/heic",
+  heif: "image/heif",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
+
 function getMimeType(file: File): string {
   let mimeType = file.type?.toLowerCase() || "";
   if (!mimeType || mimeType === "application/octet-stream") {
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    if (ext === "pdf") mimeType = "application/pdf";
-    else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
-    else if (ext === "png") mimeType = "image/png";
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    if (EXT_TO_MIME[ext]) mimeType = EXT_TO_MIME[ext];
   }
   return mimeType;
 }
@@ -65,9 +75,9 @@ export function MobileFileUploader({ onUpload, uploading, disabled }: MobileFile
       const file = files[0];
       const mimeType = getMimeType(file);
 
-      const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+      const allowedTypes = Object.values(EXT_TO_MIME);
       if (!allowedTypes.includes(mimeType)) {
-        setError("Unsupported file type. Please select a PDF, JPG, or PNG.");
+        setError("Unsupported file type. Allowed: PDF, JPG, PNG, WEBP, HEIC, DOCX, XLSX.");
         resetInput();
         return;
       }
@@ -158,7 +168,7 @@ export function MobileFileUploader({ onUpload, uploading, disabled }: MobileFile
             id={inputId}
             name={inputId}
             type="file"
-            accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+            accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.docx,.xlsx"
             onChange={handleFileChange}
             disabled={isDisabled}
             className="absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0"
@@ -166,7 +176,7 @@ export function MobileFileUploader({ onUpload, uploading, disabled }: MobileFile
             aria-label="Select file to upload"
           />
           <p className="text-xs text-muted-foreground text-center">
-            PDF, JPG, or PNG • Max 20MB
+            PDF, JPG, PNG, WEBP, HEIC, DOCX, XLSX • Max 20MB
           </p>
         </div>
       )}
