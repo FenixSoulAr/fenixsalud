@@ -118,7 +118,7 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
     }
 
     if (!ALLOWED_TYPES.includes(mimeType)) {
-      return { success: false, error: "Unsupported file type. Please upload a PDF, JPG, or PNG." };
+      return { success: false, error: "Unsupported file type. Allowed: PDF, JPG, PNG, WEBP, HEIC, DOCX, XLSX." };
     }
 
     // 10MB limit
