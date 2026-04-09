@@ -27,7 +27,7 @@ const ALLOWED_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per upload
+const MAX_SIZE_BYTES = 20 * 1024 * 1024; // 20MB per upload
 
 const EXT_TO_MIME: Record<string, string> = {
   pdf: "application/pdf",
