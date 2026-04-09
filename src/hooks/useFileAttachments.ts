@@ -17,8 +17,29 @@ interface FileAttachment {
   uploaded_at: string | null;
 }
 
-const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
+const ALLOWED_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per upload
+
+const EXT_TO_MIME: Record<string, string> = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  heic: "image/heic",
+  heif: "image/heif",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
 
 export function useFileAttachments(entityType: EntityType, entityId: string | null) {
   const { dataProfileId, activeProfileId, currentUserId } = useActiveProfile();
@@ -91,21 +112,13 @@ export function useFileAttachments(entityType: EntityType, entityId: string | nu
 
     // Normalize MIME type
     let mimeType = file.type?.toLowerCase() || "";
-    if (!mimeType && file.name) {
-      const ext = file.name.split(".").pop()?.toLowerCase();
-      if (ext === "pdf") mimeType = "application/pdf";
-      else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
-      else if (ext === "png") mimeType = "image/png";
-    }
-    if (mimeType === "application/octet-stream" && file.name) {
-      const ext = file.name.split(".").pop()?.toLowerCase();
-      if (ext === "pdf") mimeType = "application/pdf";
-      else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
-      else if (ext === "png") mimeType = "image/png";
+    if (!mimeType || mimeType === "application/octet-stream") {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "";
+      if (EXT_TO_MIME[ext]) mimeType = EXT_TO_MIME[ext];
     }
 
     if (!ALLOWED_TYPES.includes(mimeType)) {
-      return { success: false, error: "Unsupported file type. Please upload a PDF, JPG, or PNG." };
+      return { success: false, error: "Unsupported file type. Allowed: PDF, JPG, PNG, WEBP, HEIC, DOCX, XLSX." };
     }
 
     // 10MB limit
