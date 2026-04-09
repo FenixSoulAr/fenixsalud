@@ -81,8 +81,8 @@ export function MobileFileUploader({ onUpload, uploading, disabled }: MobileFile
         resetInput();
         return;
       }
-      if (file.size > 20 * 1024 * 1024) {
-        setError("File is too large. Maximum size is 20MB.");
+      if (file.size > 10 * 1024 * 1024) {
+        setError("File is too large. Maximum size is 10MB.");
         resetInput();
         return;
       }
@@ -176,7 +176,7 @@ export function MobileFileUploader({ onUpload, uploading, disabled }: MobileFile
             aria-label="Select file to upload"
           />
           <p className="text-xs text-muted-foreground text-center">
-            PDF, JPG, PNG, WEBP, HEIC, DOCX, XLSX • Max 20MB
+            PDF, JPG, PNG, WEBP, HEIC, DOCX, XLSX • Max 10MB
           </p>
         </div>
       )}
