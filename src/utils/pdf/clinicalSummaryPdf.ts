@@ -1,13 +1,28 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { Capacitor } from "@capacitor/core";
 
-export async function generateClinicalSummaryPdfBlob(rootEl: HTMLElement): Promise<Blob> {
-  const canvas = await html2canvas(rootEl, {
-    scale: 2,
+const MAX_CANVAS_HEIGHT = 12000;
+const MAX_CANVAS_WIDTH = 3000;
+
+async function renderCanvas(rootEl: HTMLElement, scale: number) {
+  return html2canvas(rootEl, {
+    scale,
     useCORS: true,
     backgroundColor: "#ffffff",
     logging: false,
   });
+}
+
+export async function generateClinicalSummaryPdfBlob(rootEl: HTMLElement): Promise<Blob> {
+  const initialScale = Capacitor.isNativePlatform() ? 1 : 2;
+  let canvas = await renderCanvas(rootEl, initialScale);
+
+  // Guard: if canvas exceeds safe limits, fall back to scale 1
+  if (initialScale > 1 && (canvas.height > MAX_CANVAS_HEIGHT || canvas.width > MAX_CANVAS_WIDTH)) {
+    console.warn(`[PDF] Canvas too large (${canvas.width}x${canvas.height}), regenerating at scale 1`);
+    canvas = await renderCanvas(rootEl, 1);
+  }
 
   const imgData = canvas.toDataURL("image/png");
 
