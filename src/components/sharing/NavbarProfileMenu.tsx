@@ -1,4 +1,4 @@
-import { User, UserCircle, Users, Check, Gift, Settings } from "lucide-react";
+import { User, UserCircle, Users, Check, Gift, Settings, CreditCard, Shield, Info, Mail, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import { useSharing } from "@/contexts/SharingContext";
 import { useProfileTypeLabel } from "@/hooks/useProfileTypeLabel";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { getLanguage } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ export function NavbarProfileMenu() {
   const { label: roleLabel, type: profileType } = useProfileTypeLabel();
   const { isPlus, isPro, hasPromoOverride } = useEntitlementsContext();
   const { isAdmin } = useAdmin();
+  const { signOut } = useAuth();
   const lang = getLanguage();
   const navigate = useNavigate();
 
@@ -210,13 +212,46 @@ export function NavbarProfileMenu() {
           </>
         )}
 
-        {/* Settings shortcut */}
-        <DropdownMenuItem
-          onClick={() => navigate("/settings")}
-          className="flex items-center gap-2 cursor-pointer py-2.5"
-        >
+        {/* Configuración */}
+        <DropdownMenuItem onClick={() => navigate("/settings")} className="flex items-center gap-2 cursor-pointer py-2.5">
           <Settings className="h-4 w-4 flex-shrink-0" />
           <span className="text-sm">{lang === "es" ? "Configuración" : "Settings"}</span>
+        </DropdownMenuItem>
+
+        {/* Ver planes */}
+        <DropdownMenuItem onClick={() => navigate("/pricing")} className="flex items-center gap-2 cursor-pointer py-2.5">
+          <CreditCard className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm">{lang === "es" ? "Ver planes" : "View plans"}</span>
+        </DropdownMenuItem>
+
+        {/* Admin — solo si isAdmin */}
+        {isAdmin && (
+          <DropdownMenuItem onClick={() => navigate("/admin")} className="flex items-center gap-2 cursor-pointer py-2.5">
+            <Shield className="h-4 w-4 flex-shrink-0 text-destructive" />
+            <span className="text-sm text-destructive font-medium">Admin</span>
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+
+        {/* Acerca de */}
+        <DropdownMenuItem onClick={() => navigate("/about")} className="flex items-center gap-2 cursor-pointer py-2.5">
+          <Info className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm">{lang === "es" ? "Acerca de" : "About"}</span>
+        </DropdownMenuItem>
+
+        {/* Contactar */}
+        <DropdownMenuItem onClick={() => navigate("/contact")} className="flex items-center gap-2 cursor-pointer py-2.5">
+          <Mail className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm">{lang === "es" ? "Contactar" : "Contact"}</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        {/* Cerrar sesión */}
+        <DropdownMenuItem onClick={signOut} className="flex items-center gap-2 cursor-pointer py-2.5 text-destructive focus:text-destructive">
+          <LogOut className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm font-medium">{lang === "es" ? "Cerrar sesión" : "Sign out"}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
