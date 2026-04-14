@@ -1,4 +1,4 @@
-import { User, UserCircle, Users, Check, Gift, Settings, CreditCard, Shield, Info, Mail, LogOut } from "lucide-react";
+import { User, UserCircle, Users, Check, Gift, Settings, CreditCard, Shield, Info, Mail, LogOut, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -14,7 +14,7 @@ import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { getLanguage } from "@/i18n";
+import { getLanguage, setLanguage } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 function getInitials(name: string | null | undefined): string {
@@ -231,6 +231,17 @@ export function NavbarProfileMenu() {
             <span className="text-sm text-destructive font-medium">Admin</span>
           </DropdownMenuItem>
         )}
+
+        {/* Idioma */}
+        <DropdownMenuItem
+          onClick={() => setLanguage(lang === "es" ? "en" : "es")}
+          className="flex items-center gap-2 cursor-pointer py-2.5"
+        >
+          <Globe className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm">
+            {lang === "es" ? "Switch to English" : "Cambiar a Español"}
+          </span>
+        </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
