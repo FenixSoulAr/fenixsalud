@@ -182,6 +182,12 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Page content */}
+        {/* Desktop header */}
+        <header className="hidden lg:flex sticky top-0 z-30 h-14 items-center justify-end gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-8">
+          <NavbarProfileMenu />
+        </header>
+
+        {/* Page content */}
         <main className="min-h-[calc(100dvh-3.5rem)] lg:min-h-[100dvh]">
           <div className="container py-6 lg:py-8 max-w-7xl px-4 lg:px-8">
             <div className="print:hidden">
