@@ -9,7 +9,7 @@ import {
   HeartPulse,
   Stethoscope,
   Building2,
-  Settings,
+  
   Menu,
   X,
   FileText,
