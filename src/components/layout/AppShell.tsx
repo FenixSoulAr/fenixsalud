@@ -9,7 +9,7 @@ import {
   HeartPulse,
   Stethoscope,
   Building2,
-  Settings,
+  
   Menu,
   X,
   FileText,
@@ -50,7 +50,7 @@ export function AppShell({ children }: AppShellProps) {
     { name: t.nav.doctors, href: "/doctors", icon: Stethoscope },
     { name: t.nav.institutions, href: "/institutions", icon: Building2 },
     { name: t.nav.clinicalSummary, href: "/clinical-summary", icon: FileText },
-    { name: t.nav.settings, href: "/settings", icon: Settings },
+    
   ];
 
 
