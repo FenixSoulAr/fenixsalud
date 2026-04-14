@@ -54,6 +54,29 @@ export default function Settings() {
   const navigate = useNavigate();
   const lang = getLanguage();
   const t = useTranslations();
+
+  // PayPal return handler
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const provider = params.get("provider");
+    const token = params.get("token"); // PayPal sets this to the orderID
+    if (provider === "paypal" && token) {
+      // Remove params from URL immediately to avoid re-triggering
+      window.history.replaceState({}, "", "/settings?upgrade=success");
+      supabase.functions.invoke("capture-paypal-order", {
+        body: { orderID: token },
+      }).then(({ data, error }) => {
+        if (error || !data?.success) {
+          console.error("[Settings] PayPal capture failed:", error);
+          toast.error("No se pudo confirmar el pago. Contactá soporte.");
+        } else {
+          toast.success("¡Suscripción activada con éxito!");
+          // Reload to refresh entitlements
+          setTimeout(() => window.location.reload(), 1500);
+        }
+      });
+    }
+  }, []);
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
