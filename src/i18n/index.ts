@@ -3,24 +3,18 @@ import { es } from "./translations/es";
 
 const translations: Record<string, Translations> = { en, es };
 
-/**
- * Detects if the user's browser language is Spanish
- */
+const LANG_KEY = "mhh_lang";
+
 function detectLanguage(): "es" | "en" {
+  // 1. User preference stored in localStorage
+  const stored = localStorage.getItem(LANG_KEY);
+  if (stored === "es" || stored === "en") return stored;
+  // 2. Browser language fallback
   if (typeof navigator === "undefined") return "en";
-  
-  const browserLang = navigator.language || (navigator as any).userLanguage || "en";
-  const langCode = browserLang.toLowerCase();
-  
-  // Check for Spanish variants (es, es-AR, es-ES, es-MX, etc.)
-  if (langCode.startsWith("es")) {
-    return "es";
-  }
-  
-  return "en";
+  const browserLang = (navigator.language || "en").toLowerCase();
+  return browserLang.startsWith("es") ? "es" : "en";
 }
 
-// Cached language detection
 let cachedLang: "es" | "en" | null = null;
 
 export function getLanguage(): "es" | "en" {
@@ -30,12 +24,16 @@ export function getLanguage(): "es" | "en" {
   return cachedLang;
 }
 
-export function t(): Translations {
-  const lang = getLanguage();
-  return translations[lang] || translations.en;
+export function setLanguage(lang: "es" | "en"): void {
+  localStorage.setItem(LANG_KEY, lang);
+  cachedLang = lang;
+  window.location.reload();
 }
 
-// Helper to get a specific translation string
+export function t(): Translations {
+  return translations[getLanguage()] || translations.en;
+}
+
 export function useTranslations(): Translations {
   return t();
 }
