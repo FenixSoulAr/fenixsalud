@@ -299,8 +299,8 @@ export default function Pricing() {
               ? "🛒 Compra segura a través de Google Play. Cancelá en cualquier momento."
               : "🛒 Secure purchase via Google Play. Cancel anytime.")
             : (lang === "es"
-              ? "💳 Pagos seguros con Stripe. Cancelá en cualquier momento."
-              : "💳 Secure payments via Stripe. Cancel anytime.")}
+              ? "💳 Pagos seguros con PayPal. Cancelá en cualquier momento."
+              : "💳 Secure payments via PayPal. Cancel anytime.")}
         </p>
       </div>
     </div>
