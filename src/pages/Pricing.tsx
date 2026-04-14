@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { getLanguage } from "@/i18n";
 import { usePayPalCheckout } from "@/hooks/usePayPalCheckout";
+import { useDowngradePlan } from "@/hooks/useDowngradePlan";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useGooglePlayCheckout } from "@/hooks/useGooglePlayCheckout";
 import { isAndroidNative } from "@/utils/platform";
 import { BillingIntervalToggle, type BillingInterval } from "@/components/billing/BillingIntervalToggle";
@@ -16,6 +18,7 @@ export default function Pricing() {
   const { startCheckout, loading: stripeLoading } = usePayPalCheckout();
   const { startGooglePlayPurchase, loading: gplayLoading } = useGooglePlayCheckout();
   const checkoutLoading = stripeLoading || gplayLoading;
+  const { schedulePlanChange, loading: downgradeLoading } = useDowngradePlan();
   const lang = getLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -65,6 +68,14 @@ export default function Pricing() {
     popular:        lang === "es" ? "Más popular"          : "Most popular",
     saveLabel:      lang === "es" ? "Ahorrá 2 meses"       : "Save 2 months",
     recommended:    lang === "es" ? "Recomendado"          : "Recommended",
+    scheduleDowngrade: lang === "es" ? "Cambiar a este plan" : "Switch to this plan",
+    downgradeToFree: lang === "es" ? "Bajar a Gratis" : "Downgrade to Free",
+    confirmTitle: lang === "es" ? "¿Confirmar cambio de plan?" : "Confirm plan change?",
+    confirmDesc: (planName: string) => lang === "es"
+      ? `Tu plan actual continuará activo hasta su vencimiento. Luego cambiará automáticamente a ${planName}.`
+      : `Your current plan stays active until it expires. Then it will automatically switch to ${planName}.`,
+    confirmBtn: lang === "es" ? "Confirmar" : "Confirm",
+    cancelBtn: lang === "es" ? "Cancelar" : "Cancel",
     plans: {
       free: {
         name:        lang === "es" ? "Gratis" : "Free",
@@ -178,9 +189,29 @@ export default function Pricing() {
               </li>
             ))}
           </ul>
-          <Button variant="outline" disabled className="w-full mt-auto">
-            {isFree ? t.youreOnThisPlan : t.plans.free.name}
-          </Button>
+          {(isPlus || isPro) ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="w-full mt-auto" disabled={downgradeLoading}>
+                  {t.downgradeToFree}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t.confirmTitle}</AlertDialogTitle>
+                  <AlertDialogDescription>{t.confirmDesc("Free")}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t.cancelBtn}</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => schedulePlanChange("free")}>{t.confirmBtn}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            <Button variant="outline" disabled className="w-full mt-auto">
+              {isFree ? t.youreOnThisPlan : t.plans.free.name}
+            </Button>
+          )}
         </div>
 
         {/* PLUS */}
@@ -224,15 +255,28 @@ export default function Pricing() {
           </ul>
           {isPlus && !isPro ? (
             <Button variant="outline" disabled className="w-full mt-auto">{t.youreOnThisPlan}</Button>
+          ) : isPro ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="w-full mt-auto" disabled={downgradeLoading}>
+                  {t.scheduleDowngrade}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t.confirmTitle}</AlertDialogTitle>
+                  <AlertDialogDescription>{t.confirmDesc("Plus")}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t.cancelBtn}</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => schedulePlanChange(plusPlanCode)}>{t.confirmBtn}</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           ) : (
-            <Button
-              className="w-full mt-auto"
-              onClick={() => {
-                console.log("[Pricing] Plus button clicked:", { isAndroidNative, planCode: plusPlanCode, fn: isAndroidNative ? "startGooglePlayPurchase" : "startCheckout" });
-                isAndroidNative ? startGooglePlayPurchase(plusPlanCode) : startCheckout(plusPlanCode);
-              }}
-              disabled={checkoutLoading || isPro}
-            >
+            <Button className="w-full mt-auto" onClick={() => {
+              isAndroidNative ? startGooglePlayPurchase(plusPlanCode) : startCheckout(plusPlanCode);
+            }} disabled={checkoutLoading}>
               {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               {t.upgradeToPlus}
             </Button>
