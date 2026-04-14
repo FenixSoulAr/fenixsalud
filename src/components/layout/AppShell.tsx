@@ -12,11 +12,7 @@ import {
   Settings,
   Menu,
   X,
-  LogOut,
   FileText,
-  Info,
-  Mail,
-  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,8 +34,7 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { signOut, user } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { user } = useAuth();
   const t = useTranslations();
   const navigate = useNavigate();
   const { isPlusActive } = useEntitlementsContext();
@@ -58,11 +53,6 @@ export function AppShell({ children }: AppShellProps) {
     { name: t.nav.settings, href: "/settings", icon: Settings },
   ];
 
-  const secondaryNavigation = [
-    { name: t.nav.about, href: "/about", icon: Info },
-    { name: t.nav.contact, href: "/contact", icon: Mail },
-    ...(isAdmin && !adminLoading ? [{ name: "Admin", href: "/admin", icon: Shield }] : []),
-  ];
 
   return (
     <div className="app-shell min-h-[100dvh] h-[100dvh] overflow-y-auto bg-background lg:pt-0 lg:pb-0 box-border" style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'none' }}>
@@ -148,25 +138,6 @@ export function AppShell({ children }: AppShellProps) {
               );
             })}
 
-            <Separator className="my-3" />
-
-            {secondaryNavigation.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "nav-item",
-                    isActive && "active"
-                  )}
-                >
-                  <item.icon className="h-5 w-5 flex-shrink-0" />
-                  {item.name}
-                </Link>
-              );
-            })}
           </nav>
 
           {/* User section */}
@@ -181,15 +152,6 @@ export function AppShell({ children }: AppShellProps) {
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-sidebar-foreground hover:text-destructive hover:bg-destructive/10"
-              onClick={signOut}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              {t.nav.signOut}
-            </Button>
           </div>
         </div>
       </aside>
