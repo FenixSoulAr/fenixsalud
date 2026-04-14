@@ -16,13 +16,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdmin } from "@/hooks/useAdmin";
+
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/i18n";
 import { SharingBanner } from "@/components/sharing/SharingBanner";
 import { NavbarProfileMenu } from "@/components/sharing/NavbarProfileMenu";
 import { ActiveProfileIndicator } from "@/components/sharing/ActiveProfileIndicator";
-import { Separator } from "@/components/ui/separator";
+
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
