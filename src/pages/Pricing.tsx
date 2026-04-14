@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { getLanguage } from "@/i18n";
-import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { usePayPalCheckout } from "@/hooks/usePayPalCheckout";
 import { useGooglePlayCheckout } from "@/hooks/useGooglePlayCheckout";
 import { isAndroidNative } from "@/utils/platform";
 import { BillingIntervalToggle, type BillingInterval } from "@/components/billing/BillingIntervalToggle";
@@ -13,7 +13,7 @@ import { useSearchParams } from "react-router-dom";
 
 export default function Pricing() {
   const { isPlus, isPro } = useEntitlementsContext();
-  const { startCheckout, loading: stripeLoading } = useStripeCheckout();
+  const { startCheckout, loading: stripeLoading } = usePayPalCheckout();
   const { startGooglePlayPurchase, loading: gplayLoading } = useGooglePlayCheckout();
   const checkoutLoading = stripeLoading || gplayLoading;
   const lang = getLanguage();
