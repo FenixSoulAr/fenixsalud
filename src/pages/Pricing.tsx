@@ -13,6 +13,45 @@ import { isAndroidNative } from "@/utils/platform";
 import { BillingIntervalToggle, type BillingInterval } from "@/components/billing/BillingIntervalToggle";
 import { useSearchParams } from "react-router-dom";
 
+function SectionRow({ label }: { label: string }) {
+  return (
+    <tr>
+      <td colSpan={4} className="pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-border/40">{label}</td>
+    </tr>
+  );
+}
+
+function FeatureRow({ label, free, plus, pro, plusHighlight, proHighlight }: {
+  label: string;
+  free?: boolean | string;
+  plus?: boolean | string;
+  pro?: boolean | string;
+  plusHighlight?: boolean;
+  proHighlight?: boolean;
+}) {
+  const Cell = ({ val, highlight }: { val?: boolean | string; highlight?: boolean }) => (
+    <td className="px-2 py-2.5 text-center border-b border-border/30 align-middle border-l border-r border-border/20">
+      {val === undefined || val === false ? (
+        <span className="text-muted-foreground/40 text-sm">—</span>
+      ) : val === true ? (
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary/10">
+          <Check className="h-3 w-3 text-primary" />
+        </span>
+      ) : (
+        <span className={`text-xs font-medium ${highlight ? "text-primary" : "text-foreground"}`}>{val}</span>
+      )}
+    </td>
+  );
+  return (
+    <tr className="hover:bg-muted/20 transition-colors">
+      <td className="py-2.5 pr-3 text-sm text-foreground border-b border-border/30">{label}</td>
+      <Cell val={free} />
+      <Cell val={plus} highlight={plusHighlight} />
+      <Cell val={pro} highlight={proHighlight} />
+    </tr>
+  );
+}
+
 export default function Pricing() {
   const { isPlus, isPro } = useEntitlementsContext();
   const { startCheckout, loading: stripeLoading } = usePayPalCheckout();
@@ -149,205 +188,152 @@ export default function Pricing() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader
-        variant="gradient"
+      <PageHeader variant="gradient"
         title={lang === "es" ? "Planes y Precios" : "Plans & Pricing"}
-        description={
-          lang === "es"
-            ? "Elegí el plan que mejor se adapte a tus necesidades"
-            : "Choose the plan that best fits your needs"
-        }
+        description={lang === "es" ? "Elegí el plan que mejor se adapte a tus necesidades" : "Choose the plan that best fits your needs"}
       />
 
-      {/* Billing interval toggle — always visible */}
-      <div className="flex justify-center mb-6">
+      {/* Toggle mensual/anual */}
+      <div className="flex justify-center mb-8">
         <BillingIntervalToggle value={interval} onChange={handleIntervalChange} />
       </div>
 
-      <div className="grid md:grid-cols-3 gap-5 max-w-5xl">
-        {/* FREE */}
-        <div className={`health-card relative flex flex-col ${isFree ? "ring-2 ring-primary" : ""}`}>
-          {isFree && (
-            <Badge className="absolute -top-3 left-4 bg-primary">{t.currentPlan}</Badge>
-          )}
-          <div className="flex items-center gap-2 mb-2">
-            <img src="/favicon-48x48.png" alt="My Health Hub" className="h-5 w-5 object-contain" />
-            <h2 className="text-xl font-bold">{t.plans.free.name}</h2>
-          </div>
-          <div className="flex items-baseline gap-1 mb-1">
-            <span className="text-3xl font-bold">{t.plans.free.price}</span>
-            <span className="text-muted-foreground text-sm">{t.forever}</span>
-          </div>
-          <p className="text-muted-foreground text-sm mb-5">{t.plans.free.description}</p>
-          <ul className="space-y-2.5 mb-6 flex-1">
-            {t.plans.free.features.map((f, i) => (
-              <li key={i} className="flex items-start gap-2">
-                {f.ok
-                  ? <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  : <X className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-0.5" />}
-                <span className={`text-sm ${f.ok ? "" : "text-muted-foreground"}`}>{f.text}</span>
-              </li>
-            ))}
-          </ul>
-          {(isPlus || isPro) ? (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="w-full mt-auto" disabled={downgradeLoading}>
-                  {t.downgradeToFree}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t.confirmTitle}</AlertDialogTitle>
-                  <AlertDialogDescription>{t.confirmDesc("Free")}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t.cancelBtn}</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => schedulePlanChange("free")}>{t.confirmBtn}</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          ) : (
-            <Button variant="outline" disabled className="w-full mt-auto">
-              {isFree ? t.youreOnThisPlan : t.plans.free.name}
-            </Button>
-          )}
-        </div>
+      {/* Tabla comparativa */}
+      <div className="overflow-x-auto max-w-4xl">
+        <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+          <colgroup>
+            <col style={{ width: "44%" }} />
+            <col style={{ width: "18.6%" }} />
+            <col style={{ width: "18.6%" }} />
+            <col style={{ width: "18.6%" }} />
+          </colgroup>
 
-        {/* PLUS */}
-        <div className={`health-card relative flex flex-col border-2 ${
-          isPlus && !isPro
-            ? "ring-2 ring-primary border-primary/40"
-            : plusHighlighted
-              ? "ring-2 ring-primary/60 border-primary/40"
-              : "border-primary/40"
-        }`}>
-          {isPlus && !isPro && (
-            <Badge className="absolute -top-3 left-4 bg-primary">{t.currentPlan}</Badge>
-          )}
-          {plusHighlighted && !isPlus && (
-            <Badge className="absolute -top-3 left-4 bg-primary/80">{t.recommended}</Badge>
-          )}
-          <Badge className="absolute -top-3 right-4 bg-primary/10 text-primary border border-primary/30">
-            {t.popular}
-          </Badge>
-          <div className="flex items-center gap-2 mb-2">
-            <Crown className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-bold">{t.plans.plus.name}</h2>
-          </div>
-          <div className="flex items-baseline gap-1 mb-1">
-            <span className="text-3xl font-bold">{plusPrice}</span>
-            <span className="text-muted-foreground text-sm">{periodSuffix}</span>
-          </div>
-          {isYearly && (
-            <p className="text-xs text-primary font-medium mb-1">{t.saveLabel}</p>
-          )}
-          {isAndroidNative && isFree && !isYearly && (
-            <p className="text-xs font-medium text-primary mb-1">50% off · primeros 2 meses</p>
-          )}
-          <p className="text-muted-foreground text-sm mb-5">{t.plans.plus.description}</p>
-          <ul className="space-y-2.5 mb-6 flex-1">
-            {t.plans.plus.features.map((f, i) => (
-              <li key={i} className="flex items-start gap-2">
-                {f.ok
-                  ? <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  : <X className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-0.5" />}
-                <span className={`text-sm ${f.ok ? "" : "text-muted-foreground"}`}>{f.text}</span>
-              </li>
-            ))}
-          </ul>
-          {isPlus && !isPro ? (
-            <Button variant="outline" disabled className="w-full mt-auto">{t.youreOnThisPlan}</Button>
-          ) : isPro ? (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="w-full mt-auto" disabled={downgradeLoading}>
-                  {t.scheduleDowngrade}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t.confirmTitle}</AlertDialogTitle>
-                  <AlertDialogDescription>{t.confirmDesc("Plus")}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t.cancelBtn}</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => schedulePlanChange(plusPlanCode)}>{t.confirmBtn}</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          ) : (
-            <Button className="w-full mt-auto" onClick={() => {
-              isAndroidNative ? startGooglePlayPurchase(plusPlanCode, (!isYearly && isFree) ? "plus-50off-3meses" : undefined) : startCheckout(plusPlanCode);
-            }} disabled={checkoutLoading}>
-              {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              {t.upgradeToPlus}
-            </Button>
-          )}
-        </div>
+          {/* Cabecera de planes */}
+          <thead>
+            <tr>
+              <th />
+              {/* FREE */}
+              <th className="pb-4 px-2 align-bottom">
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center">
+                  <p className="text-sm font-semibold text-foreground mb-1">Free</p>
+                  <p className="text-2xl font-bold text-foreground">$0</p>
+                  <p className="text-xs text-muted-foreground">{lang === "es" ? "para siempre" : "forever"}</p>
+                </div>
+              </th>
+              {/* PLUS */}
+              <th className="pb-4 px-2 align-bottom relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <Badge className="bg-primary text-primary-foreground text-xs px-2 py-0.5 whitespace-nowrap">
+                    {lang === "es" ? "Más popular" : "Most popular"}
+                  </Badge>
+                </div>
+                <div className="rounded-t-xl border-2 border-b-0 border-primary bg-card p-3 text-center">
+                  <p className="text-sm font-semibold text-foreground mb-1">Plus</p>
+                  <p className="text-2xl font-bold text-foreground">{plusPrice}</p>
+                  <p className="text-xs text-muted-foreground">{periodSuffix}</p>
+                  {isYearly && <p className="text-xs font-medium text-primary mt-0.5">{t.saveLabel}</p>}
+                  {isAndroidNative && isFree && !isYearly && (
+                    <p className="text-xs font-medium text-primary mt-0.5">50% off · primeros 2 meses</p>
+                  )}
+                </div>
+              </th>
+              {/* PRO */}
+              <th className="pb-4 px-2 align-bottom">
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center">
+                  <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
+                  <p className="text-2xl font-bold text-foreground">{proPrice}</p>
+                  <p className="text-xs text-muted-foreground">{periodSuffix}</p>
+                </div>
+              </th>
+            </tr>
+          </thead>
 
-        {/* PRO */}
-        <div className={`health-card relative flex flex-col ${
-          isPro
-            ? "ring-2 ring-primary"
-            : proHighlighted
-              ? "ring-2 ring-primary/60"
-              : ""
-        }`}>
-          {isPro && (
-            <Badge className="absolute -top-3 left-4 bg-primary">{t.currentPlan}</Badge>
-          )}
-          {proHighlighted && !isPro && (
-            <Badge className="absolute -top-3 left-4 bg-primary/80">{t.recommended}</Badge>
-          )}
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-bold">{t.plans.pro.name}</h2>
-          </div>
-          <div className="flex items-baseline gap-1 mb-1">
-            <span className="text-3xl font-bold">{proPrice}</span>
-            <span className="text-muted-foreground text-sm">{periodSuffix}</span>
-          </div>
-          {isYearly && (
-            <p className="text-xs text-primary font-medium mb-1">{t.saveLabel}</p>
-          )}
-          <p className="text-muted-foreground text-sm mb-5">{t.plans.pro.description}</p>
-          <ul className="space-y-2.5 mb-6 flex-1">
-            {t.plans.pro.features.map((f, i) => (
-              <li key={i} className="flex items-start gap-2">
-                <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span className="text-sm">{f.text}</span>
-              </li>
-            ))}
-          </ul>
-          {isPro ? (
-            <Button variant="outline" disabled className="w-full mt-auto">{t.youreOnThisPlan}</Button>
-          ) : (
-            <Button
-              className="w-full mt-auto"
-              variant="outline"
-              onClick={() => {
-                console.log("[Pricing] Pro button clicked:", { isAndroidNative, planCode: proPlanCode, fn: isAndroidNative ? "startGooglePlayPurchase" : "startCheckout" });
-                isAndroidNative ? startGooglePlayPurchase(proPlanCode) : startCheckout(proPlanCode);
-              }}
-              disabled={checkoutLoading}
-            >
-              {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              {t.upgradeToPro}
-            </Button>
-          )}
-        </div>
+          <tbody>
+            {/* ── SECCIÓN: Perfiles y archivos ── */}
+            <SectionRow label={lang === "es" ? "Perfiles y archivos" : "Profiles & files"} />
+            <FeatureRow label={lang === "es" ? "Perfiles de pacientes" : "Patient profiles"} free="1" plus="1" pro={lang === "es" ? "Hasta 5" : "Up to 5"} proHighlight />
+            <FeatureRow label={lang === "es" ? "Archivos adjuntos" : "Attachments"} free="10" plus="100" pro="200" plusHighlight proHighlight />
+
+            {/* ── SECCIÓN: Funcionalidades ── */}
+            <SectionRow label={lang === "es" ? "Funcionalidades" : "Features"} />
+            <FeatureRow label={lang === "es" ? "Citas, medicación, estudios, diagnósticos" : "Appointments, medications, tests, diagnoses"} free plus pro />
+            <FeatureRow label={lang === "es" ? "Médicos e instituciones" : "Doctors & institutions"} free plus pro />
+            <FeatureRow label={lang === "es" ? "Cirugías, hospitalizaciones, vacunas" : "Surgeries, hospitalizations, vaccines"} plus pro />
+            <FeatureRow label={lang === "es" ? "Exportar resumen clínico PDF" : "Export clinical summary PDF"} plus pro />
+
+            {/* ── SECCIÓN: Compartir y colaborar ── */}
+            <SectionRow label={lang === "es" ? "Compartir y colaborar" : "Sharing & collaboration"} />
+            <FeatureRow label={lang === "es" ? "Personas con acceso compartido" : "Shared access"} plus="1" pro={lang === "es" ? "Múltiples" : "Multiple"} plusHighlight proHighlight />
+            <FeatureRow label={lang === "es" ? "Roles (colaborador / solo lectura)" : "Roles (viewer, contributor)"} plus pro />
+            <FeatureRow label={lang === "es" ? "Múltiples perfiles" : "Multiple profiles"} pro />
+            <FeatureRow label={lang === "es" ? "Backup completo de datos" : "Full data backup"} pro />
+
+            {/* ── FILA CTAs ── */}
+            <tr>
+              <td className="pt-4 pb-2" />
+              {/* FREE CTA */}
+              <td className="px-2 pt-4 pb-2 align-top">
+                <div className="rounded-b-xl border border-t-0 border-border/60 bg-card p-3 text-center">
+                  {(isPlus || isPro) ? (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full text-xs" disabled={downgradeLoading}>{t.downgradeToFree}</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>{t.confirmTitle}</AlertDialogTitle><AlertDialogDescription>{t.confirmDesc("Free")}</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>{t.cancelBtn}</AlertDialogCancel><AlertDialogAction onClick={() => schedulePlanChange("free")}>{t.confirmBtn}</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : (
+                    <Button variant="outline" size="sm" className="w-full text-xs" disabled>{isFree ? t.youreOnThisPlan : "Free"}</Button>
+                  )}
+                </div>
+              </td>
+              {/* PLUS CTA */}
+              <td className="px-2 pt-4 pb-2 align-top">
+                <div className="rounded-b-xl border-2 border-t-0 border-primary bg-card p-3 text-center">
+                  {isPlus && !isPro ? (
+                    <Button variant="outline" size="sm" className="w-full text-xs" disabled>{t.youreOnThisPlan}</Button>
+                  ) : isPro ? (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full text-xs" disabled={downgradeLoading}>{t.scheduleDowngrade}</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>{t.confirmTitle}</AlertDialogTitle><AlertDialogDescription>{t.confirmDesc("Plus")}</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>{t.cancelBtn}</AlertDialogCancel><AlertDialogAction onClick={() => schedulePlanChange(plusPlanCode)}>{t.confirmBtn}</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : (
+                    <Button size="sm" className="w-full text-xs" onClick={() => { isAndroidNative ? startGooglePlayPurchase(plusPlanCode, (!isYearly && isFree) ? "plus-50off-3meses" : undefined) : startCheckout(plusPlanCode); }} disabled={checkoutLoading}>
+                      {checkoutLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}{t.upgradeToPlus}
+                    </Button>
+                  )}
+                </div>
+              </td>
+              {/* PRO CTA */}
+              <td className="px-2 pt-4 pb-2 align-top">
+                <div className="rounded-b-xl border border-t-0 border-border/60 bg-card p-3 text-center">
+                  {isPro ? (
+                    <Button variant="outline" size="sm" className="w-full text-xs" disabled>{t.youreOnThisPlan}</Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { isAndroidNative ? startGooglePlayPurchase(proPlanCode) : startCheckout(proPlanCode); }} disabled={checkoutLoading}>
+                      {checkoutLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}{t.upgradeToPro}
+                    </Button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div className="mt-8 p-4 bg-muted/40 rounded-lg max-w-5xl">
+      {/* Footer */}
+      <div className="mt-6 p-4 bg-muted/40 rounded-lg max-w-4xl">
         <p className="text-sm text-muted-foreground text-center">
           {isAndroidNative
-            ? (lang === "es"
-              ? "🛒 Compra segura a través de Google Play. Cancelá en cualquier momento."
-              : "🛒 Secure purchase via Google Play. Cancel anytime.")
-            : (lang === "es"
-              ? "💳 Pagos seguros con PayPal. Cancelá en cualquier momento."
-              : "💳 Secure payments via PayPal. Cancel anytime.")}
+            ? (lang === "es" ? "🛒 Compra segura a través de Google Play. Cancelá en cualquier momento." : "🛒 Secure purchase via Google Play. Cancel anytime.")
+            : (lang === "es" ? "💳 Pagos seguros con PayPal. Cancelá en cualquier momento." : "💳 Secure payments via PayPal. Cancel anytime.")}
         </p>
       </div>
     </div>
