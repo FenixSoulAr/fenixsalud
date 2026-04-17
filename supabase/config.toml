@@ -1,4 +1,4 @@
-project_id = "pwwadvtoabvqvnjkcvjr"
+project_id = "kxkofzxfpqvpojyeguie"
 
 [functions.admin-actions]
 verify_jwt = false
@@ -49,4 +49,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.handle-google-play-billing]
+verify_jwt = false
+
+[functions.create-paypal-order]
+verify_jwt = false
+
+[functions.capture-paypal-order]
 verify_jwt = false
