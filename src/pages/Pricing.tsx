@@ -277,8 +277,14 @@ export default function Pricing() {
             <SectionRow label={lang === "es" ? "Compartir y colaborar" : "Sharing & collaboration"} />
             <FeatureRow label={lang === "es" ? "Personas con acceso compartido" : "Shared access"} plus="1" pro={lang === "es" ? "Múltiples" : "Multiple"} plusHighlight proHighlight />
             <FeatureRow label={lang === "es" ? "Roles (colaborador / solo lectura)" : "Roles (viewer, contributor)"} plus pro />
-            <FeatureRow label={lang === "es" ? "Múltiples perfiles" : "Multiple profiles"} pro />
-            <FeatureRow label={lang === "es" ? "Backup completo de datos" : "Full data backup"} pro />
+
+            {/* ── SECCIÓN: Coordinación y gestión avanzada (diferencial Pro) ── */}
+            <SectionRow label={lang === "es" ? "Coordinación y gestión avanzada" : "Advanced coordination & management"} />
+            <FeatureRow label={lang === "es" ? "Múltiples perfiles bajo una sola cuenta" : "Multiple profiles under one account"} pro proHighlight />
+            <FeatureRow label={lang === "es" ? "Gestión compartida con varias personas" : "Shared management with multiple people"} pro proHighlight />
+            <FeatureRow label={lang === "es" ? "Coordinación de agenda y seguimiento familiar" : "Shared agenda & family follow-up"} pro proHighlight />
+            <FeatureRow label={lang === "es" ? "Backup completo de datos" : "Full data backup"} pro proHighlight />
+            <FeatureRow label={lang === "es" ? "Soporte prioritario" : "Priority support"} pro proHighlight />
 
             {/* ── FILA CTAs ── */}
             <tr>
