@@ -1,7 +1,7 @@
 import type { Translations } from "./en";
 
 export const es: Translations = {
-  appName: "Mi Salud",
+  appName: "My Health Hub",
   // Navigation
   nav: {
     dashboard: "Inicio",
@@ -23,10 +23,10 @@ export const es: Translations = {
   // About
   about: {
     title: "Acerca de esta app",
-    subtitle: "Conocé más sobre Mi Salud",
+    subtitle: "Conocé más sobre My Health Hub",
     version: "Versión 1.0.0",
     betaStatus: "Beta",
-    description: "Mi Salud es tu compañero personal de salud. Registrá citas, medicación, estudios y más, todo en un solo lugar. Diseñada para ayudarte a mantenerte organizado e informado sobre tu salud.",
+    description: "My Health Hub es tu centro de salud personal. Registrá citas, medicación, estudios y más, todo en un solo lugar. Diseñada para ayudarte a mantenerte organizado e informado sobre tu salud.",
     privacyTitle: "Tu privacidad importa",
     privacyDescription: "Tus datos de salud se mantienen seguros y privados. Solo vos controlás quién puede acceder a tu información.",
     easyTitle: "Simple e intuitiva",
@@ -39,10 +39,10 @@ export const es: Translations = {
     title: "Contactar",
     subtitle: "Nos encantaría saber de vos",
     feedbackTitle: "Compartí tu opinión",
-    feedbackMessage: "¿Tenés una sugerencia, encontraste un error o simplemente querés saludar? Apreciamos todos los comentarios y los usamos para mejorar Mi Salud.",
+    feedbackMessage: "¿Tenés una sugerencia, encontraste un error o simplemente querés saludar? Apreciamos todos los comentarios y los usamos para mejorar My Health Hub.",
     sendEmail: "Enviar email",
     emailNote: "Abre tu app de correo para enviarnos un mensaje.",
-    emailSubject: "Comentarios sobre Mi Salud",
+    emailSubject: "Comentarios sobre My Health Hub",
     emailBody: "Hola,\n\nQuiero compartir lo siguiente:\n\n",
   },
   
@@ -551,7 +551,7 @@ export const es: Translations = {
     signIn: "Iniciar sesión",
     signUp: "Crear cuenta",
     welcomeBack: "Bienvenido/a",
-    signInSubtitle: "Ingresá a tu cuenta de Mi Salud",
+    signInSubtitle: "Ingresá a tu cuenta de My Health Hub",
     createAccount: "Creá tu cuenta",
     signUpSubtitle: "Comenzá a registrar tu salud",
     email: "Correo electrónico",
