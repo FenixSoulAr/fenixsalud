@@ -214,11 +214,11 @@ export default function Pricing() {
               <th />
               {/* FREE */}
               <th className="pb-4 px-2 align-bottom">
-                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[140px] flex flex-col">
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[160px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Free</p>
                   <p className="text-2xl font-bold text-foreground">$0</p>
                   <p className="text-xs text-muted-foreground">{lang === "es" ? "para siempre" : "forever"}</p>
-                  <p className="text-[10px] leading-tight text-muted-foreground mt-2 px-0.5">
+                  <p className="text-[11px] leading-snug text-muted-foreground mt-2 px-1 break-words">
                     {lang === "es" ? "Para empezar a organizarte" : "Start organizing"}
                   </p>
                 </div>
