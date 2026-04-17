@@ -1,6 +1,6 @@
 {
-  "name": "My Health Hub – Mi Salud",
-  "short_name": "Mi Salud",
+  "name": "My Health Hub",
+  "short_name": "My Health Hub",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",
