@@ -139,8 +139,8 @@ export default function Pricing() {
         monthlyPrice:"$7",
         yearlyPrice: "$70",
         description: lang === "es"
-          ? "Para quienes necesitan compartir y exportar"
-          : "Share records and export summaries",
+          ? "Compart\u00ED tu salud con quienes necesit\u00E1s"
+          : "Share your health with those you need",
         features: [
           { text: lang === "es" ? "1 perfil personal"                    : "1 personal profile",              ok: true  },
           { text: lang === "es" ? "Hasta 100 archivos adjuntos"          : "Up to 100 attachments",           ok: true  },
@@ -158,8 +158,8 @@ export default function Pricing() {
         monthlyPrice:"$12",
         yearlyPrice: "$120",
         description: lang === "es"
-          ? "Para cuidar la salud de toda tu familia"
-          : "Full family health management",
+          ? "Gestion\u00E1 la salud de toda tu familia"
+          : "Manage your whole family's health",
         features: [
           { text: lang === "es" ? "Hasta 5 perfiles"                    : "Up to 5 profiles",                ok: true },
           { text: lang === "es" ? "Hasta 200 archivos adjuntos"         : "Up to 200 attachments",           ok: true },
