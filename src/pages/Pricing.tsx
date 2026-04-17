@@ -230,7 +230,7 @@ export default function Pricing() {
                     {lang === "es" ? "Más popular" : "Most popular"}
                   </Badge>
                 </div>
-                <div className="rounded-t-xl border-2 border-b-0 border-primary bg-card p-3 text-center min-h-[140px] flex flex-col">
+                <div className="rounded-t-xl border-2 border-b-0 border-primary bg-card p-3 text-center min-h-[160px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Plus</p>
                   <p className="text-2xl font-bold text-foreground">{plusPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
@@ -238,7 +238,7 @@ export default function Pricing() {
                   {isAndroidNative && isFree && !isYearly && (
                     <p className="text-xs font-medium text-primary mt-0.5">50% off · primeros 2 meses</p>
                   )}
-                  <p className="text-[10px] leading-tight text-muted-foreground mt-2 px-0.5">
+                  <p className="text-[11px] leading-snug text-muted-foreground mt-2 px-1 break-words">
                     {lang === "es" ? "Organización personal y familiar" : "Personal & family organization"}
                   </p>
                 </div>
