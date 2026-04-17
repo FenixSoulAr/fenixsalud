@@ -303,9 +303,7 @@ export default function Pricing() {
               pro={lang === "es" ? "Avanzados" : "Advanced"}
               proHighlight
             />
-            <FeatureRow label={lang === "es" ? "Múltiples perfiles bajo una sola cuenta" : "Multiple profiles under one account"} pro proHighlight />
             <FeatureRow label={lang === "es" ? "Backup completo de datos" : "Full data backup"} pro proHighlight />
-            <FeatureRow label={lang === "es" ? "Soporte prioritario" : "Priority support"} pro proHighlight />
 
             {/* ── FILA CTAs ── */}
             <tr>
