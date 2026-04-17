@@ -20,6 +20,7 @@ export default function SignIn() {
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpFullName, setSignUpFullName] = useState("");
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -240,7 +241,24 @@ export default function SignIn() {
                   </p>
                 </div>
 
-                <Button type="submit" className="w-full h-12 rounded-lg font-medium mt-4" disabled={loading}>
+                <div className="flex items-start gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="consent"
+                    checked={consentAccepted}
+                    onChange={(e) => setConsentAccepted(e.target.checked)}
+                    className="mt-1 h-4 w-4 shrink-0 accent-primary"
+                  />
+                  <label htmlFor="consent" className="text-xs text-muted-foreground leading-relaxed">
+                    Al registrarte, aceptás nuestra{" "}
+                    <a href="/about" className="underline text-primary hover:text-primary/80">
+                      Política de Privacidad
+                    </a>{" "}
+                    y el tratamiento de tus datos personales conforme a la Ley 25.326 de Protección de Datos Personales (Argentina).
+                  </label>
+                </div>
+
+                <Button type="submit" className="w-full h-12 rounded-lg font-medium mt-4" disabled={loading || !consentAccepted}>
                   {loading ? t.auth.signingUp : t.auth.signUpButton}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
