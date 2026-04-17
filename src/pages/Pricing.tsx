@@ -253,7 +253,7 @@ export default function Pricing() {
                     {lang === "es" ? "Coordinación y gestión avanzada" : "Advanced coordination & management"}
                   </p>
                   <p className="text-[10px] leading-tight text-muted-foreground mt-1 px-0.5">
-                    {lang === "es" ? "Mayor control para gestión compartida" : "More control for shared management"}
+                    {lang === "es" ? "Ideal para gestión compartida, agenda coordinada y mayor control" : "Ideal for shared management, coordinated agenda & more control"}
                   </p>
                 </div>
               </th>
@@ -280,9 +280,30 @@ export default function Pricing() {
 
             {/* ── SECCIÓN: Coordinación y gestión avanzada (diferencial Pro) ── */}
             <SectionRow label={lang === "es" ? "Coordinación y gestión avanzada" : "Advanced coordination & management"} />
+            <FeatureRow
+              label={lang === "es" ? "Agenda de coordinación compartida" : "Shared coordination agenda"}
+              plus={lang === "es" ? "Básico" : "Basic"}
+              pro={lang === "es" ? "Incluido" : "Included"}
+              proHighlight
+            />
+            <FeatureRow
+              label={lang === "es" ? "Integración con calendario" : "Calendar integration"}
+              pro={lang === "es" ? "Incluido" : "Included"}
+              proHighlight
+            />
+            <FeatureRow
+              label={lang === "es" ? "Gestión compartida" : "Shared management"}
+              plus={lang === "es" ? "Básico" : "Basic"}
+              pro={lang === "es" ? "Avanzada" : "Advanced"}
+              proHighlight
+            />
+            <FeatureRow
+              label={lang === "es" ? "Permisos" : "Permissions"}
+              plus={lang === "es" ? "Básico" : "Basic"}
+              pro={lang === "es" ? "Avanzados" : "Advanced"}
+              proHighlight
+            />
             <FeatureRow label={lang === "es" ? "Múltiples perfiles bajo una sola cuenta" : "Multiple profiles under one account"} pro proHighlight />
-            <FeatureRow label={lang === "es" ? "Gestión compartida con varias personas" : "Shared management with multiple people"} pro proHighlight />
-            <FeatureRow label={lang === "es" ? "Coordinación de agenda y seguimiento familiar" : "Shared agenda & family follow-up"} pro proHighlight />
             <FeatureRow label={lang === "es" ? "Backup completo de datos" : "Full data backup"} pro proHighlight />
             <FeatureRow label={lang === "es" ? "Soporte prioritario" : "Priority support"} pro proHighlight />
 
