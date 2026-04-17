@@ -644,8 +644,8 @@ export default function ClinicalSummary() {
               <th className="font-normal text-left p-0">
                 <div className="clinical-print-header-row flex items-center justify-between pb-2 mb-3 border-b border-muted-foreground/30">
                   <div className="flex items-center gap-2">
-                    <img src="/favicon-48x48.png" alt="Mi Salud" className="h-5 w-5 rounded object-contain" />
-                    <span className="text-xs font-medium">Mi Salud — {t.clinicalSummary.title}</span>
+                    <img src="/favicon-48x48.png" alt="My Health Hub" className="h-5 w-5 rounded object-contain" />
+                    <span className="text-xs font-medium">My Health Hub — {t.clinicalSummary.title}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">{fullName} · {todayFormatted}</span>
                 </div>

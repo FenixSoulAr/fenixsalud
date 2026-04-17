@@ -24,7 +24,7 @@ export function AndroidBackHandler() {
     <AlertDialog open={showExitDialog} onOpenChange={(open) => { if (!open) cancelExit(); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>¿Salir de Mi Salud?</AlertDialogTitle>
+          <AlertDialogTitle>¿Salir de My Health Hub?</AlertDialogTitle>
           <AlertDialogDescription>
             Vas a salir de la aplicación. ¿Querés continuar?
           </AlertDialogDescription>

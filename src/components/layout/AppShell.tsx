@@ -77,7 +77,7 @@ export function AppShell({ children }: AppShellProps) {
             <Link to="/" className="flex items-center gap-3">
               <img 
                 src="/favicon-96x96.png" 
-                alt="Mi Salud" 
+                alt="My Health Hub" 
                 className="h-10 w-10 rounded-xl object-contain"
               />
               <span className="text-xl font-semibold text-sidebar-foreground tracking-tight">
@@ -172,7 +172,7 @@ export function AppShell({ children }: AppShellProps) {
             <Link to="/" className="flex items-center gap-2 min-w-0">
               <img 
                 src="/favicon-96x96.png" 
-                alt="Mi Salud" 
+                alt="My Health Hub" 
                 className="h-8 w-8 flex-shrink-0 rounded-lg object-contain"
               />
               <span className="text-base font-semibold tracking-tight whitespace-nowrap">{t.appName}</span>

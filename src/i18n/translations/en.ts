@@ -630,7 +630,7 @@ export interface Translations {
 }
 
 export const en: Translations = {
-  appName: "My Health",
+  appName: "My Health Hub",
   // Navigation
   nav: {
     dashboard: "Dashboard",
@@ -652,10 +652,10 @@ export const en: Translations = {
   // About
   about: {
     title: "About this app",
-    subtitle: "Learn more about My Health",
+    subtitle: "Learn more about My Health Hub",
     version: "Version 1.0.0",
     betaStatus: "Beta",
-    description: "My Health is your personal health companion. Track appointments, medications, tests, and more—all in one place. Designed to help you stay organized and informed about your health journey.",
+    description: "My Health Hub is your personal health center. Track appointments, medications, tests, and more—all in one place. Designed to help you stay organized and informed about your health journey.",
     privacyTitle: "Your privacy matters",
     privacyDescription: "Your health data stays secure and private. Only you control who can access your information.",
     easyTitle: "Simple and intuitive",
@@ -668,10 +668,10 @@ export const en: Translations = {
     title: "Contact",
     subtitle: "We'd love to hear from you",
     feedbackTitle: "Share your feedback",
-    feedbackMessage: "Have a suggestion, found a bug, or just want to say hello? We appreciate all feedback and use it to make My Health better for everyone.",
+    feedbackMessage: "Have a suggestion, found a bug, or just want to say hello? We appreciate all feedback and use it to make My Health Hub better for everyone.",
     sendEmail: "Send email",
     emailNote: "Opens your email app to send us a message.",
-    emailSubject: "My Health App Feedback",
+    emailSubject: "My Health Hub App Feedback",
     emailBody: "Hello,\n\nI'd like to share the following feedback:\n\n",
   },
   
@@ -1180,7 +1180,7 @@ export const en: Translations = {
     signIn: "Sign In",
     signUp: "Sign Up",
     welcomeBack: "Welcome back",
-    signInSubtitle: "Sign in to your My Health account",
+    signInSubtitle: "Sign in to your My Health Hub account",
     createAccount: "Create your account",
     signUpSubtitle: "Start tracking your health journey",
     email: "Email",

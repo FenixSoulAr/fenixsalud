@@ -18,15 +18,15 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         {/* Logo */}
         <img
           src="/favicon-96x96.png"
-          alt="Mi Salud"
+          alt="My Health Hub"
           className="h-20 w-20 rounded-2xl object-contain mx-auto"
         />
 
         {/* Title & subtitle */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-foreground">Mi Salud</h1>
+          <h1 className="text-2xl font-semibold text-foreground">My Health Hub</h1>
           <p className="text-muted-foreground text-base">
-            Tu centro de salud personal y familiar.
+            Mi centro de salud personal.
           </p>
         </div>
 
