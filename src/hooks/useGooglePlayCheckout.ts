@@ -162,7 +162,7 @@ export function useGooglePlayCheckout() {
     pro_yearly: "pro_anual",
   };
 
-  async function startGooglePlayPurchase(planCode: string = "plus_monthly") {
+  async function startGooglePlayPurchase(planCode: string = "plus_monthly", offerId?: string) {
     const gplayProductId = PLAN_TO_GPLAY[planCode] ?? planCode;
     setLoading(true);
     try {
@@ -190,7 +190,7 @@ export function useGooglePlayCheckout() {
         );
       }
 
-      const offer = product.getOffer();
+      const offer = (offerId ? product.getOffer(offerId) : null) ?? product.getOffer();
       if (!offer) {
         throw new Error(
           lang === "es"
