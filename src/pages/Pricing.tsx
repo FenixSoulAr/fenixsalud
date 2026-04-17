@@ -245,14 +245,14 @@ export default function Pricing() {
               </th>
               {/* PRO */}
               <th className="pb-4 px-2 align-bottom">
-                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[140px] flex flex-col">
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[160px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
                   <p className="text-2xl font-bold text-foreground">{proPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
-                  <p className="text-[10px] leading-tight font-medium text-primary mt-2 px-0.5">
+                  <p className="text-[11px] leading-snug font-medium text-primary mt-2 px-1 break-words">
                     {lang === "es" ? "Coordinación y gestión avanzada" : "Advanced coordination & management"}
                   </p>
-                  <p className="text-[10px] leading-tight text-muted-foreground mt-1 px-0.5">
+                  <p className="text-[11px] leading-snug text-muted-foreground mt-1 px-1 break-words">
                     {lang === "es" ? "Ideal para gestión compartida, agenda coordinada y mayor control" : "Ideal for shared management, coordinated agenda & more control"}
                   </p>
                 </div>
