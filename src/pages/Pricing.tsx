@@ -217,7 +217,7 @@ export default function Pricing() {
                   <p className="text-sm font-semibold text-foreground mb-1">Free</p>
                   <p className="text-2xl font-bold text-foreground">$0</p>
                   <p className="text-xs text-muted-foreground">{lang === "es" ? "para siempre" : "forever"}</p>
-                  <p className="text-[11px] leading-snug text-muted-foreground mt-2 px-1 break-words">
+                  <p className="hidden sm:block text-[11px] leading-snug text-muted-foreground mt-2 px-1 break-words">
                     {lang === "es" ? "Para empezar a organizarte" : "Start organizing"}
                   </p>
                 </div>
@@ -237,7 +237,7 @@ export default function Pricing() {
                   {isAndroidNative && isFree && !isYearly && (
                     <p className="text-xs font-medium text-primary mt-0.5">50% off · primeros 2 meses</p>
                   )}
-                  <p className="text-[11px] leading-snug text-muted-foreground mt-2 px-1 break-words">
+                  <p className="hidden sm:block text-[11px] leading-snug text-muted-foreground mt-2 px-1 break-words">
                     {lang === "es" ? "Tu salud, compartida" : "Your health, shared"}
                   </p>
                 </div>
@@ -248,10 +248,10 @@ export default function Pricing() {
                   <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
                   <p className="text-2xl font-bold text-foreground">{proPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
-                  <p className="text-xs font-semibold text-primary mt-2 px-1">
+                  <p className="hidden sm:block text-xs font-semibold text-primary mt-2 px-1">
                     {lang === "es" ? "Para toda la familia" : "For the whole family"}
                   </p>
-                  <p className="text-[11px] leading-snug text-muted-foreground mt-1 px-1 break-words">
+                  <p className="hidden sm:block text-[11px] leading-snug text-muted-foreground mt-1 px-1 break-words">
                     {lang === "es" ? "Gestión familiar completa" : "Complete family management"}
                   </p>
                 </div>
