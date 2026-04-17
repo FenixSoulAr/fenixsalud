@@ -253,7 +253,7 @@ export default function Pricing() {
                     {lang === "es" ? "Coordinación y gestión avanzada" : "Advanced coordination & management"}
                   </p>
                   <p className="text-[10px] leading-tight text-muted-foreground mt-1 px-0.5">
-                    {lang === "es" ? "Mayor control para gestión compartida" : "More control for shared management"}
+                    {lang === "es" ? "Ideal para gestión compartida, agenda coordinada y mayor control" : "Ideal for shared management, coordinated agenda & more control"}
                   </p>
                 </div>
               </th>
