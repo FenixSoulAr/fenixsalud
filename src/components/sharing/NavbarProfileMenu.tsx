@@ -152,7 +152,7 @@ export function NavbarProfileMenu() {
               const isSelected = profile.id === activeProfileId;
               const isFamily = profile.user_id === null;
               const displayName = profile.full_name || (profile.is_primary
-                ? (lang === "es" ? "Mi Salud" : "My Health")
+                ? (lang === "es" ? "Mi perfil" : "My profile")
                 : (lang === "es" ? "Sin nombre" : "Unnamed"));
 
               return (
