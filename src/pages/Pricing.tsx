@@ -139,8 +139,8 @@ export default function Pricing() {
         monthlyPrice:"$7",
         yearlyPrice: "$70",
         description: lang === "es"
-          ? "Para quienes necesitan compartir y exportar"
-          : "Share records and export summaries",
+          ? "Compart\u00ED tu salud con quienes necesit\u00E1s"
+          : "Share your health with those you need",
         features: [
           { text: lang === "es" ? "1 perfil personal"                    : "1 personal profile",              ok: true  },
           { text: lang === "es" ? "Hasta 100 archivos adjuntos"          : "Up to 100 attachments",           ok: true  },
@@ -158,8 +158,8 @@ export default function Pricing() {
         monthlyPrice:"$12",
         yearlyPrice: "$120",
         description: lang === "es"
-          ? "Para cuidar la salud de toda tu familia"
-          : "Full family health management",
+          ? "Gestion\u00E1 la salud de toda tu familia"
+          : "Manage your whole family's health",
         features: [
           { text: lang === "es" ? "Hasta 5 perfiles"                    : "Up to 5 profiles",                ok: true },
           { text: lang === "es" ? "Hasta 200 archivos adjuntos"         : "Up to 200 attachments",           ok: true },
@@ -238,75 +238,47 @@ export default function Pricing() {
                     <p className="text-xs font-medium text-primary mt-0.5">50% off · primeros 2 meses</p>
                   )}
                   <p className="text-[11px] leading-snug text-muted-foreground mt-2 px-1 break-words">
-                    {lang === "es" ? "Organización personal y familiar" : "Personal & family organization"}
+                    {lang === "es" ? "Tu salud, compartida" : "Your health, shared"}
                   </p>
                 </div>
               </th>
               {/* PRO */}
               <th className="pb-4 px-2 align-bottom">
-                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-4 text-center min-h-[160px] flex flex-col justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
-                    <p className="text-2xl font-bold text-foreground">{proPrice}</p>
-                    <p className="text-xs text-muted-foreground">{periodSuffix}</p>
-                  </div>
-                  <div className="mt-3 space-y-1.5">
-                    <p className="text-xs font-semibold text-primary px-1">
-                      {lang === "es" ? "Coordinación y gestión avanzada" : "Advanced coordination & management"}
-                    </p>
-                    <p className="text-[11px] leading-relaxed text-muted-foreground px-1">
-                      {lang === "es" ? "Ideal para gestión compartida, agenda coordinada y mayor control" : "Ideal for shared management, coordinated agenda & more control"}
-                    </p>
-                  </div>
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[160px] flex flex-col">
+                  <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
+                  <p className="text-2xl font-bold text-foreground">{proPrice}</p>
+                  <p className="text-xs text-muted-foreground">{periodSuffix}</p>
+                  <p className="text-xs font-semibold text-primary mt-2 px-1">
+                    {lang === "es" ? "Para toda la familia" : "For the whole family"}
+                  </p>
+                  <p className="text-[11px] leading-snug text-muted-foreground mt-1 px-1 break-words">
+                    {lang === "es" ? "Gestión familiar completa" : "Complete family management"}
+                  </p>
                 </div>
               </th>
             </tr>
           </thead>
 
           <tbody>
-            {/* ── SECCIÓN: Perfiles y archivos ── */}
-            <SectionRow label={lang === "es" ? "Perfiles y archivos" : "Profiles & files"} />
-            <FeatureRow label={lang === "es" ? "Perfiles de pacientes" : "Patient profiles"} free="1" plus="1" pro={lang === "es" ? "Hasta 5" : "Up to 5"} proHighlight />
-            <FeatureRow label={lang === "es" ? "Archivos adjuntos" : "Attachments"} free="10" plus="100" pro="200" plusHighlight proHighlight />
-
-            {/* ── SECCIÓN: Funcionalidades ── */}
-            <SectionRow label={lang === "es" ? "Funcionalidades" : "Features"} />
+            {/* Tu información de salud */}
+            <SectionRow label={lang === "es" ? "Tu información de salud" : "Your health information"} />
             <FeatureRow label={lang === "es" ? "Citas, medicación, estudios, diagnósticos" : "Appointments, medications, tests, diagnoses"} free plus pro />
             <FeatureRow label={lang === "es" ? "Médicos e instituciones" : "Doctors & institutions"} free plus pro />
             <FeatureRow label={lang === "es" ? "Cirugías, hospitalizaciones, vacunas" : "Surgeries, hospitalizations, vaccines"} plus pro />
+            <FeatureRow label={lang === "es" ? "Archivos adjuntos" : "Attachments"} free="10" plus="100" pro="200" plusHighlight proHighlight />
             <FeatureRow label={lang === "es" ? "Exportar resumen clínico PDF" : "Export clinical summary PDF"} plus pro />
 
-            {/* ── SECCIÓN: Compartir y colaborar ── */}
-            <SectionRow label={lang === "es" ? "Compartir y colaborar" : "Sharing & collaboration"} />
-            <FeatureRow label={lang === "es" ? "Personas con acceso compartido" : "Shared access"} plus="1" pro={lang === "es" ? "Múltiples" : "Multiple"} plusHighlight proHighlight />
-            <FeatureRow label={lang === "es" ? "Roles (colaborador / solo lectura)" : "Roles (viewer, contributor)"} plus pro />
+            {/* Compartir mi perfil */}
+            <SectionRow label={lang === "es" ? "Compartir mi perfil" : "Share my profile"} />
+            <FeatureRow label={lang === "es" ? "Compartir mi perfil con otros" : "Share my profile with others"} plus={lang === "es" ? "Hasta 2 personas" : "Up to 2 people"} pro={lang === "es" ? "Hasta 2 personas" : "Up to 2 people"} plusHighlight proHighlight />
+            <FeatureRow label={lang === "es" ? "Nivel de acceso (solo lectura / colaborador)" : "Access level (read-only / collaborator)"} plus pro />
 
-            {/* ── SECCIÓN: Coordinación y gestión avanzada (diferencial Pro) ── */}
-            <SectionRow label={lang === "es" ? "Coordinación y gestión avanzada" : "Advanced coordination & management"} />
-            <FeatureRow
-              label={lang === "es" ? "Agenda de coordinación compartida" : "Shared coordination agenda"}
-              plus={lang === "es" ? "Básico" : "Basic"}
-              pro={lang === "es" ? "Incluido" : "Included"}
-              proHighlight
-            />
-            <FeatureRow
-              label={lang === "es" ? "Integración con calendario" : "Calendar integration"}
-              pro={lang === "es" ? "Incluido" : "Included"}
-              proHighlight
-            />
-            <FeatureRow
-              label={lang === "es" ? "Gestión compartida" : "Shared management"}
-              plus={lang === "es" ? "Básico" : "Basic"}
-              pro={lang === "es" ? "Avanzada" : "Advanced"}
-              proHighlight
-            />
-            <FeatureRow
-              label={lang === "es" ? "Permisos" : "Permissions"}
-              plus={lang === "es" ? "Básico" : "Basic"}
-              pro={lang === "es" ? "Avanzados" : "Advanced"}
-              proHighlight
-            />
-            <FeatureRow label={lang === "es" ? "Backup completo de datos" : "Full data backup"} pro proHighlight />
+            {/* Gestionar perfiles de familiares */}
+            <SectionRow label={lang === "es" ? "Gestionar perfiles de familiares" : "Manage family profiles"} />
+            <FeatureRow label={lang === "es" ? "Perfiles adicionales de familiares" : "Additional family profiles"} pro={lang === "es" ? "Hasta 4 adicionales" : "Up to 4 additional"} proHighlight />
+            <FeatureRow label={lang === "es" ? "Backup completo de datos" : "Full data backup"} pro />
+            <FeatureRow label={lang === "es" ? "Alertas y recordatorios" : "Alerts & reminders"} pro={lang === "es" ? "Próximamente" : "Coming soon"} proHighlight />
+            <FeatureRow label={lang === "es" ? "Integración con calendario" : "Calendar integration"} pro={lang === "es" ? "Próximamente" : "Coming soon"} proHighlight />
 
             {/* ── FILA CTAs ── */}
             <tr>
