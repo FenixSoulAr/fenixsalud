@@ -214,10 +214,13 @@ export default function Pricing() {
               <th />
               {/* FREE */}
               <th className="pb-4 px-2 align-bottom">
-                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center">
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[140px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Free</p>
                   <p className="text-2xl font-bold text-foreground">$0</p>
                   <p className="text-xs text-muted-foreground">{lang === "es" ? "para siempre" : "forever"}</p>
+                  <p className="text-[10px] leading-tight text-muted-foreground mt-2 px-0.5">
+                    {lang === "es" ? "Para empezar a organizarte" : "Start organizing"}
+                  </p>
                 </div>
               </th>
               {/* PLUS */}
@@ -227,7 +230,7 @@ export default function Pricing() {
                     {lang === "es" ? "Más popular" : "Most popular"}
                   </Badge>
                 </div>
-                <div className="rounded-t-xl border-2 border-b-0 border-primary bg-card p-3 text-center">
+                <div className="rounded-t-xl border-2 border-b-0 border-primary bg-card p-3 text-center min-h-[140px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Plus</p>
                   <p className="text-2xl font-bold text-foreground">{plusPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
@@ -235,14 +238,23 @@ export default function Pricing() {
                   {isAndroidNative && isFree && !isYearly && (
                     <p className="text-xs font-medium text-primary mt-0.5">50% off · primeros 2 meses</p>
                   )}
+                  <p className="text-[10px] leading-tight text-muted-foreground mt-2 px-0.5">
+                    {lang === "es" ? "Organización personal y familiar" : "Personal & family organization"}
+                  </p>
                 </div>
               </th>
               {/* PRO */}
               <th className="pb-4 px-2 align-bottom">
-                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center">
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[140px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
                   <p className="text-2xl font-bold text-foreground">{proPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
+                  <p className="text-[10px] leading-tight font-medium text-primary mt-2 px-0.5">
+                    {lang === "es" ? "Coordinación y gestión avanzada" : "Advanced coordination & management"}
+                  </p>
+                  <p className="text-[10px] leading-tight text-muted-foreground mt-1 px-0.5">
+                    {lang === "es" ? "Mayor control para gestión compartida" : "More control for shared management"}
+                  </p>
                 </div>
               </th>
             </tr>
