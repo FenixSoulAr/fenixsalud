@@ -242,6 +242,9 @@ export default function Pricing() {
           {isYearly && (
             <p className="text-xs text-primary font-medium mb-1">{t.saveLabel}</p>
           )}
+          {isAndroidNative && isFree && !isYearly && (
+            <p className="text-xs font-medium text-primary mb-1">50% off · primeros 2 meses</p>
+          )}
           <p className="text-muted-foreground text-sm mb-5">{t.plans.plus.description}</p>
           <ul className="space-y-2.5 mb-6 flex-1">
             {t.plans.plus.features.map((f, i) => (
@@ -275,7 +278,7 @@ export default function Pricing() {
             </AlertDialog>
           ) : (
             <Button className="w-full mt-auto" onClick={() => {
-              isAndroidNative ? startGooglePlayPurchase(plusPlanCode) : startCheckout(plusPlanCode);
+              isAndroidNative ? startGooglePlayPurchase(plusPlanCode, (!isYearly && isFree) ? "plus-50off-3meses" : undefined) : startCheckout(plusPlanCode);
             }} disabled={checkoutLoading}>
               {checkoutLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               {t.upgradeToPlus}
