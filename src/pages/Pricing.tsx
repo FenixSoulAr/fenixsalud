@@ -166,7 +166,6 @@ export default function Pricing() {
           { text: lang === "es" ? "Todo lo del plan Plus"               : "Everything in Plus",              ok: true },
           { text: lang === "es" ? "Compartir con múltiples personas"    : "Share with multiple people",      ok: true },
           { text: lang === "es" ? "Backup completo de datos"            : "Full data backup",                ok: true },
-          { text: lang === "es" ? "Soporte prioritario"                 : "Priority support",                ok: true },
         ],
       },
     },
@@ -245,16 +244,20 @@ export default function Pricing() {
               </th>
               {/* PRO */}
               <th className="pb-4 px-2 align-bottom">
-                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[160px] flex flex-col">
-                  <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
-                  <p className="text-2xl font-bold text-foreground">{proPrice}</p>
-                  <p className="text-xs text-muted-foreground">{periodSuffix}</p>
-                  <p className="text-[11px] leading-snug font-medium text-primary mt-2 px-1 break-words">
-                    {lang === "es" ? "Coordinación y gestión avanzada" : "Advanced coordination & management"}
-                  </p>
-                  <p className="text-[11px] leading-snug text-muted-foreground mt-1 px-1 break-words">
-                    {lang === "es" ? "Ideal para gestión compartida, agenda coordinada y mayor control" : "Ideal for shared management, coordinated agenda & more control"}
-                  </p>
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-4 text-center min-h-[160px] flex flex-col justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
+                    <p className="text-2xl font-bold text-foreground">{proPrice}</p>
+                    <p className="text-xs text-muted-foreground">{periodSuffix}</p>
+                  </div>
+                  <div className="mt-3 space-y-1.5">
+                    <p className="text-xs font-semibold text-primary px-1">
+                      {lang === "es" ? "Coordinación y gestión avanzada" : "Advanced coordination & management"}
+                    </p>
+                    <p className="text-[11px] leading-relaxed text-muted-foreground px-1">
+                      {lang === "es" ? "Ideal para gestión compartida, agenda coordinada y mayor control" : "Ideal for shared management, coordinated agenda & more control"}
+                    </p>
+                  </div>
                 </div>
               </th>
             </tr>
