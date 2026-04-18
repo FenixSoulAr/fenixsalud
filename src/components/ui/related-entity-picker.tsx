@@ -118,6 +118,7 @@ export function RelatedEntityPicker({
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
     // Validate required fields
     for (const field of fields) {
