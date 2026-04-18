@@ -260,8 +260,8 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
       );
     }
 
-    // User has Stripe subscription — no override actions for Pro
-    if (user.effective_plan === "stripe_plus" || user.effective_plan === "stripe_pro") {
+    // User has active subscription — no override actions for Pro
+    if (["stripe_plus", "stripe_pro", "paypal_plus", "paypal_pro", "google_play_plus", "google_play_pro"].includes(user.effective_plan)) {
       return (
         <span className="text-xs text-muted-foreground">
           {lang === "es" ? "Suscripción activa" : "Active subscription"}
