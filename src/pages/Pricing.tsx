@@ -215,7 +215,7 @@ export default function Pricing() {
               <th className="pb-4 px-2 align-bottom">
                 <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[160px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Free</p>
-                  <p className="text-2xl font-bold text-foreground">$0</p>
+                  <p className="text-lg font-bold text-foreground">$0</p>
                   <p className="text-xs text-muted-foreground">{lang === "es" ? "para siempre" : "forever"}</p>
                   <p className="hidden sm:block text-[11px] leading-snug text-muted-foreground mt-2 px-1 break-words">
                     {lang === "es" ? "Para empezar a organizarte" : "Start organizing"}
@@ -231,7 +231,7 @@ export default function Pricing() {
                 </div>
                 <div className="rounded-t-xl border-2 border-b-0 border-primary bg-card p-3 text-center min-h-[160px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Plus</p>
-                  <p className="text-2xl font-bold text-foreground">{plusPrice}</p>
+                  <p className="text-lg font-bold text-foreground">{plusPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
                   {isYearly && <p className="text-xs font-medium text-primary mt-0.5">{t.saveLabel}</p>}
                   {isAndroidNative && isFree && !isYearly && (
@@ -246,7 +246,7 @@ export default function Pricing() {
               <th className="pb-4 px-2 align-bottom">
                 <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[160px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
-                  <p className="text-2xl font-bold text-foreground">{proPrice}</p>
+                  <p className="text-lg font-bold text-foreground">{proPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
                   <p className="hidden sm:block text-xs font-semibold text-primary mt-2 px-1">
                     {lang === "es" ? "Para toda la familia" : "For the whole family"}
