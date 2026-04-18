@@ -201,10 +201,10 @@ export default function Pricing() {
       <div className="overflow-x-auto max-w-4xl">
         <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
           <colgroup>
-            <col style={{ width: "44%" }} />
-            <col style={{ width: "18.6%" }} />
-            <col style={{ width: "18.6%" }} />
-            <col style={{ width: "18.6%" }} />
+            <col style={{ width: "36%" }} />
+            <col style={{ width: "21.3%" }} />
+            <col style={{ width: "21.3%" }} />
+            <col style={{ width: "21.3%" }} />
           </colgroup>
 
           {/* Cabecera de planes */}
@@ -213,7 +213,7 @@ export default function Pricing() {
               <th />
               {/* FREE */}
               <th className="pb-4 px-2 align-bottom">
-                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[160px] flex flex-col">
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-2 text-center min-h-[160px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Free</p>
                   <p className="text-lg font-bold text-foreground">$0</p>
                   <p className="text-xs text-muted-foreground">{lang === "es" ? "para siempre" : "forever"}</p>
@@ -225,11 +225,11 @@ export default function Pricing() {
               {/* PLUS */}
               <th className="pb-4 px-2 align-bottom relative">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                  <Badge className="bg-primary text-primary-foreground text-xs px-2 py-0.5 whitespace-nowrap">
+                  <Badge className="bg-primary text-primary-foreground text-[10px] px-2 py-0.5 whitespace-nowrap">
                     {lang === "es" ? "Más popular" : "Most popular"}
                   </Badge>
                 </div>
-                <div className="rounded-t-xl border-2 border-b-0 border-primary bg-card p-3 text-center min-h-[160px] flex flex-col">
+                <div className="rounded-t-xl border-2 border-b-0 border-primary bg-card p-2 text-center min-h-[160px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Plus</p>
                   <p className="text-lg font-bold text-foreground">{plusPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
@@ -244,7 +244,7 @@ export default function Pricing() {
               </th>
               {/* PRO */}
               <th className="pb-4 px-2 align-bottom">
-                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-3 text-center min-h-[160px] flex flex-col">
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-2 text-center min-h-[160px] flex flex-col">
                   <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
                   <p className="text-lg font-bold text-foreground">{proPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
