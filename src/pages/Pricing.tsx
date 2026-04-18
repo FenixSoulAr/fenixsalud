@@ -213,7 +213,7 @@ export default function Pricing() {
               <th />
               {/* FREE */}
               <th className="pb-4 px-2 align-bottom">
-                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-2 text-center min-h-[160px] flex flex-col">
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-2 text-center">
                   <p className="text-sm font-semibold text-foreground mb-1">Free</p>
                   <p className="text-lg font-bold text-foreground">$0</p>
                   <p className="text-xs text-muted-foreground">{lang === "es" ? "para siempre" : "forever"}</p>
@@ -229,7 +229,7 @@ export default function Pricing() {
                     {lang === "es" ? "Más popular" : "Most popular"}
                   </Badge>
                 </div>
-                <div className="rounded-t-xl border-2 border-b-0 border-primary bg-card p-2 text-center min-h-[160px] flex flex-col">
+                <div className="rounded-t-xl border-2 border-b-0 border-primary bg-card p-2 text-center">
                   <p className="text-sm font-semibold text-foreground mb-1">Plus</p>
                   <p className="text-lg font-bold text-foreground">{plusPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
@@ -244,7 +244,7 @@ export default function Pricing() {
               </th>
               {/* PRO */}
               <th className="pb-4 px-2 align-bottom">
-                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-2 text-center min-h-[160px] flex flex-col">
+                <div className="rounded-t-xl border border-b-0 border-border/60 bg-card p-2 text-center">
                   <p className="text-sm font-semibold text-foreground mb-1">Pro</p>
                   <p className="text-lg font-bold text-foreground">{proPrice}</p>
                   <p className="text-xs text-muted-foreground">{periodSuffix}</p>
@@ -289,7 +289,7 @@ export default function Pricing() {
                   {(isPlus || isPro) ? (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full text-xs" disabled={downgradeLoading}>{t.downgradeToFree}</Button>
+                        <Button variant="outline" size="sm" className="w-full text-xs" disabled={downgradeLoading}>{lang === "es" ? "Bajar a Free" : "Downgrade"}</Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>{t.confirmTitle}</AlertDialogTitle><AlertDialogDescription>{t.confirmDesc("Free")}</AlertDialogDescription></AlertDialogHeader>
@@ -309,7 +309,7 @@ export default function Pricing() {
                   ) : isPro ? (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full text-xs" disabled={downgradeLoading}>{t.scheduleDowngrade}</Button>
+                        <Button variant="outline" size="sm" className="w-full text-xs" disabled={downgradeLoading}>{lang === "es" ? "Cambiar" : "Switch"}</Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>{t.confirmTitle}</AlertDialogTitle><AlertDialogDescription>{t.confirmDesc("Plus")}</AlertDialogDescription></AlertDialogHeader>
