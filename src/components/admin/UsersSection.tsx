@@ -172,6 +172,34 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
             <CreditCard className="h-3 w-3 mr-1" /> Plus (Stripe)
           </Badge>
         );
+      case "paypal_pro":
+        return (
+          <Badge className="bg-violet-600 hover:bg-violet-600/90 text-white">
+            <CreditCard className="h-3 w-3 mr-1" />
+            Pro (PayPal)
+          </Badge>
+        );
+      case "paypal_plus":
+        return (
+          <Badge className="bg-accent hover:bg-accent/90">
+            <CreditCard className="h-3 w-3 mr-1" />
+            Plus (PayPal)
+          </Badge>
+        );
+      case "google_play_pro":
+        return (
+          <Badge className="bg-violet-600 hover:bg-violet-600/90 text-white">
+            <CreditCard className="h-3 w-3 mr-1" />
+            Pro (Google Play)
+          </Badge>
+        );
+      case "google_play_plus":
+        return (
+          <Badge className="bg-accent hover:bg-accent/90">
+            <CreditCard className="h-3 w-3 mr-1" />
+            Plus (Google Play)
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">Free</Badge>;
     }
@@ -232,8 +260,8 @@ export function UsersSection({ users, loading, onRefresh }: UsersSectionProps) {
       );
     }
 
-    // User has Stripe subscription — no override actions for Pro
-    if (user.effective_plan === "stripe_plus" || user.effective_plan === "stripe_pro") {
+    // User has active subscription — no override actions for Pro
+    if (["stripe_plus", "stripe_pro", "paypal_plus", "paypal_pro", "google_play_plus", "google_play_pro"].includes(user.effective_plan)) {
       return (
         <span className="text-xs text-muted-foreground">
           {lang === "es" ? "Suscripción activa" : "Active subscription"}
