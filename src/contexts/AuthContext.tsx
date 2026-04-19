@@ -8,6 +8,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  isRecoveryMode: boolean;
+  clearRecoveryMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -23,8 +26,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
+      (event, newSession) => {
         if (!mounted) return;
+        if (event === "PASSWORD_RECOVERY") {
+          setIsRecoveryMode(true);
+        }
         setSession(newSession);
         setUser(newSession?.user ?? null);
         setLoading(false);
@@ -94,8 +100,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const clearRecoveryMode = () => setIsRecoveryMode(false);
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signOut, isRecoveryMode, clearRecoveryMode }}>
       {children}
     </AuthContext.Provider>
   );

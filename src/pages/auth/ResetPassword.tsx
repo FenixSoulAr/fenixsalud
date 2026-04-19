@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -17,23 +18,14 @@ export default function ResetPassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const lang = getLanguage();
+  const { isRecoveryMode, clearRecoveryMode } = useAuth();
 
   useEffect(() => {
-    // Listen for PASSWORD_RECOVERY event from the auth redirect
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setIsRecovery(true);
-      }
-    });
-
-    // Also check hash for type=recovery (fallback)
-    const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
+    const hashHasRecovery = window.location.hash.includes("type=recovery");
+    if (isRecoveryMode || hashHasRecovery) {
       setIsRecovery(true);
     }
-
-    return () => subscription.unsubscribe();
-  }, []);
+  }, [isRecoveryMode]);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +67,7 @@ export default function ResetPassword() {
           ? "Contraseña actualizada correctamente."
           : "Password updated successfully."
       );
+      clearRecoveryMode();
       await supabase.auth.signOut();
       navigate("/auth/sign-in", { replace: true });
     } catch (error: any) {
