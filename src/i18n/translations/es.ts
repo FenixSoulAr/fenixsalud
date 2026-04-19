@@ -24,8 +24,8 @@ export const es: Translations = {
   about: {
     title: "Acerca de esta app",
     subtitle: "Conocé más sobre My Health Hub",
-    version: "Versión 1.0.0",
-    betaStatus: "Beta",
+    version: "Versión 1.0.9",
+    betaStatus: "Alpha",
     description: "My Health Hub es tu centro de salud personal. Registrá citas, medicación, estudios y más, todo en un solo lugar. Diseñada para ayudarte a mantenerte organizado e informado sobre tu salud.",
     privacyTitle: "Tu privacidad importa",
     privacyDescription: "Tus datos de salud se mantienen seguros y privados. Solo vos controlás quién puede acceder a tu información.",
