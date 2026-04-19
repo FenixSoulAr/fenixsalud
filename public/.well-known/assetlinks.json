@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.fenixsoular.myhealthhub",
+      "sha256_cert_fingerprints": [
+        "61:10:E4:8C:AA:90:EA:83:FD:84:CB:BA:47:12:27:4A:4C:95:5F:27:6B:0F:48:D1:C9:AF:27:C5:78:52:DA:7A"
+      ]
+    }
+  }
+]
