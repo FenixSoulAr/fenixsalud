@@ -8,6 +8,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  isRecoveryMode: boolean;
+  clearRecoveryMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
