@@ -10,6 +10,7 @@ import { UsersSection } from "@/components/admin/UsersSection";
 import { PromoCodesSection } from "@/components/admin/PromoCodesSection";
 import { ProfileAuditSection } from "@/components/admin/ProfileAuditSection";
 import { RolesSection } from "@/components/admin/RolesSection";
+import { MetricsSection } from "@/components/admin/MetricsSection";
 
 interface AdminUser {
   user_id: string;
@@ -120,8 +121,9 @@ export default function Admin() {
         description={lang === "es" ? "Gestión de usuarios y planes" : "User and plan management"}
       />
 
-      <Tabs defaultValue="users" className="space-y-4">
+      <Tabs defaultValue="metrics" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="metrics">{lang === "es" ? "Métricas" : "Metrics"}</TabsTrigger>
           <TabsTrigger value="users">{lang === "es" ? "Usuarios" : "Users"}</TabsTrigger>
           <TabsTrigger value="promo">{lang === "es" ? "Códigos Promo" : "Promo Codes"}</TabsTrigger>
           <TabsTrigger value="profile-audit">{lang === "es" ? "Auditoría" : "Audit"}</TabsTrigger>
@@ -129,6 +131,10 @@ export default function Admin() {
             <TabsTrigger value="roles">{lang === "es" ? "Roles" : "Roles"}</TabsTrigger>
           )}
         </TabsList>
+
+        <TabsContent value="metrics" className="space-y-4">
+          <MetricsSection users={users} loading={usersLoading} />
+        </TabsContent>
 
         <TabsContent value="users" className="space-y-4">
           <UsersSection users={users} loading={usersLoading} onRefresh={fetchUsers} />
