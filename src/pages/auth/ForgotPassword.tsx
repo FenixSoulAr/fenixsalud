@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
+import { Capacitor } from "@capacitor/core";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -20,8 +21,11 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
+      const redirectTo = Capacitor.isNativePlatform()
+        ? "myhealthhub://auth/reset-password"
+        : `${window.location.origin}/reset-password`;
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo,
       });
       if (error) throw error;
       setSent(true);
