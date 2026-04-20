@@ -51,7 +51,7 @@ export function useGooglePlayCheckout() {
   /** Verify a purchase token with our backend */
   const verifyGooglePurchase = useCallback(
     async (purchaseToken: string, productId: string) => {
-      console.log("[GooglePlay] Verifying purchase:", { productId });
+      
       const { data, error } = await supabase.functions.invoke(
         "billing-google-verify",
         { body: { purchaseToken, productId } }
@@ -91,14 +91,11 @@ export function useGooglePlayCheckout() {
     const store = getStore();
 
     if (!store || !CdvPurchase) {
-      console.warn(
-        "[GooglePlay] cordova-plugin-purchase not available — running in dev/web?"
-      );
       return;
     }
 
     // Enable verbose logging in dev
-    store.verbosity = CdvPurchase.LogLevel.DEBUG;
+    store.verbosity = CdvPurchase.LogLevel.WARNING;
 
     // Register all subscription products
     store.register(
@@ -146,7 +143,6 @@ export function useGooglePlayCheckout() {
       ])
       .then(() => {
         storeReady.current = true;
-        console.log("[GooglePlay] Store initialized successfully");
       })
       .catch((err: any) => {
         console.error("[GooglePlay] Store initialization failed:", err);
@@ -164,7 +160,6 @@ export function useGooglePlayCheckout() {
 
   async function startGooglePlayPurchase(planCode: string = "plus_monthly", offerId?: string) {
     if (!getIsAndroidNative()) {
-      console.warn("[GooglePlay] startGooglePlayPurchase called on non-Android platform — aborting.");
       return;
     }
     const gplayProductId = PLAN_TO_GPLAY[planCode] ?? planCode;
@@ -175,7 +170,6 @@ export function useGooglePlayCheckout() {
 
       // ── Mock fallback for dev/emulator without Play Store ──
       if (!store || !storeReady.current || !CdvPurchase) {
-        console.warn("[GooglePlay] Store not available — mock fallback");
         toast.info(
           lang === "es"
             ? "Google Play Store no disponible en este entorno."
@@ -203,7 +197,6 @@ export function useGooglePlayCheckout() {
         );
       }
 
-      console.log("[GooglePlay] Ordering offer for:", gplayProductId);
       const orderResult = await store.order(offer);
 
       // order() returns an error object if the purchase failed/was cancelled

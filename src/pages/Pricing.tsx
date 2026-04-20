@@ -66,14 +66,6 @@ export default function Pricing() {
     setIsAndroidNative(getIsAndroidNative());
   }, []);
 
-  // DEBUG: platform detection — remove after confirming
-  useEffect(() => {
-    console.log("[Pricing] Platform detection:", {
-      isAndroidNative,
-      capacitorPlatform: (window as any).Capacitor?.getPlatform?.() ?? "N/A",
-      capacitorIsNative: (window as any).Capacitor?.isNativePlatform?.() ?? false,
-    });
-  }, [isAndroidNative]);
 
   // Persist toggle via URL param ?billing=monthly|yearly
   const billingParam = searchParams.get("billing");
