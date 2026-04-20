@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureSubscriptionRow } from "@/lib/subscriptions";
+import { App } from "@capacitor/app";
+import { getIsAndroidNative } from "@/utils/platform";
 
 interface AuthContextType {
   user: User | null;
