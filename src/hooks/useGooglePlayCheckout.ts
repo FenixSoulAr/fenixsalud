@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { getLanguage } from "@/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { isAndroidNative } from "@/utils/platform";
+import { getIsAndroidNative } from "@/utils/platform";
 import { invalidateEntitlementsCache } from "./useEntitlements";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -84,7 +84,7 @@ export function useGooglePlayCheckout() {
 
   /** Initialize the CdvPurchase store (Android only, runs once) */
   useEffect(() => {
-    if (!isAndroidNative || initStarted.current) return;
+    if (!getIsAndroidNative() || initStarted.current) return;
     initStarted.current = true;
 
     const CdvPurchase = getCdvPurchase();
@@ -163,6 +163,10 @@ export function useGooglePlayCheckout() {
   };
 
   async function startGooglePlayPurchase(planCode: string = "plus_monthly", offerId?: string) {
+    if (!getIsAndroidNative()) {
+      console.warn("[GooglePlay] startGooglePlayPurchase called on non-Android platform — aborting.");
+      return;
+    }
     const gplayProductId = PLAN_TO_GPLAY[planCode] ?? planCode;
     setLoading(true);
     try {
