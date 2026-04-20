@@ -239,7 +239,7 @@ serve(async (req) => {
       }
 
       case "create_promo_code": {
-        const { code, type, value, durationType, durationValue, maxRedemptions, expiresAt, stripeCouponId } = params;
+        const { code, type, value, durationType, durationValue, maxRedemptions, expiresAt, stripeCouponId, planCode } = params;
         
         if (!code || !type) {
           return new Response(
@@ -275,6 +275,9 @@ serve(async (req) => {
             stripe_coupon_id: stripeCouponId || null,
             is_active: true,
             redeemed_count: 0,
+            plan_code: type === "internal_override"
+              ? (planCode === "pro" ? "pro" : "plus")
+              : "plus",
           })
           .select()
           .single();
@@ -461,6 +464,7 @@ serve(async (req) => {
               expires_at: expiresAt,
               notes: `Promo code: ${code}`,
               revoked_at: null,
+              plan_code: result.plan_code === "pro" ? "pro" : "plus",
             }, {
               onConflict: "user_id",
             })
