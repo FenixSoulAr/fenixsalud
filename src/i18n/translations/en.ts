@@ -1,3 +1,5 @@
+import { APP_VERSION } from "@/version";
+
 // Type for nested translation objects
 type TranslationValue = string | Record<string, string>;
 
@@ -653,7 +655,7 @@ export const en: Translations = {
   about: {
     title: "About this app",
     subtitle: "Learn more about My Health Hub",
-    version: "Version 1.0.9",
+    version: `Version ${APP_VERSION}`,
     betaStatus: "Alpha",
     description: "My Health Hub is your personal health center. Track appointments, medications, tests, and more—all in one place. Designed to help you stay organized and informed about your health journey.",
     privacyTitle: "Your privacy matters",
