@@ -24,4 +24,4 @@ export const isNative = isAndroidNative;
 export const platform = isAndroidNative ? "android" : "web";
 export const isIOSNative = false;
 
-console.log("[Platform] isAndroidNative:", isAndroidNative, "| Capacitor.getPlatform():", Capacitor.getPlatform());
+
