@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Tag, Plus, Loader2, Check, X, Percent, Gift, Pencil, Trash2 } from "lucide-react";
+import { Tag, Plus, Loader2, Check, X, Percent, Gift, Pencil, Trash2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +45,7 @@ interface PromoCode {
   stripe_coupon_id: string | null;
   created_at: string;
   last_used_at: string | null;
+  plan_code?: string | null;
 }
 
 interface PromoCodesSectionProps {
@@ -77,6 +78,7 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
   const [formMaxRedemptions, setFormMaxRedemptions] = useState("");
   const [formExpiresAt, setFormExpiresAt] = useState("");
   const [formStripeCouponId, setFormStripeCouponId] = useState("");
+  const [formPlanCode, setFormPlanCode] = useState<"plus" | "pro">("plus");
 
   // Form state for edit
   const [editDurationType, setEditDurationType] = useState<DurationType>("days");
@@ -93,6 +95,7 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
     setFormMaxRedemptions("");
     setFormExpiresAt("");
     setFormStripeCouponId("");
+    setFormPlanCode("plus");
   };
 
   const openEditDialog = (code: PromoCode) => {
@@ -127,6 +130,7 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
           maxRedemptions: formMaxRedemptions ? parseInt(formMaxRedemptions) : null,
           expiresAt: formExpiresAt || null,
           stripeCouponId: formType === "stripe_coupon" && formStripeCouponId ? formStripeCouponId : null,
+          planCode: formType === "internal_override" ? formPlanCode : undefined,
         },
       });
 
@@ -208,10 +212,16 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
 
   const getTypeBadge = (code: PromoCode) => {
     if (code.type === "internal_override") {
-      return (
+      const isPro = code.plan_code === "pro";
+      return isPro ? (
+        <Badge className="bg-violet-600 hover:bg-violet-600/90 text-white">
+          <Zap className="h-3 w-3 mr-1" />
+          {lang === "es" ? "Override Pro" : "Pro Override"}
+        </Badge>
+      ) : (
         <Badge className="bg-primary hover:bg-primary/90">
           <Gift className="h-3 w-3 mr-1" />
-          {lang === "es" ? "Override" : "Override"}
+          {lang === "es" ? "Override Plus" : "Plus Override"}
         </Badge>
       );
     }
@@ -301,7 +311,9 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
                         <TableCell>{getTypeBadge(code)}</TableCell>
                         <TableCell>
                           {code.type === "internal_override" ? (
-                            <span className="text-primary font-medium">100% Plus</span>
+                            <span className="text-primary font-medium">
+                              100% {code.plan_code === "pro" ? "Pro" : "Plus"}
+                            </span>
                           ) : (
                             `${code.value}%`
                           )}
@@ -398,7 +410,7 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="internal_override">
-                    {lang === "es" ? "Override Interno (100% Plus)" : "Internal Override (100% Plus)"}
+                    {lang === "es" ? "Override Interno (100%)" : "Internal Override (100%)"}
                   </SelectItem>
                   <SelectItem value="stripe_coupon">
                     {lang === "es" ? "Cupón Stripe (descuento %)" : "Stripe Coupon (% discount)"}
@@ -406,6 +418,21 @@ export function PromoCodesSection({ promoCodes, loading, onRefresh }: PromoCodes
                 </SelectContent>
               </Select>
             </div>
+
+            {formType === "internal_override" && (
+              <div className="space-y-2">
+                <Label>{lang === "es" ? "Plan a otorgar" : "Plan to grant"}</Label>
+                <Select value={formPlanCode} onValueChange={(v) => setFormPlanCode(v as "plus" | "pro")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="plus">Plus</SelectItem>
+                    <SelectItem value="pro">Pro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {formType === "stripe_coupon" && (
               <>
