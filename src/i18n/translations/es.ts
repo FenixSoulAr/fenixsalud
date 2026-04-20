@@ -1,4 +1,5 @@
 import type { Translations } from "./en";
+import { APP_VERSION } from "@/version";
 
 export const es: Translations = {
   appName: "My Health Hub",
@@ -24,7 +25,7 @@ export const es: Translations = {
   about: {
     title: "Acerca de esta app",
     subtitle: "Conocé más sobre My Health Hub",
-    version: "Versión 1.0.9",
+    version: `Versión ${APP_VERSION}`,
     betaStatus: "Alpha",
     description: "My Health Hub es tu centro de salud personal. Registrá citas, medicación, estudios y más, todo en un solo lugar. Diseñada para ayudarte a mantenerte organizado e informado sobre tu salud.",
     privacyTitle: "Tu privacidad importa",
