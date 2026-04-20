@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureSubscriptionRow } from "@/lib/subscriptions";
+import { App } from "@capacitor/app";
+import { getIsAndroidNative } from "@/utils/platform";
 
 interface AuthContextType {
   user: User | null;
@@ -84,6 +86,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       clearTimeout(watchdog);
       subscription.unsubscribe();
+    };
+  }, []);
+
+  // Handle custom URI scheme deep links on Android (e.g. password recovery)
+  useEffect(() => {
+    if (!getIsAndroidNative()) return;
+
+    const handleAppUrl = async (data: { url: string }) => {
+      const url = data.url;
+      if (!url.includes("myhealthhub://")) return;
+
+      const hashPart = url.includes("#") ? url.split("#")[1] : url.split("?")[1];
+      if (!hashPart) return;
+
+      const params = new URLSearchParams(hashPart);
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      const type = params.get("type");
+      const tokenHash = params.get("token_hash");
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (!error && type === "recovery") {
+          setIsRecoveryMode(true);
+        }
+        return;
+      }
+
+      if (tokenHash && type) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: type as any,
+        });
+        if (!error && type === "recovery") {
+          setIsRecoveryMode(true);
+        }
+      }
+    };
+
+    let listenerHandle: any;
+    App.addListener("appUrlOpen", handleAppUrl).then((handle) => {
+      listenerHandle = handle;
+    });
+
+    return () => {
+      listenerHandle?.remove();
     };
   }, []);
 
