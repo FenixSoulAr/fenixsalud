@@ -9,7 +9,7 @@ import { usePayPalCheckout } from "@/hooks/usePayPalCheckout";
 import { useDowngradePlan } from "@/hooks/useDowngradePlan";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useGooglePlayCheckout } from "@/hooks/useGooglePlayCheckout";
-import { isAndroidNative } from "@/utils/platform";
+import { isAndroidNative, getIsAndroidNative } from "@/utils/platform";
 import { BillingIntervalToggle, type BillingInterval } from "@/components/billing/BillingIntervalToggle";
 import { useSearchParams } from "react-router-dom";
 
@@ -61,6 +61,11 @@ export default function Pricing() {
   const lang = getLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const [isAndroidNative, setIsAndroidNative] = useState(false);
+  useEffect(() => {
+    setIsAndroidNative(getIsAndroidNative());
+  }, []);
+
   // DEBUG: platform detection — remove after confirming
   useEffect(() => {
     console.log("[Pricing] Platform detection:", {
@@ -68,7 +73,7 @@ export default function Pricing() {
       capacitorPlatform: (window as any).Capacitor?.getPlatform?.() ?? "N/A",
       capacitorIsNative: (window as any).Capacitor?.isNativePlatform?.() ?? false,
     });
-  }, []);
+  }, [isAndroidNative]);
 
   // Persist toggle via URL param ?billing=monthly|yearly
   const billingParam = searchParams.get("billing");
