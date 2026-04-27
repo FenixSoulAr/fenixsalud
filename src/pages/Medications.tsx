@@ -17,6 +17,7 @@ import { RelatedEntityPicker } from "@/components/ui/related-entity-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
+import { pwaTracking } from "@/utils/pwaTracking";
 import { useTranslations, getLanguage } from "@/i18n";
 
 export default function Medications() {
@@ -134,6 +135,7 @@ export default function Medications() {
       setDialogOpen(false);
       resetForm();
       toast.success(editingId ? t.toast.changesUpdated : t.toast.savedSuccess);
+      pwaTracking.markFirstAction();
       fetchData();
     } catch (err) {
       console.error("Unexpected error in handleSubmit:", err);

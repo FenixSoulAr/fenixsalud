@@ -18,6 +18,7 @@ import { RelatedEntityPicker } from "@/components/ui/related-entity-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
+import { pwaTracking } from "@/utils/pwaTracking";
 import { format } from "date-fns";
 import { parseDateOnly } from "@/lib/dateUtils";
 import { useTranslations, getLanguage } from "@/i18n";
