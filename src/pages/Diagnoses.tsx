@@ -144,6 +144,7 @@ export default function Diagnoses() {
       setDialogOpen(false);
       resetForm();
       toast.success(editingId ? t.toast.changesUpdated : t.toast.savedSuccess);
+      pwaTracking.markFirstAction();
       fetchData();
     } finally {
       setIsSaving(false);

@@ -668,4 +668,17 @@ export const es: Translations = {
     adminAccess: "Acceso Admin",
     adminAccessMessage: "Como administrador, tenés acceso completo a todas las funciones sin necesidad de código promo.",
   },
+  pwa: {
+    title: "Tenela siempre a mano",
+    description: "Instalá My Health Hub en tu pantalla de inicio para acceso rápido y uso sin abrir el navegador.",
+    cta: "Instalar app",
+    iosCta: "Cómo instalar en iPhone",
+    dismiss: "Cerrar",
+    ios: {
+      howTo: "Para instalar en iPhone:",
+      step1: "Tocá el botón Compartir",
+      step2: 'Seleccioná "Agregar a inicio"',
+      step3: 'Confirmá tocando "Agregar"',
+    },
+  },
 };

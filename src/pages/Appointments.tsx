@@ -170,6 +170,7 @@ export default function Appointments() {
       setDialogOpen(false);
       resetForm();
       toast.success(editingId ? t.toast.changesUpdated : t.toast.appointmentCreated);
+      pwaTracking.markFirstAction();
       fetchData();
     } finally {
       setIsSaving(false);

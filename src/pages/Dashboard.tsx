@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { OrientationBanner } from "@/components/onboarding/OrientationBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -162,6 +163,9 @@ export default function Dashboard() {
 
       {/* Orientation banner for new users */}
       {canEdit && <OrientationBanner hasAppointments={appointments.length > 0} />}
+
+      {/* PWA install prompt — auto-hides if conditions aren't met */}
+      <PWAInstallPrompt />
 
       {/* Error state with retry */}
       {dataError && (

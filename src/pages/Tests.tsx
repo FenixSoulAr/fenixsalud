@@ -149,6 +149,7 @@ export default function Tests() {
       setDialogOpen(false);
       resetForm();
       toast.success(editingId ? t.toast.changesUpdated : t.toast.testCreated);
+      pwaTracking.markFirstAction();
       fetchData();
     } finally {
       setIsSaving(false);
