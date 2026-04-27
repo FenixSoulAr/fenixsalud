@@ -629,6 +629,19 @@ export interface Translations {
     adminAccess: string;
     adminAccessMessage: string;
   };
+  pwa: {
+    title: string;
+    description: string;
+    cta: string;
+    iosCta: string;
+    dismiss: string;
+    ios: {
+      howTo: string;
+      step1: string;
+      step2: string;
+      step3: string;
+    };
+  };
 }
 
 export const en: Translations = {
@@ -1297,5 +1310,18 @@ export const en: Translations = {
     viewPlans: "View Plans",
     adminAccess: "Admin Access",
     adminAccessMessage: "As an admin, you have full access to all features without needing a promo code.",
+  },
+  pwa: {
+    title: "Keep it always handy",
+    description: "Install My Health Hub on your home screen for quick access without opening the browser.",
+    cta: "Install app",
+    iosCta: "How to install on iPhone",
+    dismiss: "Close",
+    ios: {
+      howTo: "To install on iPhone:",
+      step1: "Tap the Share button",
+      step2: 'Select "Add to Home Screen"',
+      step3: 'Confirm by tapping "Add"',
+    },
   },
 };

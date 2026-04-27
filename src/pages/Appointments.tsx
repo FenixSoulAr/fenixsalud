@@ -18,6 +18,7 @@ import { RelatedEntityPicker } from "@/components/ui/related-entity-picker";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { pwaTracking } from "@/utils/pwaTracking";
 import { useTimezone } from "@/hooks/useTimezone";
 import { toast } from "sonner";
 import { isPast } from "date-fns";
@@ -170,6 +171,7 @@ export default function Appointments() {
       setDialogOpen(false);
       resetForm();
       toast.success(editingId ? t.toast.changesUpdated : t.toast.appointmentCreated);
+      pwaTracking.markFirstAction();
       fetchData();
     } finally {
       setIsSaving(false);

@@ -16,6 +16,7 @@ import { LoadingPage } from "@/components/ui/loading-spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { toast } from "sonner";
+import { pwaTracking } from "@/utils/pwaTracking";
 import { useTranslations } from "@/i18n";
 import { format } from "date-fns";
 import { parseDateOnly } from "@/lib/dateUtils";
@@ -144,6 +145,7 @@ export default function Diagnoses() {
       setDialogOpen(false);
       resetForm();
       toast.success(editingId ? t.toast.changesUpdated : t.toast.savedSuccess);
+      pwaTracking.markFirstAction();
       fetchData();
     } finally {
       setIsSaving(false);
