@@ -126,6 +126,24 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const navigate = useNavigate();
   const lang = getLanguage();
+  const viewer = useImageViewer();
+
+  const imageAttachments = attachments.filter((a) =>
+    isImageAttachment(a.file_name, a.mime_type)
+  );
+
+  async function handleImageClick(att: FileAttachment) {
+    const resolved: ViewerImage[] = await Promise.all(
+      imageAttachments.map(async (img) => {
+        const url = await getSignedUrl(img.file_url);
+        return { url: url ?? "", filename: img.file_name };
+      })
+    );
+    const usable = resolved.filter((r) => r.url);
+    if (usable.length === 0) return;
+    const startIndex = imageAttachments.findIndex((i) => i.id === att.id);
+    viewer.openViewer(usable, startIndex >= 0 ? startIndex : 0);
+  }
 
   const usagePercent = maxAttachments > 0 ? Math.min(100, (userAttachmentCount / maxAttachments) * 100) : 0;
   const nearLimit = usagePercent >= 80;
@@ -234,6 +252,7 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
               canDelete={canDelete}
               onDelete={() => setDeleteId(attachment.id)}
               getSignedUrl={getSignedUrl}
+              onImageClick={handleImageClick}
             />
           ))}
         </div>
