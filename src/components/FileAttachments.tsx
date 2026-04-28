@@ -7,6 +7,9 @@ import { useFileAttachments } from "@/hooks/useFileAttachments";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { AttachmentDownloadButton } from "@/components/AttachmentDownloadButton";
 import { MobileFileUploader } from "@/components/MobileFileUploader";
+import { ImageViewer } from "@/components/ImageViewer";
+import { useImageViewer, type ViewerImage } from "@/hooks/useImageViewer";
+import { isImageAttachment } from "@/utils/attachmentHelpers";
 import { format } from "date-fns";
 import { getLanguage } from "@/i18n";
 import { useNavigate } from "react-router-dom";
@@ -32,6 +35,7 @@ interface AttachmentRowProps {
   canDelete: boolean;
   onDelete: () => void;
   getSignedUrl: (filePath: string) => Promise<string | null>;
+  onImageClick?: (attachment: FileAttachment) => void;
 }
 
 function getFileIcon(mimeType: string | null) {
@@ -52,30 +56,46 @@ function isPdf(mimeType: string | null, fileName: string | null): boolean {
   return false;
 }
 
-function AttachmentRow({ attachment, canDelete, onDelete, getSignedUrl }: AttachmentRowProps) {
+function AttachmentRow({ attachment, canDelete, onDelete, getSignedUrl, onImageClick }: AttachmentRowProps) {
   const FileIcon = getFileIcon(attachment.mime_type);
   const fileIsPdf = isPdf(attachment.mime_type, attachment.file_name);
+  const isImage = isImageAttachment(attachment.file_name, attachment.mime_type);
+  const clickable = isImage && !!onImageClick;
 
   const handleGetSignedUrl = useCallback(
     () => getSignedUrl(attachment.file_url),
     [getSignedUrl, attachment.file_url]
   );
 
+  const InfoBlock = (
+    <>
+      <FileIcon className="h-5 w-5 text-muted-foreground shrink-0" />
+      <div className="min-w-0 flex-1 text-left">
+        <p className="text-sm font-medium truncate">{attachment.file_name}</p>
+        <p className="text-xs text-muted-foreground">
+          {getFileTypeLabel(attachment.mime_type)}
+          {attachment.uploaded_at && (
+            <> • {format(new Date(attachment.uploaded_at), "MMM d, yyyy")}</>
+          )}
+        </p>
+      </div>
+    </>
+  );
+
   return (
     <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <FileIcon className="h-5 w-5 text-muted-foreground shrink-0" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium truncate">{attachment.file_name}</p>
-            <p className="text-xs text-muted-foreground">
-              {getFileTypeLabel(attachment.mime_type)}
-              {attachment.uploaded_at && (
-                <> • {format(new Date(attachment.uploaded_at), "MMM d, yyyy")}</>
-              )}
-            </p>
-          </div>
-        </div>
+        {clickable ? (
+          <button
+            type="button"
+            onClick={() => onImageClick!(attachment)}
+            className="flex items-center gap-3 min-w-0 flex-1 hover:opacity-80 transition-opacity cursor-zoom-in"
+          >
+            {InfoBlock}
+          </button>
+        ) : (
+          <div className="flex items-center gap-3 min-w-0 flex-1">{InfoBlock}</div>
+        )}
         {canDelete && (
           <Button
             type="button"
