@@ -30,22 +30,38 @@ export const usePWAInstall = () => {
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(ios);
 
-    // Capture the install prompt event
+    // CHECK if the event was already captured early in main.tsx
+    if (window.__mhhDeferredInstallPrompt) {
+      setDeferredPrompt(window.__mhhDeferredInstallPrompt as BeforeInstallPromptEvent);
+    }
+
+    // Listen for late event (in case it fires after mount)
     const handler = (e: Event) => {
       e.preventDefault();
+      window.__mhhDeferredInstallPrompt = e;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener('beforeinstallprompt', handler);
 
+    // Listen for the custom ready event from main.tsx
+    const readyHandler = () => {
+      if (window.__mhhDeferredInstallPrompt) {
+        setDeferredPrompt(window.__mhhDeferredInstallPrompt as BeforeInstallPromptEvent);
+      }
+    };
+    window.addEventListener('mhh-pwa-prompt-ready', readyHandler);
+
     // Listen for app installed event
     const installedHandler = () => {
       pwaTracking.markInstalled();
+      window.__mhhDeferredInstallPrompt = null;
       setDeferredPrompt(null);
     };
     window.addEventListener('appinstalled', installedHandler);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('mhh-pwa-prompt-ready', readyHandler);
       window.removeEventListener('appinstalled', installedHandler);
     };
   }, []);
@@ -59,6 +75,7 @@ export const usePWAInstall = () => {
         pwaTracking.markInstalled();
       }
       setDeferredPrompt(null);
+      window.__mhhDeferredInstallPrompt = null;
       return choice.outcome === 'accepted';
     } catch (e) {
       console.error('PWA install prompt error', e);
