@@ -56,6 +56,8 @@ export function AttachmentDownloadButton({
   fileName,
   mimeType,
   compact = false,
+  attachment,
+  onImageClick,
 }: AttachmentDownloadButtonProps) {
   const [loading, setLoading] = useState(false);
   const isNative = isCapacitorNative();
