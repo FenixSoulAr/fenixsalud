@@ -642,6 +642,17 @@ export interface Translations {
       step3: string;
     };
   };
+  update: {
+    message: string;
+    cta: string;
+    updating: string;
+    dismiss: string;
+  };
+  maintenance: {
+    defaultMessage: string;
+    cta: string;
+    applying: string;
+  };
 }
 
 export const en: Translations = {
@@ -1323,5 +1334,16 @@ export const en: Translations = {
       step2: 'Select "Add to Home Screen"',
       step3: 'Confirm by tapping "Add"',
     },
+  },
+  update: {
+    message: 'A new version is available',
+    cta: 'Update',
+    updating: 'Updating...',
+    dismiss: 'Close',
+  },
+  maintenance: {
+    defaultMessage: 'Maintenance in progress. Update required.',
+    cta: 'Apply',
+    applying: 'Applying...',
   },
 };

@@ -12,6 +12,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AndroidBackHandler } from "@/components/AndroidBackHandler";
+import { UpdateAvailable } from "@/components/UpdateAvailable";
+import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 // Pages
@@ -184,6 +186,8 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <MaintenanceBanner />
+        <UpdateAvailable />
         <BrowserRouter>
           <AuthProvider>
             <EntitlementsProvider>

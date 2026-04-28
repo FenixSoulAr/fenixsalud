@@ -681,4 +681,15 @@ export const es: Translations = {
       step3: 'Confirmá tocando "Agregar"',
     },
   },
+  update: {
+    message: 'Hay una versión nueva disponible',
+    cta: 'Actualizar',
+    updating: 'Actualizando...',
+    dismiss: 'Cerrar',
+  },
+  maintenance: {
+    defaultMessage: 'Mantenimiento en curso. Se requiere actualización.',
+    cta: 'Aplicar',
+    applying: 'Aplicando...',
+  },
 };
