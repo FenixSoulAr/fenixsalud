@@ -261,7 +261,7 @@ export const ImageViewer = ({
                 />
               ))}
             </div>
-          </>
+          </div>
         )}
       </DialogContent>
     </Dialog>
