@@ -692,4 +692,12 @@ export const es: Translations = {
     cta: 'Aplicar',
     applying: 'Aplicando...',
   },
+  imageViewer: {
+    close: 'Cerrar',
+    download: 'Descargar',
+    next: 'Siguiente imagen',
+    prev: 'Imagen anterior',
+    counter: '{current} de {total}',
+    downloadError: 'No se pudo descargar. Intentá nuevamente.',
+  },
 };

@@ -5,6 +5,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useFileAttachments } from "@/hooks/useFileAttachments";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { AttachmentItem } from "@/components/AttachmentItem";
+import { ImageViewer } from "@/components/ImageViewer";
+import { useImageViewer, type ViewerImage } from "@/hooks/useImageViewer";
+import { isImageAttachment } from "@/utils/attachmentHelpers";
 import type { Database } from "@/integrations/supabase/types";
 
 type EntityType = Database["public"]["Enums"]["entity_type"];
@@ -20,6 +23,7 @@ export function AttachmentIndicator({ entityType, entityId, count }: AttachmentI
   const { attachments, loading, deleteFile, getSignedUrl } = useFileAttachments(entityType, dialogOpen ? entityId : null);
   const { canDelete } = useActiveProfile();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const viewer = useImageViewer();
 
   if (count === 0) return null;
 
@@ -27,6 +31,24 @@ export function AttachmentIndicator({ entityType, entityId, count }: AttachmentI
     if (!deleteId) return;
     await deleteFile(deleteId);
     setDeleteId(null);
+  }
+
+  const imageAttachments = (attachments || []).filter((a) =>
+    isImageAttachment(a.file_name, a.mime_type)
+  );
+
+  async function handleImageClick(att: { id: string; file_name: string; file_url: string; mime_type: string | null }) {
+    // Resolve signed URLs for all images in this entity for navigation
+    const resolved: ViewerImage[] = await Promise.all(
+      imageAttachments.map(async (img) => {
+        const url = await getSignedUrl(img.file_url);
+        return { url: url ?? "", filename: img.file_name };
+      })
+    );
+    const usable = resolved.filter((r) => r.url);
+    if (usable.length === 0) return;
+    const startIndex = imageAttachments.findIndex((i) => i.id === att.id);
+    viewer.openViewer(usable, startIndex >= 0 ? startIndex : 0);
   }
 
   return (
@@ -65,6 +87,7 @@ export function AttachmentIndicator({ entityType, entityId, count }: AttachmentI
                   getSignedUrl={getSignedUrl}
                   canDelete={canDelete}
                   onDelete={setDeleteId}
+                  onImageClick={handleImageClick}
                 />
               ))}
             </div>
@@ -89,6 +112,16 @@ export function AttachmentIndicator({ entityType, entityId, count }: AttachmentI
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImageViewer
+        isOpen={viewer.isOpen}
+        onClose={viewer.closeViewer}
+        images={viewer.images}
+        currentIndex={viewer.currentIndex}
+        hasMultiple={viewer.hasMultiple}
+        onNext={viewer.goNext}
+        onPrev={viewer.goPrev}
+      />
     </>
   );
 }
