@@ -68,28 +68,37 @@ export function AttachmentItem({ attachment, getSignedUrl, canDelete, onDelete, 
   );
 
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-      {clickable ? (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onImageClick!(attachment);
-          }}
-          className="flex items-center gap-3 min-w-0 flex-1 hover:opacity-80 transition-opacity cursor-zoom-in"
-        >
-          {InfoContent}
-        </button>
-      ) : (
-        <div className="flex items-center gap-3 min-w-0 flex-1">{InfoContent}</div>
-      )}
-      <div className="flex items-center gap-1 shrink-0">
+    <div
+      className={`flex items-center justify-between gap-3 p-3 rounded-lg border bg-muted/30 min-h-14 ${
+        clickable ? "cursor-zoom-in hover:bg-accent/50 transition-colors" : ""
+      }`}
+      onClick={clickable ? () => onImageClick!(attachment) : undefined}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onImageClick!(attachment);
+              }
+            }
+          : undefined
+      }
+    >
+      <div className="flex items-center gap-3 min-w-0 flex-1">{InfoContent}</div>
+      <div
+        className="flex items-center gap-1 shrink-0 flex-wrap justify-end"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Unified download button for all file types */}
         <AttachmentDownloadButton
           attachmentId={fileIsPdf ? attachment.id : undefined}
           getSignedUrl={!fileIsPdf ? getUrl : undefined}
           fileName={attachment.file_name}
           mimeType={attachment.mime_type}
+          attachment={attachment}
+          onImageClick={onImageClick}
           compact
         />
         {canDelete && (
@@ -97,7 +106,10 @@ export function AttachmentItem({ attachment, getSignedUrl, canDelete, onDelete, 
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => onDelete(attachment.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(attachment.id);
+            }}
             className="text-destructive hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />
