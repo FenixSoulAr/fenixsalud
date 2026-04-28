@@ -1324,4 +1324,15 @@ export const en: Translations = {
       step3: 'Confirm by tapping "Add"',
     },
   },
+  update: {
+    message: 'A new version is available',
+    cta: 'Update',
+    updating: 'Updating...',
+    dismiss: 'Close',
+  },
+  maintenance: {
+    defaultMessage: 'Maintenance in progress. Update required.',
+    cta: 'Apply',
+    applying: 'Applying...',
+  },
 };
