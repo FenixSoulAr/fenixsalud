@@ -40,6 +40,10 @@ interface AttachmentDownloadButtonProps {
   mimeType?: string | null;
   /** Compact mode for inline display */
   compact?: boolean;
+  /** Full attachment record (required to trigger image viewer) */
+  attachment?: ImageAttachmentForViewer;
+  /** When provided AND attachment is image, click opens viewer instead of downloading */
+  onImageClick?: (attachment: ImageAttachmentForViewer) => void;
 }
 
 /**
