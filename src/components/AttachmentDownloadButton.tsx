@@ -170,7 +170,15 @@ export function AttachmentDownloadButton({
     }
   }
 
-  async function handleAction() {
+  async function handleAction(e?: React.MouseEvent) {
+    e?.stopPropagation();
+
+    // If this is an image and we have an in-app viewer, open it instead of downloading
+    if (attachment && onImageClick && isImageAttachment(attachment.file_name, attachment.mime_type)) {
+      onImageClick(attachment);
+      return;
+    }
+
     setLoading(true);
 
     try {
