@@ -4,6 +4,15 @@ import { getLanguage } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { isImageAttachment } from "@/utils/attachmentHelpers";
+
+interface ImageAttachmentForViewer {
+  id: string;
+  file_name: string;
+  file_url: string;
+  mime_type: string | null;
+  uploaded_at: string | null;
+}
 
 // Detect if running in Capacitor native environment
 function isCapacitorNative(): boolean {
