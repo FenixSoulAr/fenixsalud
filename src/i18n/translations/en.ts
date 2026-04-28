@@ -653,6 +653,14 @@ export interface Translations {
     cta: string;
     applying: string;
   };
+  imageViewer: {
+    close: string;
+    download: string;
+    next: string;
+    prev: string;
+    counter: string;
+    downloadError: string;
+  };
 }
 
 export const en: Translations = {
@@ -1345,5 +1353,13 @@ export const en: Translations = {
     defaultMessage: 'Maintenance in progress. Update required.',
     cta: 'Apply',
     applying: 'Applying...',
+  },
+  imageViewer: {
+    close: 'Close',
+    download: 'Download',
+    next: 'Next image',
+    prev: 'Previous image',
+    counter: '{current} of {total}',
+    downloadError: 'Could not download. Try again.',
   },
 };
