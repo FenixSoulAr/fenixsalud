@@ -210,7 +210,7 @@ export const ImageViewer = ({
 
         {/* Navigation buttons */}
         {hasMultiple && (
-          <>
+          <div className="contents">
             <Button
               type="button"
               variant="secondary"
@@ -261,7 +261,7 @@ export const ImageViewer = ({
                 />
               ))}
             </div>
-          </>
+          </div>
         )}
       </DialogContent>
     </Dialog>
