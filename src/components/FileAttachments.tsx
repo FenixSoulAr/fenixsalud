@@ -83,37 +83,49 @@ function AttachmentRow({ attachment, canDelete, onDelete, getSignedUrl, onImageC
   );
 
   return (
-    <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
+    <div
+      className={`p-3 rounded-lg border bg-muted/30 space-y-2 min-h-14 ${
+        clickable ? "cursor-zoom-in hover:bg-accent/50 transition-colors" : ""
+      }`}
+      onClick={clickable ? () => onImageClick!(attachment) : undefined}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onImageClick!(attachment);
+              }
+            }
+          : undefined
+      }
+    >
       <div className="flex items-center justify-between">
-        {clickable ? (
-          <button
-            type="button"
-            onClick={() => onImageClick!(attachment)}
-            className="flex items-center gap-3 min-w-0 flex-1 hover:opacity-80 transition-opacity cursor-zoom-in"
-          >
-            {InfoBlock}
-          </button>
-        ) : (
-          <div className="flex items-center gap-3 min-w-0 flex-1">{InfoBlock}</div>
-        )}
+        <div className="flex items-center gap-3 min-w-0 flex-1">{InfoBlock}</div>
         {canDelete && (
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            onClick={onDelete}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             aria-label="Delete file"
           >
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         )}
       </div>
-      <div className="pl-8">
+      <div className="pl-8" onClick={(e) => e.stopPropagation()}>
         <AttachmentDownloadButton
           attachmentId={fileIsPdf ? attachment.id : undefined}
           getSignedUrl={!fileIsPdf ? handleGetSignedUrl : undefined}
           fileName={attachment.file_name}
           mimeType={attachment.mime_type}
+          attachment={attachment}
+          onImageClick={onImageClick}
         />
       </div>
     </div>
