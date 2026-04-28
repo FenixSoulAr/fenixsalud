@@ -267,7 +267,7 @@ export function AttachmentDownloadButton({
         type="button"
         variant="ghost"
         size="sm"
-        onClick={handleAction}
+        onClick={(e) => handleAction(e)}
         disabled={loading}
         title={buttonLabel}
       >
@@ -286,7 +286,7 @@ export function AttachmentDownloadButton({
       type="button"
       variant="default"
       size="sm"
-      onClick={handleAction}
+      onClick={(e) => handleAction(e)}
       disabled={loading}
     >
       {loading ? (
