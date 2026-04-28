@@ -184,6 +184,7 @@ export const ImageViewer = ({
         {/* Image area */}
         <div
           className="w-full h-full flex items-center justify-center overflow-hidden touch-none select-none"
+          style={{ touchAction: "none" }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -218,10 +219,16 @@ export const ImageViewer = ({
                 e.stopPropagation();
                 onPrev();
               }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onPrev();
+              }}
               aria-label={t.imageViewer.prev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 rounded-full opacity-80 hover:opacity-100"
+              style={{ touchAction: "manipulation" }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 h-14 w-14 rounded-full bg-black/60 hover:bg-black/80 text-white opacity-90 hover:opacity-100"
             >
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-7 w-7" />
             </Button>
             <Button
               type="button"
@@ -231,11 +238,29 @@ export const ImageViewer = ({
                 e.stopPropagation();
                 onNext();
               }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onNext();
+              }}
               aria-label={t.imageViewer.next}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded-full opacity-80 hover:opacity-100"
+              style={{ touchAction: "manipulation" }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 h-14 w-14 rounded-full bg-black/60 hover:bg-black/80 text-white opacity-90 hover:opacity-100"
             >
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-7 w-7" />
             </Button>
+
+            {/* Dots indicator */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-1.5 bg-black/40 rounded-full px-3 py-1.5 pointer-events-none">
+              {images.map((_, i) => (
+                <span
+                  key={i}
+                  className={`h-2 rounded-full transition-all ${
+                    i === currentIndex ? "bg-white w-6" : "bg-white/50 w-2"
+                  }`}
+                />
+              ))}
+            </div>
           </>
         )}
       </DialogContent>
