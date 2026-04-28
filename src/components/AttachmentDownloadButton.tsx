@@ -4,6 +4,15 @@ import { getLanguage } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { isImageAttachment } from "@/utils/attachmentHelpers";
+
+interface ImageAttachmentForViewer {
+  id: string;
+  file_name: string;
+  file_url: string;
+  mime_type: string | null;
+  uploaded_at: string | null;
+}
 
 // Detect if running in Capacitor native environment
 function isCapacitorNative(): boolean {
@@ -31,6 +40,10 @@ interface AttachmentDownloadButtonProps {
   mimeType?: string | null;
   /** Compact mode for inline display */
   compact?: boolean;
+  /** Full attachment record (required to trigger image viewer) */
+  attachment?: ImageAttachmentForViewer;
+  /** When provided AND attachment is image, click opens viewer instead of downloading */
+  onImageClick?: (attachment: ImageAttachmentForViewer) => void;
 }
 
 /**
@@ -43,6 +56,8 @@ export function AttachmentDownloadButton({
   fileName,
   mimeType,
   compact = false,
+  attachment,
+  onImageClick,
 }: AttachmentDownloadButtonProps) {
   const [loading, setLoading] = useState(false);
   const isNative = isCapacitorNative();
@@ -155,7 +170,15 @@ export function AttachmentDownloadButton({
     }
   }
 
-  async function handleAction() {
+  async function handleAction(e?: React.MouseEvent) {
+    e?.stopPropagation();
+
+    // If this is an image and we have an in-app viewer, open it instead of downloading
+    if (attachment && onImageClick && isImageAttachment(attachment.file_name, attachment.mime_type)) {
+      onImageClick(attachment);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -244,7 +267,7 @@ export function AttachmentDownloadButton({
         type="button"
         variant="ghost"
         size="sm"
-        onClick={handleAction}
+        onClick={(e) => handleAction(e)}
         disabled={loading}
         title={buttonLabel}
       >
@@ -263,7 +286,7 @@ export function AttachmentDownloadButton({
       type="button"
       variant="default"
       size="sm"
-      onClick={handleAction}
+      onClick={(e) => handleAction(e)}
       disabled={loading}
     >
       {loading ? (
