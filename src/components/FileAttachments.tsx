@@ -277,6 +277,16 @@ export function FileAttachments({ entityType, entityId }: FileAttachmentsProps) 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImageViewer
+        isOpen={viewer.isOpen}
+        onClose={viewer.closeViewer}
+        images={viewer.images}
+        currentIndex={viewer.currentIndex}
+        hasMultiple={viewer.hasMultiple}
+        onNext={viewer.goNext}
+        onPrev={viewer.goPrev}
+      />
     </div>
   );
 }
