@@ -642,6 +642,17 @@ export interface Translations {
       step3: string;
     };
   };
+  update: {
+    message: string;
+    cta: string;
+    updating: string;
+    dismiss: string;
+  };
+  maintenance: {
+    defaultMessage: string;
+    cta: string;
+    applying: string;
+  };
 }
 
 export const en: Translations = {
