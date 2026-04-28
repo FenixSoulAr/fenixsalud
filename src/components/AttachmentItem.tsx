@@ -3,18 +3,23 @@ import { FileText, Image, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AttachmentDownloadButton } from "@/components/AttachmentDownloadButton";
 import { format } from "date-fns";
+import { isImageAttachment } from "@/utils/attachmentHelpers";
+
+interface AttachmentRecord {
+  id: string;
+  file_name: string;
+  file_url: string;
+  mime_type: string | null;
+  uploaded_at: string | null;
+}
 
 interface AttachmentItemProps {
-  attachment: {
-    id: string;
-    file_name: string;
-    file_url: string;
-    mime_type: string | null;
-    uploaded_at: string | null;
-  };
+  attachment: AttachmentRecord;
   getSignedUrl: (fileUrl: string) => Promise<string | null>;
   canDelete: boolean;
   onDelete: (id: string) => void;
+  /** When provided AND the attachment is an image, clicking the row opens the viewer */
+  onImageClick?: (attachment: AttachmentRecord) => void;
 }
 
 function getFileIcon(mimeType: string | null) {
@@ -35,9 +40,11 @@ function isPdf(mimeType: string | null, fileName: string | null): boolean {
   return false;
 }
 
-export function AttachmentItem({ attachment, getSignedUrl, canDelete, onDelete }: AttachmentItemProps) {
+export function AttachmentItem({ attachment, getSignedUrl, canDelete, onDelete, onImageClick }: AttachmentItemProps) {
   const FileIcon = getFileIcon(attachment.mime_type);
   const fileIsPdf = isPdf(attachment.mime_type, attachment.file_name);
+  const isImage = isImageAttachment(attachment.file_name, attachment.mime_type);
+  const clickable = isImage && !!onImageClick;
 
   // Get signed URL callback for images
   const getUrl = useCallback(
@@ -45,20 +52,37 @@ export function AttachmentItem({ attachment, getSignedUrl, canDelete, onDelete }
     [getSignedUrl, attachment.file_url]
   );
 
+  const InfoContent = (
+    <>
+      <FileIcon className="h-5 w-5 text-muted-foreground shrink-0" />
+      <div className="min-w-0 flex-1 text-left">
+        <p className="text-sm font-medium truncate">{attachment.file_name}</p>
+        <p className="text-xs text-muted-foreground">
+          {getFileTypeLabel(attachment.mime_type)}
+          {attachment.uploaded_at && (
+            <> • {format(new Date(attachment.uploaded_at), "MMM d, yyyy")}</>
+          )}
+        </p>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <FileIcon className="h-5 w-5 text-muted-foreground shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium truncate">{attachment.file_name}</p>
-          <p className="text-xs text-muted-foreground">
-            {getFileTypeLabel(attachment.mime_type)}
-            {attachment.uploaded_at && (
-              <> • {format(new Date(attachment.uploaded_at), "MMM d, yyyy")}</>
-            )}
-          </p>
-        </div>
-      </div>
+      {clickable ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onImageClick!(attachment);
+          }}
+          className="flex items-center gap-3 min-w-0 flex-1 hover:opacity-80 transition-opacity cursor-zoom-in"
+        >
+          {InfoContent}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 min-w-0 flex-1">{InfoContent}</div>
+      )}
       <div className="flex items-center gap-1 shrink-0">
         {/* Unified download button for all file types */}
         <AttachmentDownloadButton
