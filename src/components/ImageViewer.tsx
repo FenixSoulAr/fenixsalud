@@ -226,7 +226,7 @@ export const ImageViewer = ({
               }}
               aria-label={t.imageViewer.prev}
               style={{ touchAction: "manipulation" }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 h-14 w-14 rounded-full bg-white/15 hover:bg-white/30 backdrop-blur-md border border-white/40 text-white shadow-lg transition-all"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 h-14 w-14 rounded-full bg-foreground/90 hover:bg-foreground text-background shadow-lg transition-all"
             >
               <ChevronLeft className="h-7 w-7" />
             </Button>
@@ -245,7 +245,7 @@ export const ImageViewer = ({
               }}
               aria-label={t.imageViewer.next}
               style={{ touchAction: "manipulation" }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 h-14 w-14 rounded-full bg-white/15 hover:bg-white/30 backdrop-blur-md border border-white/40 text-white shadow-lg transition-all"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 h-14 w-14 rounded-full bg-foreground/90 hover:bg-foreground text-background shadow-lg transition-all"
             >
               <ChevronRight className="h-7 w-7" />
             </Button>
