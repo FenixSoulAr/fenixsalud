@@ -24,8 +24,8 @@ export function EmptyState({
   return (
     <Card className="border-dashed border-2 bg-muted/30">
       <div className="empty-state animate-fade-in">
-        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-5">
-          <Icon className="w-8 h-8 text-muted-foreground" />
+        <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-5">
+          <Icon className="w-8 h-8 text-info" strokeWidth={1.75} />
         </div>
         <h3 className="empty-state-title">{title}</h3>
         <p className="empty-state-description">{description}</p>

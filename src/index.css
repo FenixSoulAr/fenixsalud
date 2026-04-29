@@ -301,6 +301,23 @@ input[type="time"] {
     @apply bg-sidebar-accent text-sidebar-accent-foreground font-semibold;
   }
 
+  /* Spot 1 — vibrant teal icon for active sidebar item */
+  .nav-item.active svg {
+    @apply text-primary;
+  }
+
+  /* Spot 2 — decorative teal→sky gradient line under page titles */
+  .page-header h1::after {
+    content: '';
+    display: block;
+    width: 48px;
+    height: 3px;
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--info)));
+    border-radius: 2px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+
   /* Timeline item */
   .timeline-item {
     @apply relative pl-8 pb-8 last:pb-0;
