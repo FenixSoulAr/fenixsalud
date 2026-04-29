@@ -52,8 +52,9 @@ export function useEmergencyInfo() {
       return;
     }
     setIsLoading(true);
-    const { data: row, error } = await supabase
-      .from("profiles")
+    // Cast to any: generated types may lag behind new columns (blood_type, emergency_phone)
+    const { data: row, error } = await (supabase
+      .from("profiles") as any)
       .select(
         "id, blood_type, emergency_phone, allergies, insurance_provider, insurance_plan, insurance_member_id"
       )
