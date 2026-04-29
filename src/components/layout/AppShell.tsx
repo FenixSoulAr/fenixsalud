@@ -179,7 +179,10 @@ export function AppShell({ children }: AppShellProps) {
               <span className="text-base font-semibold tracking-tight whitespace-nowrap">{t.appName}</span>
             </Link>
           </div>
-          <NavbarProfileMenu />
+          <div className="flex items-center gap-2">
+            <EmergencyButton />
+            <NavbarProfileMenu />
+          </div>
         </header>
 
         {/* Page content */}
