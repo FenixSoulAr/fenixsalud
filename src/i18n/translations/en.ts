@@ -661,6 +661,32 @@ export interface Translations {
     counter: string;
     downloadError: string;
   };
+  emergency: {
+    buttonLabel: string;
+    modalTitle: string;
+    modalSubtitle: string;
+    onboardingMessage: string;
+    critical: string;
+    bloodType: string;
+    selectBloodType: string;
+    bloodTypeUnknown: string;
+    emergencyPhone: string;
+    emergencyPhonePlaceholder: string;
+    allergies: string;
+    allergiesPlaceholder: string;
+    allergiesSuggestions: string[];
+    insuranceProvider: string;
+    insurancePlan: string;
+    insuranceMemberId: string;
+    edit: string;
+    save: string;
+    close: string;
+    cancel: string;
+    dismissForNow: string;
+    saveSuccess: string;
+    saveError: string;
+    emptyValue: string;
+  };
 }
 
 export const en: Translations = {
