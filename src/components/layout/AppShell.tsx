@@ -22,6 +22,7 @@ import { useTranslations } from "@/i18n";
 import { SharingBanner } from "@/components/sharing/SharingBanner";
 import { NavbarProfileMenu } from "@/components/sharing/NavbarProfileMenu";
 import { ActiveProfileIndicator } from "@/components/sharing/ActiveProfileIndicator";
+import { EmergencyButton } from "@/components/EmergencyButton";
 
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { toast } from "sonner";
