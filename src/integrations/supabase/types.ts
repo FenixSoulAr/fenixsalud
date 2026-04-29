@@ -214,6 +214,7 @@ export type Database = {
           is_active: boolean
           last_used_at: string | null
           max_redemptions: number | null
+          plan_code: string
           redeemed_count: number
           stackable: boolean
           stripe_coupon_id: string | null
@@ -232,6 +233,7 @@ export type Database = {
           is_active?: boolean
           last_used_at?: string | null
           max_redemptions?: number | null
+          plan_code?: string
           redeemed_count?: number
           stackable?: boolean
           stripe_coupon_id?: string | null
@@ -250,6 +252,7 @@ export type Database = {
           is_active?: boolean
           last_used_at?: string | null
           max_redemptions?: number | null
+          plan_code?: string
           redeemed_count?: number
           stackable?: boolean
           stripe_coupon_id?: string | null
@@ -1099,6 +1102,7 @@ export type Database = {
           default_payment_method_last4: string | null
           id: string
           last_verified_at: string | null
+          pending_plan_code: string | null
           plan_id: string
           provider: string
           provider_product_id: string | null
@@ -1117,6 +1121,7 @@ export type Database = {
           default_payment_method_last4?: string | null
           id?: string
           last_verified_at?: string | null
+          pending_plan_code?: string | null
           plan_id: string
           provider?: string
           provider_product_id?: string | null
@@ -1135,6 +1140,7 @@ export type Database = {
           default_payment_method_last4?: string | null
           id?: string
           last_verified_at?: string | null
+          pending_plan_code?: string | null
           plan_id?: string
           provider?: string
           provider_product_id?: string | null
