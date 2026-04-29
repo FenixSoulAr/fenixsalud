@@ -819,7 +819,9 @@ export type Database = {
       profiles: {
         Row: {
           allergies: string | null
+          blood_type: string | null
           created_at: string | null
+          emergency_phone: string | null
           first_name: string | null
           full_name: string | null
           id: string
@@ -839,7 +841,9 @@ export type Database = {
         }
         Insert: {
           allergies?: string | null
+          blood_type?: string | null
           created_at?: string | null
+          emergency_phone?: string | null
           first_name?: string | null
           full_name?: string | null
           id?: string
@@ -859,7 +863,9 @@ export type Database = {
         }
         Update: {
           allergies?: string | null
+          blood_type?: string | null
           created_at?: string | null
+          emergency_phone?: string | null
           first_name?: string | null
           full_name?: string | null
           id?: string
