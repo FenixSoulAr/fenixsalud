@@ -1,27 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Database } from "@/integrations/supabase/types";
 
-export interface EmergencyInfoData {
-  id?: string;
-  blood_type: string | null;
-  emergency_phone: string | null;
-  allergies: string | null;
-  insurance_provider: string | null;
-  insurance_plan: string | null;
-  insurance_member_id: string | null;
-}
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
-const EMPTY: EmergencyInfoData = {
-  blood_type: null,
-  emergency_phone: null,
-  allergies: null,
-  insurance_provider: null,
-  insurance_plan: null,
-  insurance_member_id: null,
-};
-
-const FIELDS = [
+const EMERGENCY_FIELDS = [
   "blood_type",
   "emergency_phone",
   "allergies",
@@ -30,11 +14,25 @@ const FIELDS = [
   "insurance_member_id",
 ] as const;
 
+type EmergencyField = (typeof EMERGENCY_FIELDS)[number];
+
+export type EmergencyInfoData = Pick<ProfileRow, "id" | EmergencyField>;
+export type EmergencyInfoPatch = Partial<Pick<ProfileRow, EmergencyField>>;
+
+const EMPTY: EmergencyInfoData = {
+  id: "",
+  blood_type: null,
+  emergency_phone: null,
+  allergies: null,
+  insurance_provider: null,
+  insurance_plan: null,
+  insurance_member_id: null,
+};
+
 function computeIsFirstUse(data: EmergencyInfoData | null): boolean {
   if (!data) return true;
-  const rec = data as unknown as Record<string, unknown>;
-  return FIELDS.every((f) => {
-    const v = rec[f];
+  return EMERGENCY_FIELDS.every((f) => {
+    const v = data[f];
     return v === null || v === undefined || (typeof v === "string" && v.trim() === "");
   });
 }
@@ -52,9 +50,8 @@ export function useEmergencyInfo() {
       return;
     }
     setIsLoading(true);
-    // Cast to any: generated types may lag behind new columns (blood_type, emergency_phone)
-    const { data: row, error } = await (supabase
-      .from("profiles") as any)
+    const { data: row, error } = await supabase
+      .from("profiles")
       .select(
         "id, blood_type, emergency_phone, allergies, insurance_provider, insurance_plan, insurance_member_id"
       )
@@ -66,7 +63,7 @@ export function useEmergencyInfo() {
       console.warn("[useEmergencyInfo] fetch error:", error);
       setData(null);
     } else if (row) {
-      setData(row as EmergencyInfoData);
+      setData(row);
     } else {
       setData(null);
     }
@@ -78,19 +75,18 @@ export function useEmergencyInfo() {
   }, [fetchData]);
 
   const save = useCallback(
-    async (patch: Partial<EmergencyInfoData>): Promise<boolean> => {
+    async (patch: EmergencyInfoPatch): Promise<boolean> => {
       if (!user) return false;
       setIsSaving(true);
       try {
         if (data?.id) {
-          const { error } = await (supabase
-            .from("profiles") as any)
+          const { error } = await supabase
+            .from("profiles")
             .update(patch)
             .eq("id", data.id);
           if (error) throw error;
         } else {
-          // Upsert: create owner profile row if missing
-          const { error } = await (supabase.from("profiles") as any).insert({
+          const { error } = await supabase.from("profiles").insert({
             owner_user_id: user.id,
             user_id: user.id,
             ...patch,
