@@ -211,7 +211,7 @@ export default function Dashboard() {
                 {appointments.length > 0 && (
                   <section className="health-card">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" />{t.dashboard.upcomingAppointments}</h2>
+                      <h2 className="text-lg font-semibold flex items-center gap-2"><span className="inline-block h-2 w-2 rounded-full bg-primary" aria-hidden="true" /><Calendar className="h-5 w-5 text-primary" />{t.dashboard.upcomingAppointments}</h2>
                       <Link to="/appointments" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                     </div>
                     <div className="space-y-3">
@@ -239,7 +239,7 @@ export default function Dashboard() {
                 {medications.length > 0 && (
                   <section className="health-card">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold flex items-center gap-2"><Pill className="h-5 w-5 text-primary" />{t.dashboard.activeMedications}</h2>
+                      <h2 className="text-lg font-semibold flex items-center gap-2"><span className="inline-block h-2 w-2 rounded-full bg-primary" aria-hidden="true" /><Pill className="h-5 w-5 text-primary" />{t.dashboard.activeMedications}</h2>
                       <Link to="/medications" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                     </div>
                     <div className="space-y-4">
@@ -279,7 +279,7 @@ export default function Dashboard() {
                 {tests.length > 0 && (
                   <section className="health-card">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold flex items-center gap-2"><FlaskConical className="h-5 w-5 text-primary" />Estudios recientes</h2>
+                      <h2 className="text-lg font-semibold flex items-center gap-2"><span className="inline-block h-2 w-2 rounded-full bg-primary" aria-hidden="true" /><FlaskConical className="h-5 w-5 text-primary" />Estudios recientes</h2>
                       <Link to="/tests" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                     </div>
                     <div className="space-y-3">
@@ -307,7 +307,7 @@ export default function Dashboard() {
                 {reminders.length > 0 && (
                   <section className="health-card">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold flex items-center gap-2"><Bell className="h-5 w-5 text-primary" />{t.nav.reminders}</h2>
+                      <h2 className="text-lg font-semibold flex items-center gap-2"><span className="inline-block h-2 w-2 rounded-full bg-primary" aria-hidden="true" /><Bell className="h-5 w-5 text-primary" />{t.nav.reminders}</h2>
                       <Link to="/reminders" className="text-sm text-primary hover:underline flex items-center gap-1">{t.dashboard.viewAll} <ArrowRight className="h-3 w-3" /></Link>
                     </div>
                     <div className="space-y-3">
