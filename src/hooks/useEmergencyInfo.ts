@@ -83,14 +83,14 @@ export function useEmergencyInfo() {
       setIsSaving(true);
       try {
         if (data?.id) {
-          const { error } = await supabase
-            .from("profiles")
+          const { error } = await (supabase
+            .from("profiles") as any)
             .update(patch)
             .eq("id", data.id);
           if (error) throw error;
         } else {
           // Upsert: create owner profile row if missing
-          const { error } = await supabase.from("profiles").insert({
+          const { error } = await (supabase.from("profiles") as any).insert({
             owner_user_id: user.id,
             user_id: user.id,
             ...patch,
