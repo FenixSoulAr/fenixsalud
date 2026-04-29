@@ -22,6 +22,7 @@ import { useTranslations } from "@/i18n";
 import { SharingBanner } from "@/components/sharing/SharingBanner";
 import { NavbarProfileMenu } from "@/components/sharing/NavbarProfileMenu";
 import { ActiveProfileIndicator } from "@/components/sharing/ActiveProfileIndicator";
+import { EmergencyButton } from "@/components/EmergencyButton";
 
 import { useEntitlementsContext } from "@/contexts/EntitlementsContext";
 import { toast } from "sonner";
@@ -178,12 +179,16 @@ export function AppShell({ children }: AppShellProps) {
               <span className="text-base font-semibold tracking-tight whitespace-nowrap">{t.appName}</span>
             </Link>
           </div>
-          <NavbarProfileMenu />
+          <div className="flex items-center gap-2">
+            <EmergencyButton />
+            <NavbarProfileMenu />
+          </div>
         </header>
 
         {/* Page content */}
         {/* Desktop header */}
         <header className="hidden lg:flex sticky top-0 z-30 h-14 items-center justify-end gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-8">
+          <EmergencyButton />
           <NavbarProfileMenu />
         </header>
 

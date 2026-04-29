@@ -661,6 +661,32 @@ export interface Translations {
     counter: string;
     downloadError: string;
   };
+  emergency: {
+    buttonLabel: string;
+    modalTitle: string;
+    modalSubtitle: string;
+    onboardingMessage: string;
+    critical: string;
+    bloodType: string;
+    selectBloodType: string;
+    bloodTypeUnknown: string;
+    emergencyPhone: string;
+    emergencyPhonePlaceholder: string;
+    allergies: string;
+    allergiesPlaceholder: string;
+    allergiesSuggestions: string[];
+    insuranceProvider: string;
+    insurancePlan: string;
+    insuranceMemberId: string;
+    edit: string;
+    save: string;
+    close: string;
+    cancel: string;
+    dismissForNow: string;
+    saveSuccess: string;
+    saveError: string;
+    emptyValue: string;
+  };
 }
 
 export const en: Translations = {
@@ -1361,5 +1387,31 @@ export const en: Translations = {
     prev: 'Previous image',
     counter: '{current} of {total}',
     downloadError: 'Could not download. Try again.',
+  },
+  emergency: {
+    buttonLabel: 'Emergency',
+    modalTitle: 'Emergency information',
+    modalSubtitle: 'Critical data that could save your life',
+    onboardingMessage: 'This information is vital in a medical emergency. Fields marked with ★ are the most important.',
+    critical: 'Critical',
+    bloodType: 'Blood type',
+    selectBloodType: 'Select...',
+    bloodTypeUnknown: 'Unknown',
+    emergencyPhone: 'Emergency phone',
+    emergencyPhonePlaceholder: 'E.g.: 911 / +1 555 123-4567',
+    allergies: 'Allergies',
+    allergiesPlaceholder: 'E.g.: penicillin, shellfish, latex...',
+    allergiesSuggestions: ['Penicillin', 'Aspirin', 'Shellfish', 'Peanuts', 'Latex', 'Pollen'],
+    insuranceProvider: 'Insurance provider',
+    insurancePlan: 'Plan',
+    insuranceMemberId: 'Member ID',
+    edit: 'Edit',
+    save: 'Save',
+    close: 'Close',
+    cancel: 'Cancel',
+    dismissForNow: 'Later',
+    saveSuccess: 'Information updated',
+    saveError: 'Could not save. Please try again.',
+    emptyValue: '—',
   },
 };
