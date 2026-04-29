@@ -32,8 +32,9 @@ const FIELDS = [
 
 function computeIsFirstUse(data: EmergencyInfoData | null): boolean {
   if (!data) return true;
+  const rec = data as unknown as Record<string, unknown>;
   return FIELDS.every((f) => {
-    const v = (data as Record<string, unknown>)[f];
+    const v = rec[f];
     return v === null || v === undefined || (typeof v === "string" && v.trim() === "");
   });
 }
