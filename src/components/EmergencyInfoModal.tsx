@@ -61,7 +61,7 @@ function ReadRow({ label, value, critical, t }: { label: string; value: string |
 
 export function EmergencyInfoModal({ open, onOpenChange }: Props) {
   const t = useTranslations();
-  const { data, isFirstUse, isLoading, save, isSaving } = useEmergencyInfo();
+  const { data, isFirstUse, isLoading, save, isSaving, ownerDisplayName } = useEmergencyInfo();
   const [mode, setMode] = useState<"read" | "edit">("read");
   const [form, setForm] = useState<EmergencyInfoData>(data);
 
@@ -114,6 +114,11 @@ export function EmergencyInfoModal({ open, onOpenChange }: Props) {
             <Siren className="h-5 w-5 text-destructive" />
             {t.emergency.modalTitle}
           </DialogTitle>
+          {ownerDisplayName && (
+            <p className="text-xs text-muted-foreground pt-0.5">
+              {t.emergency.belongsTo} <span className="font-medium">{ownerDisplayName}</span>
+            </p>
+          )}
           <DialogDescription>{t.emergency.modalSubtitle}</DialogDescription>
         </DialogHeader>
 

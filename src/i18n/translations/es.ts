@@ -725,5 +725,6 @@ export const es: Translations = {
     saveSuccess: 'Información actualizada',
     saveError: 'No se pudo guardar. Intentá de nuevo.',
     emptyValue: '—',
+    belongsTo: 'Esta tarjeta corresponde a:',
   },
 };

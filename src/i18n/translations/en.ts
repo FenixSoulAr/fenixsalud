@@ -686,6 +686,7 @@ export interface Translations {
     saveSuccess: string;
     saveError: string;
     emptyValue: string;
+    belongsTo: string;
   };
 }
 
@@ -1413,5 +1414,6 @@ export const en: Translations = {
     saveSuccess: 'Information updated',
     saveError: 'Could not save. Please try again.',
     emptyValue: '—',
+    belongsTo: 'This card belongs to:',
   },
 };
