@@ -116,11 +116,15 @@ export function useEmergencyInfo() {
   const effective = data ?? EMPTY;
   const isFirstUse = computeIsFirstUse(data);
 
-  const ownerDisplayName =
-    (ownerName?.full_name && ownerName.full_name.trim()) ||
-    (ownerName?.first_name && ownerName.first_name.trim()) ||
-    user?.email ||
-    null;
+  // Guarantee a non-null display name whenever a user is logged in.
+  // Priority: profile.full_name > profile.first_name > user.email > user.id > null
+  const ownerDisplayName: string | null = user
+    ? (ownerName?.full_name && ownerName.full_name.trim()) ||
+      (ownerName?.first_name && ownerName.first_name.trim()) ||
+      (user.email && user.email.trim()) ||
+      user.id ||
+      null
+    : null;
 
   return { data: effective, isLoading, isFirstUse, save, isSaving, ownerDisplayName };
 }
