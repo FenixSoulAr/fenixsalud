@@ -1190,7 +1190,7 @@ export const en: Translations = {
     attachments: "Attachments",
     upgradePlus: "Upgrade to Plus",
     plusActive: "You're on the Plus plan. Thank you for your support!",
-    familyProfiles: "Family Profiles",
+    familyProfiles: "Manage family profiles",
     familyProfilesDesc: "Manage health profiles for family members",
     addFamilyProfile: "Add Family Profile",
     noFamilyProfiles: "No family profiles yet",
