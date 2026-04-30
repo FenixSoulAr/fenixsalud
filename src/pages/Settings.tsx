@@ -728,9 +728,6 @@ export default function Settings() {
         </section>
 
 
-        {/* Sharing Section */}
-        <SharingSection />
-
         {/* Notifications Section */}
         <section className="health-card">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
