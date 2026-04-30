@@ -70,7 +70,10 @@ export function SharingSection() {
       <section className="health-card">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Users className="h-5 w-5" />
-          {lang === "es" ? "Compartir perfil" : "Profile Sharing"}
+          {lang === "es" ? "Compartir mi perfil con otros" : "Share my profile with others"}
+          <Badge className="bg-primary text-primary-foreground text-[10px] px-2 py-0.5 whitespace-nowrap ml-1">
+            PLUS
+          </Badge>
         </h2>
         <div className="text-center py-6">
           <Crown className="h-12 w-12 mx-auto mb-3 text-amber-500" />
@@ -206,7 +209,10 @@ export function SharingSection() {
     <section className="health-card">
       <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
         <Users className="h-5 w-5" />
-        {lang === "es" ? "Compartir perfil" : "Profile Sharing"}
+        {lang === "es" ? "Compartir mi perfil con otros" : "Share my profile with others"}
+        <Badge className="bg-primary text-primary-foreground text-[10px] px-2 py-0.5 whitespace-nowrap ml-1">
+          PLUS
+        </Badge>
       </h2>
       
       <p className="text-sm text-muted-foreground mb-4">
