@@ -475,6 +475,7 @@ export interface Translations {
     attachments: string;
     upgradePlus: string;
     plusActive: string;
+    proActive: string;
     familyProfiles: string;
     familyProfilesDesc: string;
     addFamilyProfile: string;
@@ -1191,6 +1192,7 @@ export const en: Translations = {
     attachments: "Attachments",
     upgradePlus: "Upgrade to Plus",
     plusActive: "You're on the Plus plan. Thank you for your support!",
+    proActive: "You're on the Pro plan. Thank you for your support!",
     familyProfiles: "Manage family profiles",
     familyProfilesDesc: "Manage health profiles for family members",
     addFamilyProfile: "Add Family Profile",

@@ -1138,7 +1138,9 @@ function PlanSubscriptionSection({
         
         {(isPlus || isPro) && !hasPromoOverride && (
           <p className="text-sm text-muted-foreground text-center">
-            {t.settings.plusActive || "Thank you for your support!"}
+            {isPro
+              ? (t.settings.proActive || "You're on the Pro plan. Thank you for your support!")
+              : (t.settings.plusActive || "You're on the Plus plan. Thank you for your support!")}
           </p>
         )}
       </div>

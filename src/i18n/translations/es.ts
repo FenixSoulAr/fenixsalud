@@ -502,6 +502,7 @@ export const es: Translations = {
     attachments: "Adjuntos",
     upgradePlus: "Actualizar a Plus",
     plusActive: "Estás en el plan Plus. ¡Gracias por tu apoyo!",
+    proActive: "Estás en el plan Pro. ¡Gracias por tu apoyo!",
     familyProfiles: "Gestionar perfiles de familiares",
     familyProfilesDesc: "Administra perfiles de salud para tu familia",
     addFamilyProfile: "Agregar perfil familiar",
