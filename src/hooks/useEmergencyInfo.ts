@@ -5,7 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
-type OwnerName = { full_name: string | null; first_name: string | null } | null;
+type OwnerName = { full_name: string | null; first_name: string | null; last_name: string | null } | null;
 
 const EMERGENCY_FIELDS = [
   "blood_type",
@@ -57,7 +57,7 @@ export function useEmergencyInfo() {
     const { data: row, error } = await supabase
       .from("profiles")
       .select(
-        "id, blood_type, emergency_phone, allergies, insurance_provider, insurance_plan, insurance_member_id, full_name, first_name"
+        "id, blood_type, emergency_phone, allergies, insurance_provider, insurance_plan, insurance_member_id, full_name, first_name, last_name"
       )
       .eq("owner_user_id", user.id)
       .eq("user_id", user.id)
@@ -68,9 +68,13 @@ export function useEmergencyInfo() {
       setData(null);
       setOwnerName(null);
     } else if (row) {
-      const { full_name, first_name, ...emergency } = row as any;
+      const { full_name, first_name, last_name, ...emergency } = row as any;
       setData(emergency);
-      setOwnerName({ full_name: full_name ?? null, first_name: first_name ?? null });
+      setOwnerName({
+        full_name: full_name ?? null,
+        first_name: first_name ?? null,
+        last_name: last_name ?? null,
+      });
     } else {
       setData(null);
       setOwnerName(null);
@@ -116,13 +120,17 @@ export function useEmergencyInfo() {
   const effective = data ?? EMPTY;
   const isFirstUse = computeIsFirstUse(data);
 
-  // Guarantee a non-null display name whenever a user is logged in.
-  // Priority: profile.full_name > profile.first_name > user.email > user.id > null
+  const trimmedFull = ownerName?.full_name?.trim();
+  const fullFromParts = [ownerName?.first_name, ownerName?.last_name]
+    .filter(Boolean)
+    .map((s) => s?.trim())
+    .filter((s) => s && s.length > 0)
+    .join(" ");
+
   const ownerDisplayName: string | null = user
-    ? (ownerName?.full_name && ownerName.full_name.trim()) ||
-      (ownerName?.first_name && ownerName.first_name.trim()) ||
+    ? (trimmedFull && trimmedFull.length > 0 ? trimmedFull : null) ||
+      (fullFromParts && fullFromParts.length > 0 ? fullFromParts : null) ||
       (user.email && user.email.trim()) ||
-      user.id ||
       null
     : null;
 
