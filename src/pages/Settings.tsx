@@ -547,11 +547,17 @@ export default function Settings() {
           />
         )}
 
-        {/* Family Profiles Section */}
+        {/* Sharing Section (Plus) — listed first to reflect Plus → Pro upgrade path */}
+        <SharingSection />
+
+        {/* Family Profiles Section (Pro) */}
         <section className="health-card">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Users className="h-5 w-5" />
             {t.settings.familyProfiles}
+            <Badge className="bg-primary text-primary-foreground text-[10px] px-2 py-0.5 whitespace-nowrap ml-1">
+              PRO
+            </Badge>
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
             {t.settings.familyProfilesDesc}
