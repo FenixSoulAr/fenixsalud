@@ -5,6 +5,8 @@ import type { Database } from "@/integrations/supabase/types";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
+type OwnerName = { full_name: string | null; first_name: string | null } | null;
+
 const EMERGENCY_FIELDS = [
   "blood_type",
   "emergency_phone",
@@ -40,12 +42,14 @@ function computeIsFirstUse(data: EmergencyInfoData | null): boolean {
 export function useEmergencyInfo() {
   const { user } = useAuth();
   const [data, setData] = useState<EmergencyInfoData | null>(null);
+  const [ownerName, setOwnerName] = useState<OwnerName>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user) {
       setData(null);
+      setOwnerName(null);
       setIsLoading(false);
       return;
     }
@@ -53,7 +57,7 @@ export function useEmergencyInfo() {
     const { data: row, error } = await supabase
       .from("profiles")
       .select(
-        "id, blood_type, emergency_phone, allergies, insurance_provider, insurance_plan, insurance_member_id"
+        "id, blood_type, emergency_phone, allergies, insurance_provider, insurance_plan, insurance_member_id, full_name, first_name"
       )
       .eq("owner_user_id", user.id)
       .eq("user_id", user.id)
@@ -62,10 +66,14 @@ export function useEmergencyInfo() {
     if (error) {
       console.warn("[useEmergencyInfo] fetch error:", error);
       setData(null);
+      setOwnerName(null);
     } else if (row) {
-      setData(row);
+      const { full_name, first_name, ...emergency } = row as any;
+      setData(emergency);
+      setOwnerName({ full_name: full_name ?? null, first_name: first_name ?? null });
     } else {
       setData(null);
+      setOwnerName(null);
     }
     setIsLoading(false);
   }, [user]);
@@ -108,5 +116,11 @@ export function useEmergencyInfo() {
   const effective = data ?? EMPTY;
   const isFirstUse = computeIsFirstUse(data);
 
-  return { data: effective, isLoading, isFirstUse, save, isSaving };
+  const ownerDisplayName =
+    (ownerName?.full_name && ownerName.full_name.trim()) ||
+    (ownerName?.first_name && ownerName.first_name.trim()) ||
+    user?.email ||
+    null;
+
+  return { data: effective, isLoading, isFirstUse, save, isSaving, ownerDisplayName };
 }
